@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Trading Report — COPE Sensitive Freight</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a2744;--navy-d:#111b30;--navy-m:#243460;--navy-l:#e8ebf3;
+  --red:#c8102e;--red-d:#a50d25;--red-l:#fdf2f4;--red-b:#f5b8c2;
+  --white:#fff;--off:#f5f6fa;--rule:#e2e6f0;--rule-l:#edf0f7;
+  --ink:#1a2744;--ink-2:#2d3d6b;--muted:#7b88a8;--subtle:#aab3cb;
+  --green:#0e7a47;--green-l:#edf7f2;--green-b:#9fd9bd;
+  --amber:#b45309;--amber-l:#fffbeb;--amber-b:#fde68a;
+  --sans:'Barlow',system-ui,sans-serif;
+  --cond:'Barlow Condensed',system-ui,sans-serif;
+  --r:8px;
+  --sh:0 1px 4px rgba(26,39,68,.07),0 2px 12px rgba(26,39,68,.06);
+  --sh-lg:0 8px 40px rgba(26,39,68,.14),0 2px 8px rgba(26,39,68,.06);
+}
+html{font-size:14px}
+body{font-family:var(--sans);background:var(--off);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── HEADER ── */
+header{background:var(--navy);padding:0 36px;display:flex;align-items:center;justify-content:space-between;height:66px;position:sticky;top:0;z-index:300;box-shadow:0 2px 16px rgba(0,0,0,.28)}
+.hd-l{display:flex;align-items:center;gap:18px}
+.cope-mark{font-family:var(--cond);font-size:24px;font-weight:700;color:var(--white);letter-spacing:.02em;line-height:1;user-select:none}
+.hd-div{width:1px;height:32px;background:rgba(255,255,255,.15)}
+.hd-titles{}
+.hd-name{font-family:var(--cond);font-size:15px;font-weight:600;color:var(--white);letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.hd-sub{font-size:10.5px;color:rgba(255,255,255,.45);margin-top:3px;letter-spacing:.04em}
+.hd-r{display:flex;align-items:center;gap:10px}
+.hd-sync{font-size:10.5px;font-weight:600;letter-spacing:.05em;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:6px;transition:color .2s}
+.hd-sync.ok{color:#4ade80}
+.hd-sync.err{color:#f87171}
+.hd-sync.busy{color:rgba(255,255,255,.5)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.sync-dot.pulse{animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hd-date{text-align:right}
+.hd-date-lbl{font-size:9.5px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase}
+.hd-date-val{font-size:11.5px;color:rgba(255,255,255,.7);margin-top:2px}
+.btn-sm-ghost{font-family:var(--sans);font-size:11px;font-weight:600;color:rgba(255,255,255,.45);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);padding:5px 12px;border-radius:5px;cursor:pointer;letter-spacing:.03em;transition:all .15s}
+.btn-sm-ghost:hover{color:var(--white);background:rgba(200,16,46,.35);border-color:rgba(200,16,46,.5)}
+.red-bar{height:3px;background:var(--red)}
+
+/* ── PAGE ── */
+.page{max-width:1360px;margin:0 auto;padding:24px 36px 60px}
+
+/* ── KPI STRIP ── */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;margin-bottom:24px;box-shadow:var(--sh)}
+.kpi{background:var(--white);padding:18px 20px;position:relative}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--rule-l)}
+.kpi.k-navy::before{background:var(--navy)}
+.kpi.k-red::before{background:var(--red)}
+.kpi.k-green::before{background:var(--green)}
+.kpi.k-amber::before{background:var(--amber)}
+.kpi-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+.kpi-val{font-family:var(--cond);font-size:28px;font-weight:700;color:var(--ink);line-height:1;letter-spacing:-.01em}
+.kpi-val.navy{color:var(--navy)}.kpi-val.red{color:var(--red)}.kpi-val.green{color:var(--green)}.kpi-val.amber{color:var(--amber)}
+.kpi-sub{font-size:10.5px;color:var(--subtle);margin-top:4px}
+
+/* ── LAYOUT ── */
+.two-col{display:grid;grid-template-columns:320px 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:1100px){.two-col{grid-template-columns:1fr}}
+
+/* ── CARD ── */
+.card{background:var(--white);border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:20px}
+.card-hd{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rule-l);background:var(--off)}
+.card-hd-title{font-family:var(--cond);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.card-hd-actions{display:flex;gap:6px;align-items:center}
+.sec-hd{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.sec-title{font-family:var(--cond);font-size:18px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em}
+.sec-sub{font-size:11.5px;color:var(--muted)}
+
+/* ── PERIOD SELECTOR ── */
+.period-bar{display:flex;gap:0;background:var(--off);border:1px solid var(--rule);border-radius:6px;overflow:hidden;flex-shrink:0}
+.period-btn{font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:6px 14px;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all .15s;border-right:1px solid var(--rule)}
+.period-btn:last-child{border-right:none}
+.period-btn:hover{color:var(--navy);background:var(--rule-l)}
+.period-btn.active{background:var(--navy);color:var(--white)}
+
+/* ── DROP ZONE ── */
+.drop-zone{margin:18px 20px;border:2px dashed var(--rule);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--off)}
+.drop-zone:hover,.drop-zone.over{border-color:var(--navy);background:#edf0f7}
+.drop-zone.over .dz-icon{transform:scale(1.1) translateY(-2px)}
+.dz-icon{font-size:28px;margin-bottom:8px;display:block;transition:transform .2s}
+.dz-title{font-family:var(--cond);font-size:14px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.dz-sub{font-size:11.5px;color:var(--muted);line-height:1.6}
+.dz-sub strong{color:var(--red);text-decoration:underline;cursor:pointer}
+
+/* ── FILE RESULTS ── */
+.file-results{margin:0 20px 4px;display:flex;flex-direction:column;gap:4px}
+.file-row{display:grid;grid-template-columns:18px 1fr auto auto;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;font-size:11.5px;border:1px solid transparent;animation:fin .2s ease both}
+@keyframes fin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.file-row.ok{background:var(--green-l);border-color:var(--green-b);color:var(--green)}
+.file-row.err{background:var(--red-l);border-color:var(--red-b);color:var(--red)}
+.file-row.loading{background:var(--off);border-color:var(--rule);color:var(--muted)}
+.fr-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fr-date,.fr-rev{font-size:10.5px;white-space:nowrap}.fr-rev{font-weight:600}
+
+/* ── PASTE ── */
+.paste-toggle-row{margin:8px 20px 0}
+.paste-btn{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;transition:color .15s;letter-spacing:.02em}
+.paste-btn:hover{color:var(--navy)}.paste-btn .arr{transition:transform .2s;display:inline-block;font-size:12px}
+.paste-btn.open .arr{transform:rotate(90deg)}
+.paste-body{display:none;padding:10px 20px 18px}
+.paste-body.open{display:block}
+.paste-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:4px}
+.paste-body textarea{width:100%;font-family:monospace;font-size:10.5px;background:var(--off);border:1.5px solid var(--rule);border-radius:6px;color:var(--ink);padding:9px 11px;resize:vertical;min-height:72px;line-height:1.6;transition:border-color .15s}
+.paste-body textarea:focus{outline:none;border-color:var(--navy)}
+.paste-ctrls{display:flex;align-items:flex-end;gap:8px;margin-top:8px;flex-wrap:wrap}
+input[type=date]{font-family:var(--sans);font-size:12px;background:var(--white);border:1.5px solid var(--rule);border-radius:6px;color:var(--ink);padding:6px 9px;transition:border-color .15s}
+input[type=date]:focus{outline:none;border-color:var(--navy)}
+.btn-add{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--navy);color:var(--white);border:none;padding:7px 16px;border-radius:6px;cursor:pointer;transition:background .15s}
+.btn-add:hover{background:var(--navy-m)}
+
+/* ── DATE CHIPS ── */
+.date-chips{display:flex;flex-wrap:wrap;gap:5px;padding:10px 20px;border-top:1px solid var(--rule-l)}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10.5px;font-weight:600;background:var(--off);border:1px solid var(--rule);color:var(--ink-2)}
+.chip-del{background:none;border:none;padding:0;cursor:pointer;color:var(--subtle);font-size:13px;line-height:1;display:flex;align-items:center;transition:color .1s}
+.chip-del:hover{color:var(--red)}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;align-items:center;gap:8px;padding:12px 20px;border-bottom:1px solid var(--rule-l);flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:160px;max-width:260px}
+.search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--subtle);pointer-events:none}
+input[type=text]{font-family:var(--sans);width:100%;font-size:12px;background:var(--off);border:1.5px solid var(--rule);border-radius:6px;color:var(--ink);padding:7px 10px 7px 30px;transition:border-color .15s}
+input[type=text]:focus{outline:none;border-color:var(--navy);background:var(--white)}
+input[type=text]::placeholder{color:var(--subtle)}
+select{font-family:var(--sans);font-size:12px;background:var(--white);border:1.5px solid var(--rule);border-radius:6px;color:var(--ink);padding:7px 10px;cursor:pointer;transition:border-color .15s}
+select:focus{outline:none;border-color:var(--navy)}
+.filter-count{margin-left:auto;font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap}
+.period-tag{font-size:10.5px;color:var(--muted);background:var(--off);border:1px solid var(--rule);padding:4px 9px;border-radius:20px;white-space:nowrap;font-weight:500}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--rule);background:var(--off);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s}
+thead th:hover{color:var(--navy)}
+tbody tr{border-bottom:1px solid var(--rule-l);transition:background .1s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#f0f3fa}
+td{padding:11px 14px;vertical-align:middle;white-space:nowrap}
+.cust-name{font-size:12.5px;font-weight:600;color:var(--navy);max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.cust-acct{font-size:10px;color:var(--subtle);margin-top:1px}
+.num{font-size:12.5px;font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.num.pos{color:var(--green)}.num.neg{color:var(--red)}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--cond);font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.badge-lost{background:var(--red-l);color:var(--red);border:1px solid var(--red-b)}
+.badge-down{background:var(--red-l);color:#b00d24;border:1px solid var(--red-b)}
+.badge-risk{background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-b)}
+.badge-up{background:var(--green-l);color:var(--green);border:1px solid var(--green-b)}
+.badge-new{background:var(--navy-l);color:var(--navy);border:1px solid #c5cedf}
+.badge-stable{background:var(--off);color:var(--muted);border:1px solid var(--rule)}
+
+/* ── SPARK ── */
+.spark{display:flex;align-items:flex-end;gap:2px;height:22px}
+.spark-bar{width:6px;border-radius:2px 2px 0 0;min-height:2px;background:#c5cedf}
+.spark-bar.zero{background:var(--rule)}
+tr:hover .spark-bar:not(.zero){background:var(--navy)}
+
+/* ── MODAL / DRILL-DOWN ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,18,40,.55);z-index:500;display:flex;align-items:flex-start;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal-panel{width:520px;max-width:95vw;height:100vh;overflow-y:auto;background:var(--white);box-shadow:var(--sh-lg);transform:translateX(30px);transition:transform .25s ease;display:flex;flex-direction:column}
+.modal-overlay.open .modal-panel{transform:translateX(0)}
+.modal-hd{background:var(--navy);padding:20px 24px;flex-shrink:0}
+.modal-hd-name{font-family:var(--cond);font-size:20px;font-weight:700;color:var(--white);letter-spacing:.02em;line-height:1.2;margin-bottom:4px}
+.modal-hd-acct{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.04em}
+.modal-close{position:absolute;top:18px;right:20px;background:rgba(255,255,255,.12);border:none;color:var(--white);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.modal-close:hover{background:rgba(255,255,255,.25)}
+.modal-body{padding:20px 24px;flex:1}
+
+/* modal KPIs */
+.modal-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.mkpi{background:var(--off);border:1px solid var(--rule);border-radius:6px;padding:12px 14px}
+.mkpi-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.mkpi-val{font-family:var(--cond);font-size:22px;font-weight:700;color:var(--navy);line-height:1}
+.mkpi-val.red{color:var(--red)}.mkpi-val.green{color:var(--green)}
+.mkpi-sub{font-size:10px;color:var(--subtle);margin-top:3px}
+
+/* chart canvas */
+.chart-wrap{border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-bottom:20px;background:var(--white)}
+canvas{display:block;width:100%!important}
+
+/* daily breakdown table */
+.breakdown-title{font-family:var(--cond);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.breakdown-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.breakdown-table th{text-align:left;padding:7px 10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--rule);background:var(--off)}
+.breakdown-table td{padding:7px 10px;border-bottom:1px solid var(--rule-l);color:var(--ink-2)}
+.breakdown-table tr:last-child td{border-bottom:none}
+.breakdown-table tr:hover td{background:var(--off)}
+
+/* ── EMPTY ── */
+.empty{padding:56px 20px;text-align:center}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:.28}
+.empty-title{font-family:var(--cond);font-size:18px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+.empty-sub{font-size:12.5px;color:var(--muted);line-height:1.7;max-width:360px;margin:0 auto}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;padding:11px 16px;border-radius:8px;font-size:12.5px;font-weight:500;background:var(--navy);color:var(--white);box-shadow:var(--sh-lg);max-width:320px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.toast.ok{background:var(--green)}.toast.bad{background:var(--red)}
+
+footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-align:center;padding:14px 36px;letter-spacing:.03em}
+
+@media(max-width:900px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  header,footer,.page{padding-left:16px;padding-right:16px}
+}
+@media(max-width:540px){.kpis{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-l">
+    <div class="cope-mark">COPE</div>
+    <div class="hd-div"></div>
+    <div class="hd-titles">
+      <div class="hd-name">Customer Trading Report</div>
+      <div class="hd-sub">Melbourne &nbsp;·&nbsp; Depot Origin 86</div>
+    </div>
+  </div>
+  <div class="hd-r">
+    <div class="hd-sync busy" id="syncStatus">
+      <span class="sync-dot pulse"></span>
+      <span id="syncLabel">Connecting…</span>
+    </div>
+    <div class="hd-date">
+      <div class="hd-date-lbl">Data to</div>
+      <div class="hd-date-val" id="headerDate">—</div>
+    </div>
+    <button class="btn-sm-ghost" onclick="confirmClear()">Clear data</button>
+  </div>
+</header>
+<div class="red-bar"></div>
+
+<div class="page">
+
+  <!-- KPIs -->
+  <div class="kpis" style="margin-top:6px">
+    <div class="kpi k-navy">
+      <div class="kpi-lbl">Days Loaded</div>
+      <div class="kpi-val navy" id="kDays">0</div>
+      <div class="kpi-sub">in database</div>
+    </div>
+    <div class="kpi k-navy">
+      <div class="kpi-lbl">Period Revenue</div>
+      <div class="kpi-val navy" id="kRevenue">—</div>
+      <div class="kpi-sub" id="kRevenueSub">selected window</div>
+    </div>
+    <div class="kpi k-red">
+      <div class="kpi-lbl">Down Trading</div>
+      <div class="kpi-val red" id="kDown">—</div>
+      <div class="kpi-sub">vs prior period</div>
+    </div>
+    <div class="kpi k-red">
+      <div class="kpi-lbl">Lost</div>
+      <div class="kpi-val red" id="kLost">—</div>
+      <div class="kpi-sub">no recent consignments</div>
+    </div>
+    <div class="kpi k-green">
+      <div class="kpi-lbl">Up Trading</div>
+      <div class="kpi-val green" id="kUp">—</div>
+      <div class="kpi-sub">vs prior period</div>
+    </div>
+    <div class="kpi k-amber">
+      <div class="kpi-lbl">At Risk</div>
+      <div class="kpi-val amber" id="kRisk">—</div>
+      <div class="kpi-sub">irregular / fading</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <!-- Left: Load Data -->
+    <div>
+      <div class="sec-hd"><span class="sec-title">Load Data</span><span class="sec-sub">Drag &amp; drop CSV files</span></div>
+      <div class="card">
+        <div
+          class="drop-zone" id="dropZone"
+          onclick="document.getElementById('fileInput').click()"
+          ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)"
+        >
+          <span class="dz-icon">📁</span>
+          <div class="dz-title">Drop CSV files here</div>
+          <div class="dz-sub">Multiple files at once supported.<br>
+            Or <strong onclick="event.stopPropagation();document.getElementById('fileInput').click()">click to browse</strong>.
+          </div>
+          <input type="file" id="fileInput" accept=".csv" multiple style="display:none" onchange="handleFileSelect(event)">
+        </div>
+        <div class="file-results" id="fileResults"></div>
+        <div class="paste-toggle-row">
+          <button class="paste-btn" id="pasteToggle" onclick="togglePaste()">
+            <span class="arr">›</span>&nbsp;Paste manually instead
+          </button>
+        </div>
+        <div class="paste-body" id="pasteBody">
+          <div class="paste-lbl">CSV or Excel data</div>
+          <textarea id="csvInput" placeholder="Paste full CSV including header row."></textarea>
+          <div class="paste-ctrls">
+            <div>
+              <div class="paste-lbl">Date override</div>
+              <input type="date" id="dateOverride">
+            </div>
+            <button class="btn-add" onclick="ingestPaste()">Add Data</button>
+          </div>
+        </div>
+        <div class="date-chips" id="dateChips" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Right: Period selector info -->
+    <div>
+      <div class="sec-hd">
+        <span class="sec-title">Comparison Window</span>
+        <span class="sec-sub">Select the period to analyse</span>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-hd-title">Compare recent vs prior equivalent</span>
+          <div class="period-bar" id="periodBar">
+            <button class="period-btn active" data-days="5" onclick="setPeriod(5)">5 Days</button>
+            <button class="period-btn" data-days="10" onclick="setPeriod(10)">10 Days</button>
+            <button class="period-btn" data-days="30" onclick="setPeriod(30)">30 Days</button>
+            <button class="period-btn" data-days="0" onclick="setPeriod(0)">All</button>
+          </div>
+        </div>
+        <div style="padding:16px 20px">
+          <div id="periodExplain" style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px">
+            Showing the most recent 5 days compared to the 5 days before that.
+          </div>
+          <!-- mini summary stats -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="mkpi">
+              <div class="mkpi-lbl">Active Customers</div>
+              <div class="mkpi-val" id="sActive">—</div>
+            </div>
+            <div class="mkpi">
+              <div class="mkpi-lbl">Avg Daily Rev</div>
+              <div class="mkpi-val" id="sAvgDay">—</div>
+            </div>
+            <div class="mkpi">
+              <div class="mkpi-lbl">Total Days</div>
+              <div class="mkpi-val" id="sTotalDays">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Movement Table -->
+  <div class="sec-hd">
+    <span class="sec-title">Customer Movement</span>
+    <span class="sec-sub" id="compareSub">Click any row to see full customer history</span>
+  </div>
+  <div class="card">
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search customer or account…" oninput="renderTable()">
+      </div>
+      <select id="trendFilter" onchange="renderTable()">
+        <option value="">All movement</option>
+        <option value="lost">Lost</option>
+        <option value="down">Down trading</option>
+        <option value="risk">At risk</option>
+        <option value="stable">Stable</option>
+        <option value="up">Up trading</option>
+        <option value="new">New</option>
+      </select>
+      <select id="sortField" onchange="renderTable()">
+        <option value="change_pct">Worst decline first</option>
+        <option value="change_abs">Largest $ change</option>
+        <option value="latest">Highest revenue</option>
+        <option value="total">Total spend (all time)</option>
+        <option value="name">Alphabetical</option>
+      </select>
+      <div class="filter-count" id="filterCount"></div>
+      <div class="period-tag" id="periodTag">—</div>
+    </div>
+    <div class="table-wrap" id="tableWrap">
+      <div class="empty">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">No Data Loaded</div>
+        <div class="empty-sub">Drop your daily CSV files into the panel on the left. Data syncs to the cloud and is available on any device.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>COPE Sensitive Freight &nbsp;·&nbsp; Customer Trading Report &nbsp;·&nbsp; Melbourne Depot &nbsp;·&nbsp; Internal Use Only</footer>
+
+<!-- DRILL-DOWN PANEL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-panel" id="modalPanel">
+    <div class="modal-hd" style="position:relative">
+      <div class="modal-hd-name" id="mdName">—</div>
+      <div class="modal-hd-acct" id="mdAcct">—</div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body" id="mdBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://oufuwgvcqtsqeqoyxuad.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_uECVAXdG3Q6bD7FY2aXbxA_J9kE2236';
+const TABLE = 'trading_data';
+const ROW_ID = 'cope_mel_v1';
+
+// ═══════════════════════════════════════════════════════
+// ACCOUNT NAME LOOKUP
+// ═══════════════════════════════════════════════════════
+const ACCT_NAMES = {"10": "National Cash Account", "22": "Dominant", "32": "International Catering Equip", "34": "Gunnebo Australia Pty Ltd", "47": "Culpan Industries Pty Ltd", "74": "I Transport", "77": "Customer C", "95": "New Customer", "107": "Adorabella", "117": "Andy J Sound", "144": "Nocton Wines Pty Ltd", "155": "J & H Air Conditioning & E", "169": "Australian Venue Co.", "316": "The Retail Factory", "327": "Artback NT Arts & Touring", "346": "Downer EDI Engineering Pty", "400": "Blyth Enterprises", "422": "Ambience Lighting Australia", "431": "Outstation Gallery", "432": "Multi Slide Industries Pty Ltd", "475": "Lycamobile Pty Ltd", "530": "Noritsu", "568": "Swirlo Pty Ltd", "569": "Central Business Equipment", "577": "Nanda Hobbs Pty Ltd", "630": "The Beam Shop", "645": "National Optical Distribution", "707": "Jones Holding Co", "728": "Abbott Medical Australia P/L", "751": "Perfect Fry Company", "782": "Darwin Office Technology", "842": "Challenge Lit Fellowship", "902": "E-bet Gaming Systems Pty Ltd", "905": "Regional Health Care", "932": "NW Group Australasia Pty Ltd", "1031": "Wellkart", "1073": "Panalytical", "1077": "Fireplace Products Aust", "1098": "The Federation Joinery", "1112": "Grifols Australia Pty Ltd", "1140": "Gibson Importing", "1145": "UNISYS Aust Pty Ltd", "1154": "Abacus DX Pty Ltd", "1222": "Millennium Science", "1248": "Triangle Logistics", "1262": "RINNAI Australia Pty Ltd", "1436": "Essilor Australia T/A OptiMed", "1518": "OPIE Manufacturing Group", "1599": "Custom Ladder Co Pty Ltd", "1730": "Aruze Gaming Australia Pty", "1767": "Woodroffe Skylights Pty Ltd", "1774": "VAF Research Pty Ltd", "1788": "Copyworld", "1790": "South Coast Gaming", "1853": "Hart Sport Australia", "1880": "GLAETZER-DIXON", "1917": "Handmark Gallery", "1981": "Babich Maintenance", "2076": "Scots Ice Australia Pty Ltd", "2243": "Soniclean", "2279": "Colourworks Australia Pty Ltd", "2298": "Carment Pty Ltd", "2380": "Leidos Security Detection &", "2488": "Aust Target Systems", "2585": "Everx Pty Ltd", "2631": "ALH Group", "2632": "POWERFIRM", "2634": "JEOL (Australasia) Pty Ltd", "2759": "Lightning Protection Internati", "2776": "Contemporary Art Tasmania", "2903": "Norseld Pty Ltd", "2952": "Wabtec Control Systems Pty", "2988": "Designa Australia Pty Ltd", "3016": "RGD Logistics t/a Total Freigh", "3076": "ECash Holding Pty Ltd", "3426": "Dallmac Pty Ltd T/AS", "3434": "BAE Systems", "3479": "Ergonomic Office furniture", "3511": "IVE Group Australia  BA VIC", "3531": "Suntex Investments Pty Ltd", "3542": "PMA Solutions", "3588": "Woodside", "3662": "Made 2 Trade", "3681": "Optos Australia", "3701": "Teradata Aust Pty Ltd", "3706": "Collins & Kent International", "3789": "XEROX Business Services", "3808": "Ampac Dental", "3869": "Tantra Pty Ltd", "3923": "BOC Limited", "3932": "Diagnostica Stago Pty Ltd", "3942": "Smiths Detection(Australia)", "3968": "Syneron Candela", "4004": "Carl Zeiss Pty Ltd", "4037": "Hydro Tasmania", "4062": "Server Racks Australia", "4085": "Aust Ultra Violet Services", "4121": "C I S - Computerised Imaging", "4138": "Multi R IT", "4194": "Roland DG Australia Pty Ltd", "4219": "Inxpress Aust & New Zealand", "4246": "Perth Children's Hospital", "4247": "King Edward Memorial", "5226": "Geodis Australia Pty Ltd", "5264": "Tasmanian Health", "5270": "Van Rooy Machinery", "5296": "EFS General Account", "5340": "Brandstand Aust Pty Ltd", "5348": "Tasmanian Worldwide", "5741": "UPS Supply Chain Solutions", "6226": "Muir Engineering", "6658": "Essilor Australia", "6736": "Commercial Venetians Pty Ltd", "7158": "Haros Holdings Pty Ltd", "7235": "Network Gaming", "7319": "Benleigh Vending Systems", "7446": "ABCO Healthcare Pty Ltd", "7612": "T O Technology", "7628": "General Australia", "7703": "North Coast Freight", "8164": "One Sportswear and Uniforms", "8265": "Keys Bros Removals & Storage", "8348": "EFEX IT", "8365": "Aquatech Heat Pump Tech", "8384": "Hunter Douglas AWS", "8391": "Condari (WA) #8391", "8399": "Showfront Group Ltd", "8418": "Viewscape Pty Ltd", "8427": "Presidental", "8470": "AV Media Systems WA", "8504": "Krix Loudspeakers Pty Ltd", "8506": "The English Tapware", "8531": "Aluminium Industries", "8556": "CommBox", "8557": "Cloudy Sheep Printing", "8562": "My Freight (General Acc)", "8572": "Servcore Pty Ltd", "8593": "T A E Aviation Pty Ltd", "8632": "Sanden International", "8654": "A D E C", "8666": "LA Grolla Pty Ltd", "8669": "Larson Juhl Australia", "8671": "HC Group Australia", "8694": "Kracka Racing Surfcraft", "8699": "Werfen Australia PTY LTD", "8707": "Laseraid", "8740": "Silver Chef Rentals Pty Ltd", "8752": "Premier Products", "8784": "Colebrook Bosson Saunders", "8791": "Chevrolet The Engine Centre", "8792": "Handy Imports Pty Ltd", "8803": "Canohm", "8808": "Goodson Imports Pty Ltd", "8823": "Skanos Pty Ltd", "8846": "Roche Diagnostics Australia", "8860": "Shriro Australia Pty Ltd", "8861": "Sydney E-Fitness Pty Ltd", "8873": "Comfortel Furniture Pty Ltd", "8898": "Fracht Australia (Syd)", "8899": "Versigen", "8908": "Scene Change (HOB)", "8945": "Kawai Australia Pty Ltd", "8954": "Oz Theatre Screens", "8962": "Condari (Vic) #8962", "8976": "ATM Power", "8993": "Healthtec", "8995": "Advanced Cosmecueticals", "9000": "Aurora Climate Systems", "9001": "Vatech Medical Pty Ltd", "9003": "Agilent Technologies", "9016": "Independent Gaming", "9018": "Meditec Pty Ltd", "9019": "Speed Queen Equipment", "9032": "Ecolab Pty Ltd", "9038": "Airgroup", "9040": "Cyber Chill Refrigeration", "9051": "Coregas", "9079": "Maincap Pty Ltd", "9092": "ConMed Linvatec Australia", "9095": "Team Medical Supplies", "9100": "Invitro Technologies", "9108": "Regethermic", "9110": "Tindo Operations CO. Pty Ltd", "9132": "Shimadzu Oceania Pty Limited", "9137": "Jomor Healthcare", "9143": "Morsen Pty Ltd", "9158": "Scitek Australia Pty Ltd", "9160": "Emery Industries Pty Ltd", "9180": "Logix Engineering", "9205": "Fellowes (Aust) Pty Ltd", "9211": "Pacific Smiles Group", "9222": "Blue Connections", "9231": "a. hartrodt Australia Pty Ltd", "9237": "Linktech Telecom Pty Ltd", "9248": "Mindray Medical Australia", "9251": "Epic-X Pty Ltd", "9260": "Minimax Implant & Dental P/L", "9262": "Miele Home Delivery", "9280": "Majors Group Pty Ltd", "9285": "Medical Resale Pty Limited", "9287": "Multigroup Logistics", "9289": "Mypak Solutions", "9297": "Arneg Oceania", "9300": "PROMPT DISTRIBUTION", "9302": "Crane Worldwide Logistics", "9303": "Mimaki Australia Pty Ltd", "9313": "Document Dynamix Australia", "9323": "Events Fantastic Australia", "9325": "Fracht Australia (MELB)", "9326": "Omnicell Pty Ltd", "9328": "EZI Dry Systems Pty Ltd", "9329": "Brainlab Australia Pty Ltd", "9330": "Artshed 41", "9347": "Renew IT Group Pty Ltd", "9352": "Harvey Norman Commercial", "9353": "Canon Production Printing", "9364": "Scentre Alliances Pty Limited", "9372": "Champion Data Holdings", "9387": "Technical Direction Co (TDC)", "9389": "Diasorin Australia Pty Ltd", "9401": "Rapiscan Systems Pty Ltd", "9410": "Ausdataco Pty Ltd", "9412": "Tabcorp Holdings Ltd", "9414": "Coherent Scientific Pty Ltd", "9426": "Ecotech", "9429": "Welch Allyn Australia Pty Ltd", "9448": "TIG Freight Management", "9450": "Total Peripheral Supplies P/L", "9453": "Glasgow Engineering", "9462": "Delta Electronics (Aust) P/L", "9465": "Meiko Australia Pacific", "9466": "Best Health Solutions", "9479": "Kwickaz Freight Services", "9480": "Giant Bikes", "9483": "ANIXTER AUSTRALIA PTY LTD", "9488": "BRUKER VICTORIA", "9490": "KEEPAD INTERACTIVE", "9494": "WAVEMASTER", "9500": "MANREX PTY LTD-", "9503": "K-CARE HEALTHCARE", "9504": "HOSPITAL PRODUCTS", "9505": "SYSMEX AUSTRALIA PTY LTD", "9508": "STRAUMANN GROUP", "9511": "ROLAND CORPORATION", "9514": "BRAS N THINGS", "9525": "Eighty9 Limited", "9528": "RAY AUSTRALIA PTY LTD", "9535": "INNOVATIVE MEDICAL TECH", "9536": "AUSTRALIAN", "9603": "AGL TORRENS ISLAND PWR", "9619": "SCHENKER (HEWLETT", "9628": "99 BIKES", "9632": "SOURCE SEPARATION", "9646": "The Global Beauty Group", "9647": "Share The Dignity", "9650": "WESTLAB PTY LTD", "9652": "PROBE OPERATIONS PTY LTD", "9658": "TECAN AUSTRALIA PTY LTD", "9666": "QUADIENT", "9669": "GUARDALL SECURITY", "9670": "Heidelberg Engineering Pty", "9671": "TEEG AUSTRALIA PTY LTD", "9673": "MEDIC CLOUD", "9676": "X I T DISTRIBUTION PTY LTD", "9682": "CODECOM", "9683": "SOCOMEC PTY LTD", "9684": "THE CHEESECAKE SHOP", "9698": "TSE Accounts", "9699": "UNIFIED FREIGHT MNGMT", "9701": "Abbott Diagnostics Division", "9708": "ADMIN-FUJITSU GENERAL", "9713": "CUTERA AUSTRALIA PTY LTD", "9723": "WYMAC GAMING SOLUTIONS", "9725": "CARESTREAM DENTAL AUST", "9726": "BEOVISTA TRADING PTY LTD", "9730": "SIMCO CATERING EQUIPMENT", "9742": "SLIMLINE WAREHOUSE", "9749": "POLYMEDIC PTY LTD", "9752": "BDC SERVICES", "9755": "LeBlanc", "9757": "HIPAC HEALTHCARE PTY LTD", "9763": "WESTAN AUSTRALIA PTY LTD", "9765": "MWAVE", "9768": "JILAMARA ARTS & CRAFTS", "9770": "AUSSPORT SCOREBOARDS", "9772": "COMPLETE MEDICAL", "9773": "Alevo Pty Ltd", "9775": "Global Life Sciences Solutions", "9797": "INTERNATIONAL TRADE", "9798": "STIEBEL ELTRON (AUST) PTY", "9800": "VET TECH AUSTRALIA", "9814": "CABRINI  HEALTH LIMITED", "9820": "HALLAM RACKS-CNC", "9826": "Paramount Blinds", "9841": "KINGLOC COMMERCIAL", "9846": "NIRVANA SOUND", "9851": "GROUNDFLOOR", "9852": "InMode Australia", "9867": "Department of Employment", "9869": "K E BROWN ELECTRICAL", "9879": "FE SPORTS", "9880": "COAST DISTRIBUTORS PTY", "9882": "Move Yourself Trailer Hire", "9886": "BTL MEDICAL TECHNOLOGIES", "9889": "ONE STOP WAREHOUSE", "9894": "INFINET SERVICE LOGISTICS", "9901": "DXC Connect Pty Limited", "9906": "EFM-Nisbets", "9909": "AQUA COOLER PTY LTD", "9921": "APEX TRADING GROUP", "9928": "AusDiagnostics Pty Ltd", "9929": "NIPRO AUSTRALIA PTY LTD", "9931": "CIRCLE RETAIL SERVICES PTY", "9934": "AVA DISTRIBUTION PTY LTD", "9935": "MULTIFILE PTY LTD", "9936": "STODDART MANUFACTURING", "9938": "RAITT INTERNATIONAL", "9941": "SPACE SALON FURNITURE", "9943": "EDWARDS LIFESCIENCES PTY", "9946": "APEX LOCKSMITHS", "9949": "ZIMMER BIOMET PTY LTD", "9950": "ELITE FREIGHT SOLUTIONS", "9952": "RFI TECHNOLOGY SOLUTIONS", "9954": "BAC SYSTEMS PTY  LTD", "9960": "MAKAR CONSULTING PTY LTD", "9963": "My Freight (Oliveri)", "9966": "AI MEDICAL  INTERNATIONAL", "9971": "EFM Logistics Services Grp", "9972": "GBay", "9976": "ALLOYS INTERNATIONAL", "9977": "DATMEDIA", "9979": "i4 Design & Construction P/L", "9981": "ST VINCENTS HOSPITAL", "9982": "FUSE 3D", "9990": "GREEN ECO TECHNOLOGIES", "9996": "EFM-La Marzocco", "10002": "GLOBUS MEDICAL INC", "10010": "ORIGIO AUSTRALASIA PTY", "10013": "TOUCHPOINT MEETING", "10021": "DOLPHIN SOLUTIONS AUST", "10026": "BTC Wholesale", "10029": "Bakery Combinations Aust", "10030": "Waringarri Aboriginal Arts", "10038": "HOBBYSEW AUSTRALIA PTY", "10053": "WHITELEY MEDICAL SUPPLIES", "10059": "MELMED ELECTRICAL PTY LTD", "10061": "NCR Australia Pty Ltd.", "10062": "TasmaNet Pty Ltd", "10069": "Expo Freight Australia Pty", "10082": "TOMRA COLLECTION PTY LTD", "10086": "SHEPPARD CYCLES", "10093": "TELSTRA LIMITED", "10097": "ATEC SPINE", "10119": "OPTICOMM PTY LTD", "10126": "EFM-Modern Star", "10127": "EFM-Bitzer", "10131": "Arthrex Australia Pty Ltd", "10136": "LOCKHEED MARTIN", "10140": "Buku-Larrnggay Mulka Inc", "10143": "ACRYO", "10147": "STOREMASTA/PRIORITY", "10148": "Bowermans Pty Ltd", "10149": "ARINEX PTY LTD", "10153": "DCCEEW", "10156": "TRANSPORT DIRECT", "10157": "Babcock Pty Ltd", "10168": "Venus Concept Pty Ltd", "10171": "MARANA FORNI AUSTRALIA", "10173": "Smith & Nephew Pty Ltd", "10179": "Riello UPS Australia Pty Ltd", "10186": "NEXT PAYMENTS PTY LTD", "10187": "Peak Marketing Pty Ltd", "10189": "ENERGY RENAISSANCE P/L", "10190": "OCEAN INFINITY AUSTRLIA", "10191": "MULTIMEDIA TECHNOLOGY", "10193": "Just Pro Tools", "10196": "EFM-Johnson Health Tech", "10197": "QIAGEN Pty Ltd", "10198": "Branched National Logistics", "10200": "LAF Technologies Pty Ltd", "10205": "Linet Australia Pty Ltd", "10209": "Exquisite Marketing Australia", "10216": "Wilson Heat Pumps", "10220": "TechXpress Pty Ltd", "10221": "Jaeger Medical", "10224": "Radio Parts Pty Ltd", "10225": "CONNOR ANDERSON", "10227": "Bausch and Lomb Australia", "10228": "Easterly Pty Ltd", "10231": "AES Environmental", "10234": "DHL Supply Chain (Australia)", "10235": "EFM-Seven Miles Coffee", "10237": "Global Fitness and Leisure Pty", "10238": "alphaXRT Ltd", "10241": "Don Whyte Framing", "10242": "Control Global Logistics", "10243": "Best & Less Pty Ltd - Leays", "10245": "Bulk Group Pty Ltd", "10246": "AFS Logistics Australia", "10247": "Rhima Australia Pty Ltd", "10248": "Bellarine Cycling T/A Hendrys", "10249": "Residentia Group Pty Ltd", "10250": "Yes Medical", "10251": "EFM-Absco", "10253": "Neo Products Pty Ltd", "10254": "Logifix Freight Solutions", "10255": "Go Easy Australia", "10256": "Cold Display Solutions", "10257": "KUEHNE & NAGEL- Loreal", "10258": "Modern Teaching Aids Pty Ltd", "10261": "Sunless Australia Pty Ltd", "10262": "CJC Import and Export Pty Ltd", "10264": "ELITE LOGISTICS AUSTRALIA", "10265": "EFM Management Australia", "10266": "Bulk Regional Express Pty Ltd", "10269": "Crossmark Australia Pty Ltd", "10271": "EFM ATOM", "10276": "KUEHNE & NAGEL CleanCo", "10278": "ES Logistics", "10279": "The Digital Freight Hub", "10280": "KUEHNE & NAGEL -Lego", "10281": "Freshwater Systems Australia", "10282": "TIG Freight Management-", "10283": "ICS Pacific", "10285": "Freight Focus Management", "10289": "Effective Freight Solutions", "10290": "InVitro Technologies Drum", "10292": "Umano Medical Australia", "10293": "KUEHNE & NAGEL - House", "10295": "ENNOCONN AUSTRALIA PTY", "10299": "Shire Skylights Pty Ltd", "10300": "WORLDS BEST TECHNOLOGY-", "10301": "CT Freight Pty Ltd", "10302": "EFM- SONY", "10305": "Lotus Window Fashions P/L", "10310": "Sydney E-Fitness Ltd-", "10313": "CTO Global Logistics", "10315": "GEO-CON Products Pty Ltd", "10316": "Freight People - Tennant", "10318": "QFM Logistics"};
+function acctName(acct) {
+  const key = String(parseInt(String(acct).trim(), 10));
+  return isNaN(parseInt(key,10)) ? null : (ACCT_NAMES[key] || null);
+}
+function displayName(acct) { return acctName(acct) || ('Acct #' + acct); }
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE API
+// ═══════════════════════════════════════════════════════
+const sbHeaders = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY
+};
+
+async function sbLoad() {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${ROW_ID}&select=payload`, { headers: sbHeaders });
+  if (!r.ok) {
+    const txt = await r.text();
+    throw new Error('Load failed: ' + r.status + ' ' + txt);
+  }
+  const data = await r.json();
+  return data.length ? data[0].payload : null;
+}
+
+async function sbSave(payload) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`, {
+    method: 'POST',
+    headers: { ...sbHeaders, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: ROW_ID, payload, updated_at: new Date().toISOString() })
+  });
+  if (!r.ok) {
+    const txt = await r.text();
+    throw new Error('Save failed: ' + r.status + ' ' + txt);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INDEXED DB (local fallback + migration source)
+// ═══════════════════════════════════════════════════════
+const DB_NAME = 'CopeTradeDB_v2', STORE = 'dates';
+let db = null;
+function openDB() {
+  return new Promise((res,rej) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE, {keyPath:'date'});
+    req.onsuccess = e => { db = e.target.result; res(); };
+    req.onerror = () => rej(req.error);
+  });
+}
+function dbAll() { return new Promise((r,e)=>{ const q=db.transaction(STORE,'readonly').objectStore(STORE).getAll(); q.onsuccess=()=>r(q.result); q.onerror=e; }); }
+
+// ═══════════════════════════════════════════════════════
+// IN-MEMORY STORE  { [dateKey]: { [acct]: {revenue,count} } }
+// ═══════════════════════════════════════════════════════
+let store = {};
+let activePeriod = 5; // days
+let saveTimer = null;
+let chartInst = null;
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(pushToSupabase, 1200);
+}
+
+async function pushToSupabase() {
+  setSyncStatus('busy', 'Saving…');
+  try {
+    await sbSave(store);
+    setSyncStatus('ok', 'Saved to cloud');
+  } catch(e) {
+    setSyncStatus('err', 'Save failed');
+    console.error(e);
+  }
+}
+
+function setSyncStatus(type, msg) {
+  const el = document.getElementById('syncStatus');
+  const lbl = document.getElementById('syncLabel');
+  el.className = 'hd-sync ' + type;
+  lbl.textContent = msg;
+  const dot = el.querySelector('.sync-dot');
+  dot.className = 'sync-dot' + (type === 'busy' ? ' pulse' : '');
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT — load from Supabase, migrate IndexedDB if needed
+// ═══════════════════════════════════════════════════════
+async function init() {
+  setSyncStatus('busy', 'Connecting…');
+  try {
+    // Try Supabase first
+    const remote = await sbLoad();
+    if (remote && Object.keys(remote).length > 0) {
+      store = remote;
+      setSyncStatus('ok', 'Synced from cloud');
+    } else {
+      // No remote data — check for local IndexedDB data to migrate
+      try {
+        await openDB();
+        const local = await dbAll();
+        if (local.length > 0) {
+          setSyncStatus('busy', 'Migrating local data…');
+          local.forEach(r => { store[r.date] = r.data; });
+          await pushToSupabase();
+          toast(`Migrated ${local.length} day${local.length>1?'s':''} of local data to cloud ✓`, 'ok');
+        } else {
+          setSyncStatus('ok', 'Connected · No data yet');
+        }
+      } catch(_) {
+        setSyncStatus('ok', 'Connected · No data yet');
+      }
+    }
+  } catch(e) {
+    setSyncStatus('err', 'Cloud unavailable');
+    // Fall back to local
+    try {
+      await openDB();
+      const local = await dbAll();
+      local.forEach(r => { store[r.date] = r.data; });
+    } catch(_) {}
+    if (Object.keys(store).length) toast('Using local data (cloud unavailable)', '');
+  }
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// CSV PARSING
+// ═══════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.trim().split(/
+?
+/);
+  if (lines.length < 2) return [];
+  const first = lines[0];
+  const delim = (first.match(/	/g)||[]).length > (first.match(/,/g)||[]).length ? '	' : ',';
+  const splitLine = delim==='	'
+    ? l => l.split('	').map(c=>c.trim().replace(/^"|"$/g,''))
+    : l => splitComma(l).map(c=>c.replace(/^"|"$/g,'').trim());
+  const hdr = splitLine(first);
+  const idx = n => hdr.findIndex(h=>h===n);
+  const dI=idx('Depot Origin'), acI=idx('Sender Account Number');
+  const ntI=idx('Nett Amount'), fuI=idx('Fuel Levy'), rkI=idx('Risk Levy'), dtI=idx('Date Order Completed');
+  if (dI<0||acI<0) throw new Error('Required columns not found. Ensure the header row is included.');
+  const rows = [];
+  for (let x=1;x<lines.length;x++) {
+    if (!lines[x].trim()) continue;
+    const c = splitLine(lines[x]);
+    if (parseInt(c[dI])!==86) continue;
+    const acct = String(parseInt(String(c[acI]).trim(), 10));
+    if (acct==='NaN') continue;
+    rows.push({ acct, revenue:(parseFloat(c[ntI])||0)+(parseFloat(c[fuI])||0)+(parseFloat(c[rkI])||0), date:c[dtI]||'' });
+  }
+  return rows;
+}
+function splitComma(line) {
+  const out=[];let cur='',q=false;
+  for(const c of line){if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur='';}else cur+=c}
+  out.push(cur);return out;
+}
+function detectDate(rows, filename) {
+  const raw = rows[0]?.date;
+  if (raw) { const p=raw.split('/'); if(p.length===3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`; return raw; }
+  const m = filename.match(/(\d{4})(\d{2})(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return new Date().toISOString().split('T')[0];
+}
+function aggregate(rows) {
+  const day={};
+  rows.forEach(r=>{
+    if(!day[r.acct]) day[r.acct]={revenue:0,count:0};
+    day[r.acct].revenue+=r.revenue; day[r.acct].count++;
+  });
+  return day;
+}
+
+// ═══════════════════════════════════════════════════════
+// FILE DROP / BROWSE
+// ═══════════════════════════════════════════════════════
+function onDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('over')}
+function onDragLeave(){document.getElementById('dropZone').classList.remove('over')}
+function onDrop(e){
+  e.preventDefault();onDragLeave();
+  const files=Array.from(e.dataTransfer.files).filter(f=>f.name.toLowerCase().endsWith('.csv'));
+  if(!files.length){toast('No CSV files found.','bad');return;}
+  processFiles(files);
+}
+function handleFileSelect(e){if(e.target.files.length)processFiles(Array.from(e.target.files));e.target.value=''}
+
+function processFiles(files) {
+  const container=document.getElementById('fileResults');
+  container.innerHTML='';
+  // Add a header row showing total count
+  if (files.length > 1) {
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'font-size:11px;color:var(--muted);padding:4px 2px;font-weight:600';
+    hdr.id = 'batchProgress';
+    hdr.textContent = `Loading 0 of ${files.length} files…`;
+    container.appendChild(hdr);
+  }
+  let done=0,ok=0;
+  files.forEach(file=>{
+    const row=document.createElement('div');
+    row.className='file-row loading';
+    row.innerHTML=`<span>⏳</span><span class="fr-name">${file.name}</span><span class="fr-date">Reading…</span><span></span>`;
+    container.appendChild(row);
+    const reader=new FileReader();
+    reader.onload=async e=>{
+      try {
+        const rows=parseCSV(e.target.result);
+        if(!rows.length) throw new Error('No Melbourne depot 86 rows found');
+        const dateKey=detectDate(rows,file.name);
+        const data=aggregate(rows);
+        store[dateKey]=data;
+        const rev=Object.values(data).reduce((s,v)=>s+v.revenue,0);
+        row.className='file-row ok';
+        row.innerHTML=`<span>✓</span><span class="fr-name">${file.name}</span><span class="fr-date">${dateKey}</span><span class="fr-rev">$${fmt(rev)} · ${Object.keys(data).length} cust.</span>`;
+        ok++;
+      } catch(err) {
+        row.className='file-row err';
+        row.innerHTML=`<span>✕</span><span class="fr-name">${file.name}</span><span class="fr-date" style="grid-column:3/5">${err.message}</span>`;
+      }
+      done++;
+      const prog = document.getElementById('batchProgress');
+      if (prog) prog.textContent = `Loading ${done} of ${files.length} files… (${ok} succeeded)`;
+      if(done===files.length){
+        if (prog) prog.remove();
+        render();
+        scheduleSave();
+        toast(`${ok} of ${files.length} file${files.length>1?'s':''} loaded`,ok===files.length?'ok':'bad');
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// PASTE
+// ═══════════════════════════════════════════════════════
+function togglePaste(){
+  const b=document.getElementById('pasteBody'),btn=document.getElementById('pasteToggle');
+  btn.classList.toggle('open',b.classList.toggle('open'));
+}
+async function ingestPaste(){
+  const raw=document.getElementById('csvInput').value.trim();
+  if(!raw){toast('Paste some data first.','bad');return}
+  try{
+    const rows=parseCSV(raw);
+    if(!rows.length) throw new Error('No Melbourne rows found');
+    const dateKey=document.getElementById('dateOverride').value||detectDate(rows,'');
+    store[dateKey]=aggregate(rows);
+    document.getElementById('csvInput').value='';
+    document.getElementById('dateOverride').value='';
+    const rev=Object.values(store[dateKey]).reduce((s,v)=>s+v.revenue,0);
+    toast(`Added ${dateKey} — $${fmt(rev)}`,'ok');
+    render();
+    scheduleSave();
+  }catch(err){toast(err.message,'bad')}
+}
+
+// ═══════════════════════════════════════════════════════
+// PERIOD
+// ═══════════════════════════════════════════════════════
+function setPeriod(days) {
+  activePeriod = days;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.days)===days));
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// ANALYSIS
+// ═══════════════════════════════════════════════════════
+function analyse() {
+  const allDates = Object.keys(store).sort();
+  if (!allDates.length) return null;
+
+  let curr, prev;
+  if (activePeriod === 0) {
+    // All time: split in half
+    const half = Math.ceil(allDates.length / 2);
+    prev = allDates.slice(0, half);
+    curr = allDates.slice(half);
+    if (!curr.length) { curr = prev; prev = []; }
+  } else {
+    curr = allDates.slice(-activePeriod);
+    prev = allDates.slice(-activePeriod * 2, -activePeriod);
+  }
+
+  const allAccts = new Set(allDates.flatMap(d => Object.keys(store[d])));
+
+  const rows = Array.from(allAccts).map(acct => {
+    let currRev=0, prevRev=0, totalRev=0, totalCount=0;
+    curr.forEach(d => { if(store[d][acct]){ currRev+=store[d][acct].revenue; } });
+    prev.forEach(d => { if(store[d][acct]){ prevRev+=store[d][acct].revenue; } });
+    allDates.forEach(d => { if(store[d][acct]){ totalRev+=store[d][acct].revenue; totalCount+=store[d][acct].count; } });
+
+    const spark = allDates.slice(-14).map(d => store[d][acct]?.revenue || 0);
+    const changeAbs = currRev - prevRev;
+    const changePct = prevRev > 0 ? (changeAbs / prevRev) * 100 : null;
+
+    // At-risk: had revenue in all time but nothing in current window, yet had something in prev
+    // OR was previously active but declining significantly
+    const avgPerActiveDay = totalRev / allDates.filter(d => store[d][acct]?.revenue > 0).length || 0;
+    const recentActive = curr.filter(d => store[d][acct]?.revenue > 0).length;
+    const prevActive = prev.filter(d => store[d][acct]?.revenue > 0).length;
+
+    let trend;
+    if (allDates.length <= 1) trend = 'new';
+    else if (currRev === 0 && prevRev > 0) trend = 'lost';
+    else if (prevRev === 0 && currRev > 0) trend = 'new';
+    else if (changePct !== null && changePct <= -20) trend = 'down';
+    else if (changePct !== null && changePct >= 20) trend = 'up';
+    else if (prevRev > 0 && currRev > 0 && recentActive < prevActive && changePct !== null && changePct <= -5) trend = 'risk';
+    else trend = 'stable';
+
+    // First/last seen
+    const activeDays = allDates.filter(d => store[d][acct]?.revenue > 0);
+    const firstSeen = activeDays[0] || null;
+    const lastSeen  = activeDays[activeDays.length - 1] || null;
+
+    return { acct, currRev, prevRev, changeAbs, changePct, totalRev, totalCount, trend, spark, firstSeen, lastSeen, activeDays: activeDays.length };
+  });
+
+  // Period revenue = sum of curr window
+  const periodRev = rows.reduce((s,r) => s + r.currRev, 0);
+  const avgDailyRev = curr.length ? periodRev / curr.length : 0;
+
+  return { allDates, curr, prev, rows, periodRev, avgDailyRev };
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+function render() {
+  const allDates = Object.keys(store).sort();
+  document.getElementById('kDays').textContent = allDates.length;
+  document.getElementById('headerDate').textContent = allDates.length ? allDates[allDates.length-1] : '—';
+
+  const a = analyse();
+  if (a) {
+    document.getElementById('kRevenue').textContent = '$' + fmtK(a.periodRev);
+    document.getElementById('kRevenueSub').textContent = `last ${a.curr.length} day${a.curr.length!==1?'s':''}`;
+    document.getElementById('kDown').textContent = a.rows.filter(r=>r.trend==='down').length;
+    document.getElementById('kLost').textContent = a.rows.filter(r=>r.trend==='lost').length;
+    document.getElementById('kUp').textContent   = a.rows.filter(r=>r.trend==='up').length;
+    document.getElementById('kRisk').textContent = a.rows.filter(r=>r.trend==='risk').length;
+    document.getElementById('sActive').textContent = a.rows.filter(r=>r.currRev>0).length;
+    document.getElementById('sAvgDay').textContent = '$' + fmtK(a.avgDailyRev);
+    document.getElementById('sTotalDays').textContent = allDates.length;
+
+    const pLabel = activePeriod === 0 ? 'all time (split)' : `${activePeriod} days`;
+    document.getElementById('periodExplain').textContent =
+      a.prev.length
+        ? `Comparing the most recent ${a.curr.length} day${a.curr.length!==1?'s':''} (${a.curr[0]}${a.curr.length>1?' → '+a.curr[a.curr.length-1]:''}) against the ${a.prev.length} day${a.prev.length!==1?'s':''} prior (${a.prev[0]}${a.prev.length>1?' → '+a.prev[a.prev.length-1]:''}).`
+        : `Showing all ${a.curr.length} loaded day${a.curr.length!==1?'s':''} — load more data to enable comparison.`;
+  } else {
+    ['kRevenue','kDown','kLost','kUp','kRisk','sActive','sAvgDay','sTotalDays'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='—'; });
+  }
+
+  // Date chips
+  const chipsEl = document.getElementById('dateChips');
+  if (!allDates.length) { chipsEl.style.display='none'; }
+  else {
+    chipsEl.style.display='flex';
+    chipsEl.innerHTML = allDates.map(d=>`<span class="chip">${d}<button class="chip-del" onclick="removeDate('${d}')" title="Remove">×</button></span>`).join('');
+  }
+
+  renderTable();
+}
+
+function renderTable() {
+  const wrap = document.getElementById('tableWrap');
+  const a = analyse();
+  if (!a || !a.allDates.length) {
+    wrap.innerHTML=`<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No Data Loaded</div><div class="empty-sub">Drop your CSV files into the panel on the left. Data syncs automatically to the cloud.</div></div>`;
+    document.getElementById('compareSub').textContent='Click any customer row to see full history and spend';
+    document.getElementById('periodTag').textContent='—';
+    document.getElementById('filterCount').textContent='';
+    return;
+  }
+
+  const {curr, prev, rows, allDates} = a;
+  const pl = prev.length ? (prev.length===1?prev[0]:`${prev[0]}→${prev[prev.length-1]}`) : 'N/A';
+  const cl = curr.length===1?curr[0]:`${curr[0]}→${curr[curr.length-1]}`;
+  document.getElementById('periodTag').textContent = prev.length ? `${pl}  vs  ${cl}` : `Showing: ${cl}`;
+  document.getElementById('compareSub').textContent = `Click any row to see full customer history and spend · ${prev.length?'Comparing '+prev.length+' prior vs '+curr.length+' recent days':'Load more data to enable comparison'}`;
+
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const tf = document.getElementById('trendFilter').value;
+  const sf = document.getElementById('sortField').value;
+
+  let filtered = rows.filter(r => {
+    const name = (acctName(r.acct)||'').toLowerCase();
+    if (q && !r.acct.includes(q) && !name.includes(q)) return false;
+    if (tf && r.trend!==tf) return false;
+    return true;
+  });
+
+  filtered.sort((a,b) => {
+    if (sf==='change_pct') {
+      if (a.trend==='lost'&&b.trend!=='lost') return -1;
+      if (b.trend==='lost'&&a.trend!=='lost') return 1;
+      if (a.trend==='down'&&b.trend!=='down'&&b.trend!=='lost') return -1;
+      if (b.trend==='down'&&a.trend!=='down'&&a.trend!=='lost') return 1;
+      return (a.changePct??0)-(b.changePct??0);
+    }
+    if (sf==='change_abs') return a.changeAbs-b.changeAbs;
+    if (sf==='latest')     return b.currRev-a.currRev;
+    if (sf==='total')      return b.totalRev-a.totalRev;
+    const an=acctName(a.acct)||'zzz', bn=acctName(b.acct)||'zzz';
+    return an.localeCompare(bn);
+  });
+
+  document.getElementById('filterCount').textContent = `${filtered.length} customer${filtered.length!==1?'s':''}`;
+
+  if (!filtered.length) {
+    wrap.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No Results</div><div class="empty-sub">Adjust your search or filter.</div></div>`;
+    return;
+  }
+
+  const maxSpark = Math.max(...rows.flatMap(r=>r.spark),1);
+  const ph = prev.length===1?prev[0]:`Prior (${prev.length}d)`;
+  const ch = curr.length===1?curr[0]:`Recent (${curr.length}d)`;
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Customer</th>
+      <th>${ch} Rev</th>
+      ${prev.length?`<th>${ph} Rev</th><th>Chg $</th><th>Chg %</th>`:''}
+      <th>Total (All Time)</th>
+      <th>Movement</th>
+      <th>Trend</th>
+    </tr></thead>
+    <tbody>${filtered.map(r=>rowHTML(r,maxSpark,prev)).join('')}</tbody>
+  </table>`;
+}
+
+function rowHTML(r, maxSpark, prev) {
+  const badges={
+    lost:  `<span class="badge badge-lost">● Lost</span>`,
+    down:  `<span class="badge badge-down">▼ Down ${r.changePct!=null?Math.abs(r.changePct).toFixed(0)+'%':''}</span>`,
+    risk:  `<span class="badge badge-risk">⚠ At Risk</span>`,
+    up:    `<span class="badge badge-up">▲ Up ${r.changePct!=null?Math.abs(r.changePct).toFixed(0)+'%':''}</span>`,
+    new:   `<span class="badge badge-new">★ New</span>`,
+    stable:`<span class="badge badge-stable">— Stable</span>`
+  };
+  const name = acctName(r.acct);
+  const spark = r.spark.map(v=>{
+    const h=v===0?2:Math.max(2,Math.round((v/maxSpark)*22));
+    return `<div class="spark-bar${v===0?' zero':''}" style="height:${h}px" title="$${fmt(v)}"></div>`;
+  }).join('');
+  const cc = r.changeAbs<0?'neg':r.changeAbs>0?'pos':'';
+  return `<tr onclick="openModal('${r.acct}')">
+    <td>
+      <div class="cust-name" title="${name||'Acct #'+r.acct}">${name||'Acct #'+r.acct}</div>
+      ${name?`<div class="cust-acct">Acct #${r.acct}</div>`:''}
+    </td>
+    <td><span class="num">$${fmt(r.currRev)}</span></td>
+    ${prev.length?`
+      <td><span class="num">$${fmt(r.prevRev)}</span></td>
+      <td><span class="num ${cc}">${r.changeAbs>=0?'+':''}$${fmt(r.changeAbs)}</span></td>
+      <td><span class="num ${cc}">${r.changePct!=null?(r.changePct>=0?'+':'')+r.changePct.toFixed(1)+'%':'—'}</span></td>
+    `:''}
+    <td><span class="num">$${fmt(r.totalRev)}</span></td>
+    <td>${badges[r.trend]||''}</td>
+    <td><div class="spark">${spark}</div></td>
+  </tr>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// DRILL-DOWN MODAL
+// ═══════════════════════════════════════════════════════
+function openModal(acct) {
+  const allDates = Object.keys(store).sort();
+  const name = acctName(acct);
+
+  document.getElementById('mdName').textContent = name || ('Account #' + acct);
+  document.getElementById('mdAcct').textContent = name ? 'Account #' + acct : 'No name match in rate report';
+
+  // Build daily data
+  const daily = allDates.map(d => ({
+    date: d,
+    revenue: store[d][acct]?.revenue || 0,
+    count: store[d][acct]?.count || 0
+  }));
+  const activeDays = daily.filter(d => d.revenue > 0);
+  const totalRev = daily.reduce((s,d) => s+d.revenue, 0);
+  const totalConsignments = daily.reduce((s,d) => s+d.count, 0);
+  const avgOrderVal = totalConsignments > 0 ? totalRev / totalConsignments : 0;
+  const avgActiveDay = activeDays.length > 0 ? totalRev / activeDays.length : 0;
+  const firstSeen = activeDays[0]?.date || '—';
+  const lastSeen  = activeDays[activeDays.length-1]?.date || '—';
+
+  const body = document.getElementById('mdBody');
+  body.innerHTML = `
+    <div class="modal-kpis">
+      <div class="mkpi">
+        <div class="mkpi-lbl">Total Spend</div>
+        <div class="mkpi-val">$${fmtK(totalRev)}</div>
+        <div class="mkpi-sub">all loaded days</div>
+      </div>
+      <div class="mkpi">
+        <div class="mkpi-lbl">Consignments</div>
+        <div class="mkpi-val">${totalConsignments}</div>
+        <div class="mkpi-sub">${activeDays.length} active days</div>
+      </div>
+      <div class="mkpi">
+        <div class="mkpi-lbl">Avg Order Value</div>
+        <div class="mkpi-val">$${fmtK(avgOrderVal)}</div>
+        <div class="mkpi-sub">per consignment</div>
+      </div>
+      <div class="mkpi">
+        <div class="mkpi-lbl">Avg Active Day</div>
+        <div class="mkpi-val">$${fmtK(avgActiveDay)}</div>
+        <div class="mkpi-sub">when spending</div>
+      </div>
+      <div class="mkpi">
+        <div class="mkpi-lbl">First Seen</div>
+        <div class="mkpi-val" style="font-size:14px">${firstSeen}</div>
+        <div class="mkpi-sub">&nbsp;</div>
+      </div>
+      <div class="mkpi">
+        <div class="mkpi-lbl">Last Seen</div>
+        <div class="mkpi-val" style="font-size:14px;${lastSeen!==allDates[allDates.length-1]&&lastSeen!=='—'?'color:var(--red)':''}">${lastSeen}</div>
+        <div class="mkpi-sub">${lastSeen===allDates[allDates.length-1]?'Active recently':lastSeen!=='—'?'Inactive':'—'}</div>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="drillChart" height="160"></canvas></div>
+    <div class="breakdown-title">Daily Breakdown</div>
+    <table class="breakdown-table">
+      <thead><tr><th>Date</th><th>Revenue</th><th>Consignments</th><th>Avg/Con</th></tr></thead>
+      <tbody>
+        ${[...daily].reverse().map(d=>`
+          <tr>
+            <td>${d.date}</td>
+            <td ${d.revenue===0?'style="color:var(--subtle)"':d.revenue>avgActiveDay?'style="color:var(--green)"':''}>${d.revenue>0?'$'+fmt(d.revenue):'—'}</td>
+            <td>${d.count>0?d.count:'—'}</td>
+            <td>${d.count>0?'$'+fmt(d.revenue/d.count):'—'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById('modalOverlay').classList.add('open');
+
+  // Draw chart after DOM updates
+  requestAnimationFrame(() => {
+    if (chartInst) { chartInst.destroy(); chartInst = null; }
+    const ctx = document.getElementById('drillChart')?.getContext('2d');
+    if (!ctx) return;
+    const labels = daily.map(d => d.date.slice(5)); // MM-DD
+    const values = daily.map(d => d.revenue);
+    chartInst = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: values.map(v => v > 0 ? 'rgba(26,39,68,0.75)' : 'rgba(226,230,240,0.6)'),
+          borderRadius: 3,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => '$' + fmt(ctx.parsed.y) }
+        }},
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#7b88a8', maxRotation: 45 } },
+          y: { grid: { color: '#edf0f7' }, ticks: { font: { size: 10 }, color: '#7b88a8', callback: v => '$'+fmtK(v) }, beginAtZero: true }
+        }
+      }
+    });
+  });
+}
+
+function closeModal(e) { if(e.target===document.getElementById('modalOverlay')) closeModalDirect(); }
+function closeModalDirect() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function fmt(n) {
+  if(!n&&n!==0) return '0.00';
+  return Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtK(n) {
+  if(!n&&n!==0) return '0';
+  n = Math.abs(n);
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
+  return n.toFixed(0);
+}
+
+async function removeDate(d) {
+  if(!confirm(`Remove data for ${d}? This will sync the deletion to all devices.`)) return;
+  delete store[d];
+  render();
+  scheduleSave();
+  toast(`Removed ${d}`, 'ok');
+}
+async function confirmClear() {
+  if(!confirm('Clear ALL saved data? This will delete everything from the cloud for all users.')) return;
+  store = {};
+  document.getElementById('fileResults').innerHTML = '';
+  render();
+  scheduleSave();
+  toast('All data cleared', 'ok');
+}
+let _tt;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show '+type;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3800);
+}
+
+init();
+</script>
+</body>
+</html>

@@ -541,6 +541,8 @@ function parseCSV(text) {
   const ntI=idx('Nett Amount'),fuI=idx('Fuel Levy'),rkI=idx('Risk Levy'),dtI=idx('Date Order Completed');
   // Fuzzy match for charge weight column - handles spacing/casing variations
   const cwI = hdr.findIndex(h => h.toLowerCase().includes('charge') && h.toLowerCase().includes('weight'));
+  console.log('CSV headers:', hdr.slice(0,5), '... total:', hdr.length);
+  console.log('Depot col:', dI, 'Acct col:', acI, 'ChargeWeight col:', cwI, '(header:', hdr[cwI], ')');
   if(dI<0||acI<0) throw new Error('Required columns not found. Ensure the header row is included.');
   const rows=[];
   for(let x=1;x<lines.length;x++){
@@ -551,7 +553,7 @@ function parseCSV(text) {
     const acct=String(parseInt(String(c[acI]).trim(),10));
     if(acct==='NaN') continue;
     // Charge weight can be pipe-separated for multi-item consignments e.g. "1.000|0.000"
-    const cwRaw = c[cwI]||'0';
+    const cwRaw = cwI>=0 ? (c[cwI]||'0') : '0';
     const cw = cwRaw.split('|').reduce((s,v)=>s+(parseFloat(v)||0),0);
     rows.push({acct,depot,revenue:(parseFloat(c[ntI])||0)+(parseFloat(c[fuI])||0)+(parseFloat(c[rkI])||0),kg:cw,date:c[dtI]||''});
   }

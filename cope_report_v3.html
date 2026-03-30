@@ -539,7 +539,8 @@ function parseCSV(text) {
   const idx=n=>hdr.findIndex(h=>h===n);
   const dI=idx('Depot Origin'),acI=idx('Sender Account Number');
   const ntI=idx('Nett Amount'),fuI=idx('Fuel Levy'),rkI=idx('Risk Levy'),dtI=idx('Date Order Completed');
-  const cwI=idx('Charge Weight (kg)');
+  // Fuzzy match for charge weight column - handles spacing/casing variations
+  const cwI = hdr.findIndex(h => h.toLowerCase().includes('charge') && h.toLowerCase().includes('weight'));
   if(dI<0||acI<0) throw new Error('Required columns not found. Ensure the header row is included.');
   const rows=[];
   for(let x=1;x<lines.length;x++){

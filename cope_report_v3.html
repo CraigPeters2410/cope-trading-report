@@ -557,9 +557,7 @@ async function init() {
 // CSV PARSING
 // ═══════════════════════════════════════════════════════
 function parseCSV(text) {
-  const lines = text.trim().split(/
-?
-/);
+  const lines = text.trim().split('\n').map(l=>l.replace(/\r$/,''));
   if (lines.length < 2) return [];
   const first = lines[0];
   const delim = (first.match(/	/g)||[]).length > (first.match(/,/g)||[]).length ? '	' : ',';

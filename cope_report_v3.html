@@ -216,6 +216,9 @@ canvas{display:block;width:100%!important}
 .md-table td.hi{color:var(--green);font-weight:600}
 .md-table td.lo{color:var(--red)}
 
+/* ── CUSTOM RANGE ── */
+#customRangeWrap{background:var(--off);border-top:1px solid var(--rule-l);padding:12px 20px;margin-top:0}
+
 /* ── EMPTY ── */
 .empty{padding:56px 20px;text-align:center}
 .empty-icon{font-size:36px;margin-bottom:12px;opacity:.28}
@@ -311,19 +314,37 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
       <div class="card">
         <div class="card-hd">
           <span class="card-hd-title">Compare recent vs prior equivalent</span>
-          <div class="period-bar" id="periodBar">
-            <button class="period-btn active" data-days="5" onclick="setPeriod(5)">5 Days</button>
-            <button class="period-btn" data-days="10" onclick="setPeriod(10)">10 Days</button>
-            <button class="period-btn" data-days="30" onclick="setPeriod(30)">30 Days</button>
-            <button class="period-btn" data-days="0" onclick="setPeriod(0)">All</button>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="period-bar" id="periodBar">
+              <button class="period-btn active" data-days="5" onclick="setPeriod(5)">5D</button>
+              <button class="period-btn" data-days="10" onclick="setPeriod(10)">10D</button>
+              <button class="period-btn" data-days="30" onclick="setPeriod(30)">30D</button>
+              <button class="period-btn" data-days="0" onclick="setPeriod(0)">All</button>
+              <button class="period-btn" data-days="-1" onclick="setPeriod(-1)" id="customBtn">Custom</button>
+            </div>
+          </div>
+          <div id="customRangeWrap" style="display:none;margin-top:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div>
+                <div class="paste-lbl">From</div>
+                <input type="date" id="rangeFrom" onchange="onRangeChange()">
+              </div>
+              <div>
+                <div class="paste-lbl">To</div>
+                <input type="date" id="rangeTo" onchange="onRangeChange()">
+              </div>
+              <div style="margin-top:18px;font-size:11px;color:var(--muted)" id="rangeInfo">Select a date range</div>
+            </div>
           </div>
         </div>
         <div style="padding:16px 20px">
           <div id="periodExplain" style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px">Showing the most recent 5 days compared to the 5 days before that.</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
             <div class="md-stat" style="border:1px solid var(--rule);border-radius:6px"><div class="md-stat-lbl">Active Customers</div><div class="md-stat-val" id="sActive">—</div></div>
             <div class="md-stat" style="border:1px solid var(--rule);border-radius:6px"><div class="md-stat-lbl">Avg Daily Rev</div><div class="md-stat-val" id="sAvgDay">—</div></div>
             <div class="md-stat" style="border:1px solid var(--rule);border-radius:6px"><div class="md-stat-lbl">Total Days</div><div class="md-stat-val" id="sTotalDays">—</div></div>
+            <div class="md-stat" style="border:1px solid var(--rule);border-radius:6px"><div class="md-stat-lbl">Consignments</div><div class="md-stat-val" id="sConsignments">—</div></div>
+            <div class="md-stat" style="border:1px solid var(--rule);border-radius:6px"><div class="md-stat-lbl">Total Kilos</div><div class="md-stat-val" id="sTotalKg">—</div></div>
           </div>
         </div>
       </div>
@@ -518,6 +539,7 @@ function parseCSV(text) {
   const idx=n=>hdr.findIndex(h=>h===n);
   const dI=idx('Depot Origin'),acI=idx('Sender Account Number');
   const ntI=idx('Nett Amount'),fuI=idx('Fuel Levy'),rkI=idx('Risk Levy'),dtI=idx('Date Order Completed');
+  const cwI=idx('Charge Weight (kg)');
   if(dI<0||acI<0) throw new Error('Required columns not found. Ensure the header row is included.');
   const rows=[];
   for(let x=1;x<lines.length;x++){
@@ -527,7 +549,10 @@ function parseCSV(text) {
     if(depot==='NaN'||!c[dI]) continue;
     const acct=String(parseInt(String(c[acI]).trim(),10));
     if(acct==='NaN') continue;
-    rows.push({acct,depot,revenue:(parseFloat(c[ntI])||0)+(parseFloat(c[fuI])||0)+(parseFloat(c[rkI])||0),date:c[dtI]||''});
+    // Charge weight can be pipe-separated for multi-item consignments e.g. "1.000|0.000"
+    const cwRaw = c[cwI]||'0';
+    const cw = cwRaw.split('|').reduce((s,v)=>s+(parseFloat(v)||0),0);
+    rows.push({acct,depot,revenue:(parseFloat(c[ntI])||0)+(parseFloat(c[fuI])||0)+(parseFloat(c[rkI])||0),kg:cw,date:c[dtI]||''});
   }
   return rows;
 }
@@ -544,9 +569,10 @@ function aggregate(rows){
   const byDepot={};
   rows.forEach(r=>{
     if(!byDepot[r.depot]) byDepot[r.depot]={};
-    if(!byDepot[r.depot][r.acct]) byDepot[r.depot][r.acct]={revenue:0,count:0};
+    if(!byDepot[r.depot][r.acct]) byDepot[r.depot][r.acct]={revenue:0,count:0,kg:0};
     byDepot[r.depot][r.acct].revenue+=r.revenue;
     byDepot[r.depot][r.acct].count++;
+    byDepot[r.depot][r.acct].kg+=(r.kg||0);
   });
   return byDepot;
 }
@@ -560,9 +586,10 @@ function getFilteredStore(){
       merged[date]={};
       Object.values(depots).forEach(accts=>{
         Object.entries(accts).forEach(([acct,data])=>{
-          if(!merged[date][acct]) merged[date][acct]={revenue:0,count:0};
+          if(!merged[date][acct]) merged[date][acct]={revenue:0,count:0,kg:0};
           merged[date][acct].revenue+=data.revenue;
           merged[date][acct].count+=data.count;
+          merged[date][acct].kg+=(data.kg||0);
         });
       });
     });
@@ -670,6 +697,20 @@ async function ingestPaste(){
 function setPeriod(days){
   activePeriod=days;
   document.querySelectorAll('.period-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.days)===days));
+  const wrap=document.getElementById('customRangeWrap');
+  if(wrap) wrap.style.display = days===-1 ? 'block' : 'none';
+  if(days!==-1) render();
+}
+
+function onRangeChange(){
+  const from=document.getElementById('rangeFrom').value;
+  const to=document.getElementById('rangeTo').value;
+  const info=document.getElementById('rangeInfo');
+  if(!from||!to){if(info)info.textContent='Select both dates';return;}
+  if(from>to){if(info)info.textContent='From must be before To';return;}
+  const allDates=Object.keys(store).sort();
+  const inRange=allDates.filter(d=>d>=from&&d<=to);
+  if(info)info.textContent=`${inRange.length} day${inRange.length!==1?'s':''} in range`;
   render();
 }
 
@@ -679,14 +720,29 @@ function analyse(){
   const allDates=Object.keys(fs).sort();
   if(!allDates.length) return null;
   let curr,prev;
-  if(activePeriod===0){const half=Math.ceil(allDates.length/2);prev=allDates.slice(0,half);curr=allDates.slice(half);if(!curr.length){curr=prev;prev=[];}}
-  else{curr=allDates.slice(-activePeriod);prev=allDates.slice(-activePeriod*2,-activePeriod);}
+  if(activePeriod===-1){
+    // Custom date range
+    const from=document.getElementById('rangeFrom')?.value;
+    const to=document.getElementById('rangeTo')?.value;
+    if(from&&to){
+      curr=allDates.filter(d=>d>=from&&d<=to);
+      // Prior period = same number of days immediately before
+      if(curr.length){
+        const beforeFrom=allDates.filter(d=>d<from);
+        prev=beforeFrom.slice(-curr.length);
+      } else { prev=[]; }
+    } else { curr=allDates; prev=[]; }
+  } else if(activePeriod===0){
+    const half=Math.ceil(allDates.length/2);prev=allDates.slice(0,half);curr=allDates.slice(half);if(!curr.length){curr=prev;prev=[];}
+  } else {
+    curr=allDates.slice(-activePeriod);prev=allDates.slice(-activePeriod*2,-activePeriod);
+  }
   const allAccts=new Set(allDates.flatMap(d=>Object.keys(fs[d])));
   const rows=Array.from(allAccts).map(acct=>{
-    let currRev=0,prevRev=0,totalRev=0,totalCount=0;
-    curr.forEach(d=>{if(fs[d][acct]){currRev+=fs[d][acct].revenue;}});
+    let currRev=0,prevRev=0,totalRev=0,totalCount=0,currCount=0,currKg=0,totalKg=0;
+    curr.forEach(d=>{if(fs[d][acct]){currRev+=fs[d][acct].revenue;currCount+=fs[d][acct].count;currKg+=(fs[d][acct].kg||0);}});
     prev.forEach(d=>{if(fs[d][acct]){prevRev+=fs[d][acct].revenue;}});
-    allDates.forEach(d=>{if(fs[d][acct]){totalRev+=fs[d][acct].revenue;totalCount+=fs[d][acct].count;}});
+    allDates.forEach(d=>{if(fs[d][acct]){totalRev+=fs[d][acct].revenue;totalCount+=fs[d][acct].count;totalKg+=(fs[d][acct].kg||0);}});
     const spark=allDates.slice(-14).map(d=>fs[d][acct]?.revenue||0);
     const changeAbs=currRev-prevRev;
     const changePct=prevRev>0?(changeAbs/prevRev)*100:null;
@@ -701,7 +757,7 @@ function analyse(){
     else if(prevRev>0&&currRev>0&&recentActive<prevActive&&changePct!==null&&changePct<=-5) trend='risk';
     else trend='stable';
     const activeDays=allDates.filter(d=>fs[d][acct]?.revenue>0);
-    return{acct,currRev,prevRev,changeAbs,changePct,totalRev,totalCount,trend,spark,firstSeen:activeDays[0]||null,lastSeen:activeDays[activeDays.length-1]||null,activeDays:activeDays.length};
+    return{acct,currRev,prevRev,changeAbs,changePct,totalRev,totalCount,currCount,currKg,totalKg,trend,spark,firstSeen:activeDays[0]||null,lastSeen:activeDays[activeDays.length-1]||null,activeDays:activeDays.length};
   });
   const periodRev=rows.reduce((s,r)=>s+r.currRev,0);
   const avgDailyRev=curr.length?periodRev/curr.length:0;
@@ -724,6 +780,11 @@ function render(){
     document.getElementById('sActive').textContent=a.rows.filter(r=>r.currRev>0).length;
     document.getElementById('sAvgDay').textContent='$'+fmtK(a.avgDailyRev);
     document.getElementById('sTotalDays').textContent=allDates.length;
+    // Consignments and kg for current period
+    const periodConsignments=a.rows.reduce((s,r)=>s+r.currCount,0);
+    const periodKg=a.rows.reduce((s,r)=>s+r.currKg,0);
+    document.getElementById('sConsignments').textContent=periodConsignments.toLocaleString();
+    document.getElementById('sTotalKg').textContent=fmtK(periodKg)+'kg';
     const pl=a.prev.length?(a.prev.length===1?a.prev[0]:`${a.prev[0]} → ${a.prev[a.prev.length-1]}`):'N/A';
     const cl=a.curr.length===1?a.curr[0]:`${a.curr[0]} → ${a.curr[a.curr.length-1]}`;
     document.getElementById('periodExplain').textContent=a.prev.length
@@ -838,10 +899,11 @@ function openModal(acct){
   document.getElementById('mdBadge').innerHTML=row?{lost:`<span class="badge badge-lost">● Lost</span>`,down:`<span class="badge badge-down">▼ Down Trading</span>`,risk:`<span class="badge badge-risk">⚠ At Risk</span>`,up:`<span class="badge badge-up">▲ Up Trading</span>`,new:`<span class="badge badge-new">★ New Customer</span>`,stable:`<span class="badge badge-stable">— Stable</span>`}[row.trend]||'':'';
 
   // Build daily data
-  const daily=allDates.map(d=>({date:d,revenue:fs[d][acct]?.revenue||0,count:fs[d][acct]?.count||0}));
+  const daily=allDates.map(d=>({date:d,revenue:fs[d][acct]?.revenue||0,count:fs[d][acct]?.count||0,kg:fs[d][acct]?.kg||0}));
   const activeDays=daily.filter(d=>d.revenue>0);
   const totalRev=daily.reduce((s,d)=>s+d.revenue,0);
   const totalCount=daily.reduce((s,d)=>s+d.count,0);
+  const totalKg=daily.reduce((s,d)=>s+(d.kg||0),0);
   const avgOrder=totalCount>0?totalRev/totalCount:0;
   const avgActiveDay=activeDays.length>0?totalRev/activeDays.length:0;
   const firstSeen=activeDays[0]?.date||'—';
@@ -865,9 +927,10 @@ function openModal(acct){
     <div class="md-section-lbl">Performance Summary</div>
     <div class="md-stats">
       <div class="md-stat"><div class="md-stat-lbl">Total Spend</div><div class="md-stat-val">$${fmtK(totalRev)}</div><div class="md-stat-sub">all loaded days</div></div>
-      <div class="md-stat"><div class="md-stat-lbl">Consignments</div><div class="md-stat-val">${totalCount}</div><div class="md-stat-sub">${activeDays.length} active days</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Consignments</div><div class="md-stat-val">${totalCount.toLocaleString()}</div><div class="md-stat-sub">${activeDays.length} active days</div></div>
       <div class="md-stat"><div class="md-stat-lbl">Avg Order</div><div class="md-stat-val">$${fmtK(avgOrder)}</div><div class="md-stat-sub">per consignment</div></div>
       <div class="md-stat"><div class="md-stat-lbl">Avg Active Day</div><div class="md-stat-val">$${fmtK(avgActiveDay)}</div><div class="md-stat-sub">when spending</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Total Charge Wt</div><div class="md-stat-val">${fmtK(totalKg)}kg</div><div class="md-stat-sub">all loaded days</div></div>
       <div class="md-stat"><div class="md-stat-lbl">First Seen</div><div class="md-stat-val" style="font-size:15px">${firstSeen}</div><div class="md-stat-sub">&nbsp;</div></div>
       <div class="md-stat"><div class="md-stat-lbl">Last Active</div><div class="md-stat-val ${isRecentlyActive?'green':'red'}" style="font-size:15px">${lastSeen}</div><div class="md-stat-sub">${isRecentlyActive?'Active recently':'Inactive'}</div></div>
     </div>
@@ -884,13 +947,14 @@ function openModal(acct){
 
     <div class="md-section-lbl">Daily Breakdown</div>
     <table class="md-table">
-      <thead><tr><th>Date</th><th>Revenue</th><th>Consignments</th><th>Avg / Con</th></tr></thead>
+      <thead><tr><th>Date</th><th>Revenue</th><th>Consignments</th><th>Charge Kg</th><th>Avg / Con</th></tr></thead>
       <tbody>
         ${[...daily].reverse().map(d=>`
           <tr>
             <td>${d.date}</td>
             <td class="${d.revenue===0?'zero':d.revenue>avgActiveDay?'hi':''}">${d.revenue>0?'$'+fmt(d.revenue):'—'}</td>
             <td class="${d.count===0?'zero':''}">${d.count>0?d.count:'—'}</td>
+            <td class="${d.count===0?'zero':''}">${d.kg>0?fmtK(d.kg)+'kg':'—'}</td>
             <td class="${d.count===0?'zero':''}">${d.count>0?'$'+fmt(d.revenue/d.count):'—'}</td>
           </tr>`).join('')}
       </tbody>

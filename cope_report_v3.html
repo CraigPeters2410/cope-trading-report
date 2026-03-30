@@ -642,6 +642,15 @@ function processFiles(files) {
       render();
       scheduleSave();
       toast(`${ok} of ${files.length} file${files.length>1?'s':''} loaded`, ok===files.length?'ok':'bad');
+      // Fade out file results after 3 seconds
+      setTimeout(() => {
+        const c = document.getElementById('fileResults');
+        if (c) {
+          c.style.transition = 'opacity 0.6s ease';
+          c.style.opacity = '0';
+          setTimeout(() => { c.innerHTML = ''; c.style.opacity = '1'; c.style.transition = ''; }, 700);
+        }
+      }, 3000);
       return;
     }
 

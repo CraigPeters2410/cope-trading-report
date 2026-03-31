@@ -290,7 +290,7 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
         <div class="drop-zone" id="dropZone" ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
           <span class="dz-icon">📁</span>
           <div class="dz-title">Drop CSV files here</div>
-          <div class="dz-sub">Multiple files at once supported.<br>Or <strong onclick="document.getElementById('fileInput').click()">click here to browse</strong>.</div>
+          <div class="dz-sub">Drop the original <strong style="color:var(--navy);text-decoration:none">.csv files</strong> directly — not Excel copies.<br>Or <strong onclick="document.getElementById('fileInput').click()">click here to browse</strong>.</div>
           <input type="file" id="fileInput" accept=".csv" multiple style="display:none" onchange="handleFileSelect(event)">
         </div>
         <div class="file-results" id="fileResults"></div>
@@ -552,8 +552,16 @@ function parseCSV(text) {
     if(depot==='NaN'||!c[dI]) continue;
     const acct=String(parseInt(String(c[acI]).trim(),10));
     if(acct==='NaN') continue;
-    // Charge weight can be pipe-separated for multi-item consignments e.g. "1.000|0.000"
-    const cwRaw = cwI>=0 ? (c[cwI]||'0') : '0';
+    // Charge weight - scan from cwI forward up to 5 cols to handle Excel pipe-split offset
+    let cwRaw = '0';
+    if (cwI >= 0) {
+      for (let ci = cwI; ci <= Math.min(cwI+5, c.length-1); ci++) {
+        const v = c[ci];
+        if (v && v.trim() && !isNaN(parseFloat(v.split('|')[0]))) {
+          cwRaw = v; break;
+        }
+      }
+    }
     const cw = cwRaw.split('|').reduce((s,v)=>s+(parseFloat(v)||0),0);
     rows.push({acct,depot,revenue:(parseFloat(c[ntI])||0)+(parseFloat(c[fuI])||0)+(parseFloat(c[rkI])||0),kg:cw,date:c[dtI]||''});
   }

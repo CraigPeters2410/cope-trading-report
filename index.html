@@ -1469,97 +1469,144 @@ function closeReportModal(){
 
 
 // ═══ RFM HORIZONTAL BAR GAUGE (Option A — COPE palette) ═══
-// Draws clean horizontal progress bars in COPE brand colours
-// wp/hp = canvas pixels; the image is then sized in inches by the caller
-function makeRFMImage(R,F,M,health,segKey,wp,hp){
+// wIn/hIn = physical inches the image will occupy in PowerPoint
+// Canvas is computed to exactly match that aspect ratio at 96dpi*2
+function makeRFMImage(R,F,M,health,segKey,wIn,hIn){
   return new Promise(resolve=>{
+    const DPR=2, PPI=96;
+    const w=Math.round(wIn*PPI), h=Math.round(hIn*PPI);
     const cv=document.createElement('canvas');
-    const DPR=2; // render at 2x for crispness
-    cv.width=(wp||400)*DPR; cv.height=(hp||160)*DPR;
-    cv.style.width=(wp||400)+'px'; cv.style.height=(hp||160)+'px';
+    cv.width=w*DPR; cv.height=h*DPR;
     const ctx=cv.getContext('2d');
     ctx.scale(DPR,DPR);
-    const w=wp||400, h=hp||160;
 
     // COPE palette
     const scoreCol=s=>s>=4?'#107C41':s>=3?'#1F4E79':s>=2?'#C55A11':'#A01419';
     const trackCol='#E2E6F0';
-    const labelCol='#7B88A8';
-    const valCol=s=>scoreCol(s);
+    const mutedCol='#8896AF';
 
-    // White background
     ctx.fillStyle='#FFFFFF';
     ctx.fillRect(0,0,w,h);
 
-    // Layout constants
-    const padL=8, padR=10, padT=10;
-    const labelW=78;    // width reserved for "RECENCY" label
-    const scoreW=22;    // width for "4/5" text on right
-    const barX=padL+labelW+6;
-    const barW=w-barX-scoreW-padR;
-    const barH=7;
-    const rowH=(h-padT-6)/3;  // 3 rows
+    // Font sizes scale with physical height so text is always legible
+    const fs=s=>Math.round(h*s);   // font scale helper
+    const dims=[{lbl:'RECENCY',score:R||1},{lbl:'FREQUENCY',score:F||1},{lbl:'MONETARY',score:M||1}];
+    const aspect=w/h;
 
-    const dims=[
-      {lbl:'RECENCY',   score:R||1},
-      {lbl:'FREQUENCY', score:F||1},
-      {lbl:'MONETARY',  score:M||1},
-    ];
+    if(aspect>3.5){
+      // ── WIDE LAYOUT (S6 full-width): 3 bars stacked, health line at bottom ──
+      // Generous label area on left, thick bars, large score text on right
+      const pad=Math.round(h*0.07);
+      const footH=Math.round(h*0.22);
+      const barsH=h-pad*2-footH-4;
+      const rowH=barsH/3;
+      const lblW=Math.round(w*0.16);  // ~16% of width for label
+      const scoW=Math.round(w*0.09);  // ~9% for score
+      const barX=lblW+Math.round(w*0.02);
+      const barW=w-barX-scoW-pad;
+      const barH=Math.max(6,Math.round(rowH*0.28));
+      const fSize=fs(0.18);  // font size ~18% of height — large and legible
 
-    dims.forEach((d,i)=>{
-      const cy=padT + i*rowH + rowH/2;
+      dims.forEach((d,i)=>{
+        const cy=pad+i*rowH+rowH*0.52;
+        // Label
+        ctx.fillStyle=mutedCol;
+        ctx.font=`600 ${fSize}px Calibri,Arial,sans-serif`;
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(d.lbl,pad,cy);
+        // Track
+        ctx.fillStyle=trackCol;
+        ctx.beginPath(); ctx.roundRect(barX,cy-barH/2,barW,barH,barH/2); ctx.fill();
+        // Fill
+        const fillW=Math.max(barH,(d.score/5)*barW);
+        ctx.fillStyle=scoreCol(d.score); ctx.globalAlpha=0.88;
+        ctx.beginPath(); ctx.roundRect(barX,cy-barH/2,fillW,barH,barH/2); ctx.fill();
+        ctx.globalAlpha=1;
+        // Score
+        ctx.fillStyle=scoreCol(d.score);
+        ctx.font=`700 ${fSize}px Calibri,Arial,sans-serif`;
+        ctx.textAlign='right';
+        ctx.fillText(d.score+'/5',w-pad,cy);
+      });
 
-      // Label
-      ctx.fillStyle=labelCol;
-      ctx.font='600 8.5px "Calibri",Arial,sans-serif';
-      ctx.letterSpacing='0.06em';
-      ctx.textAlign='left';
-      ctx.textBaseline='middle';
-      ctx.fillText(d.lbl, padL, cy);
+      // Rule
+      const ruleY=h-footH+2;
+      ctx.strokeStyle=trackCol; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad,ruleY); ctx.lineTo(w-pad,ruleY); ctx.stroke();
 
-      // Track
-      ctx.fillStyle=trackCol;
-      ctx.beginPath();
-      ctx.roundRect(barX, cy-barH/2, barW, barH, barH/2);
-      ctx.fill();
-
-      // Fill
-      const fillW=Math.max(barH, (d.score/5)*barW);
-      ctx.fillStyle=scoreCol(d.score);
-      ctx.globalAlpha=0.85;
-      ctx.beginPath();
-      ctx.roundRect(barX, cy-barH/2, fillW, barH, barH/2);
-      ctx.fill();
-      ctx.globalAlpha=1;
-
-      // Score label right
-      ctx.fillStyle=valCol(d.score);
-      ctx.font='700 9px "Calibri",Arial,sans-serif';
+      // Health line
+      const hfSize=fs(0.17);
+      const hy=h-footH/2+2;
+      ctx.fillStyle=mutedCol;
+      ctx.font=`600 ${hfSize}px Calibri,Arial,sans-serif`;
+      ctx.textAlign='left'; ctx.textBaseline='middle';
+      ctx.fillText('HEALTH SCORE',pad,hy);
+      ctx.fillStyle=scoreCol(Math.round(health||1));
+      ctx.font=`700 ${hfSize}px Calibri,Arial,sans-serif`;
       ctx.textAlign='right';
-      ctx.fillText(d.score+'/5', w-padR, cy);
-    });
+      ctx.fillText((health||0).toFixed(1)+' / 5',w-pad,hy);
 
-    // Thin bottom rule + health score line
-    const ruleY=h-18;
-    ctx.strokeStyle=trackCol;
-    ctx.lineWidth=0.5;
-    ctx.beginPath();
-    ctx.moveTo(padL, ruleY);
-    ctx.lineTo(w-padR, ruleY);
-    ctx.stroke();
+    } else {
+      // ── TALL/SQUARE LAYOUT (right-half of 9-cards and S7): bars + health ──
+      const pad=Math.round(h*0.04);
+      const footH=Math.round(h*0.18);
+      const barsH=h-pad*2-footH-pad;
+      const rowH=barsH/3;
+      const barH=Math.max(5,Math.round(rowH*0.22));
+      const fSize=fs(0.1);   // font ~10% of height
+      const lblW=Math.round(w*0.48);
+      const scoW=Math.round(w*0.18);
+      const barX=pad;
+      const barTotalW=w-pad*2;
 
-    // Health score text
-    const hCol=scoreCol(Math.round(health||1));
-    ctx.font='600 8px "Calibri",Arial,sans-serif';
-    ctx.fillStyle=labelCol;
-    ctx.textAlign='left';
-    ctx.letterSpacing='0.05em';
-    ctx.fillText('HEALTH', padL, h-8);
+      dims.forEach((d,i)=>{
+        const ry=pad+i*rowH;
+        const labelY=ry+rowH*0.32;
+        const barY=ry+rowH*0.56;
+        const scoreY=ry+rowH*0.82;
 
-    ctx.font='700 10px "Calibri",Arial,sans-serif';
-    ctx.fillStyle=hCol;
-    ctx.textAlign='right';
-    ctx.fillText((health||0).toFixed(1)+' / 5', w-padR, h-8);
+        // Label
+        ctx.fillStyle=mutedCol;
+        ctx.font=`600 ${fSize}px Calibri,Arial,sans-serif`;
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(d.lbl,barX,labelY);
+
+        // Track (full width under label)
+        const bH=barH;
+        ctx.fillStyle=trackCol;
+        ctx.beginPath(); ctx.roundRect(barX,barY-bH/2,barTotalW,bH,bH/2); ctx.fill();
+
+        // Fill
+        const fillW=Math.max(bH,(d.score/5)*barTotalW);
+        ctx.fillStyle=scoreCol(d.score); ctx.globalAlpha=0.88;
+        ctx.beginPath(); ctx.roundRect(barX,barY-bH/2,fillW,bH,bH/2); ctx.fill();
+        ctx.globalAlpha=1;
+
+        // Score right of bar
+        const sfSize=Math.round(fSize*1.05);
+        ctx.fillStyle=scoreCol(d.score);
+        ctx.font=`700 ${sfSize}px Calibri,Arial,sans-serif`;
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText(d.score+'/5',w-pad,barY);
+      });
+
+      // Rule
+      const ruleY=h-footH+2;
+      ctx.strokeStyle=trackCol; ctx.lineWidth=0.75;
+      ctx.beginPath(); ctx.moveTo(pad,ruleY); ctx.lineTo(w-pad,ruleY); ctx.stroke();
+
+      // Health
+      const hfSize=Math.round(fSize*1.05);
+      const hy=h-footH/2+2;
+      ctx.fillStyle=mutedCol;
+      ctx.font=`600 ${hfSize}px Calibri,Arial,sans-serif`;
+      ctx.textAlign='left'; ctx.textBaseline='middle';
+      ctx.fillText('HEALTH',pad,hy);
+      ctx.fillStyle=scoreCol(Math.round(health||1));
+      ctx.font=`700 ${hfSize}px Calibri,Arial,sans-serif`;
+      ctx.textAlign='right';
+      ctx.fillText((health||0).toFixed(1)+'/5',w-pad,hy);
+    }
 
     resolve(cv.toDataURL('image/png').replace('data:image/png;base64,','image/png;base64,'));
   });
@@ -1839,7 +1886,7 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
     // RFM bars: full width, row 3 slot y+2.18 to y+2.72 (0.54in tall)
     // Larger canvas (600x130px) so labels are comfortably legible
     try{
-      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',600,130);
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',sc6W-0.28,0.57);
       s6.addImage({data:img,x:x+0.14,y:y+2.19,w:sc6W-0.28,h:0.57});
     }catch(e){}
   }
@@ -1873,7 +1920,7 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
     });
     // Right column: RFM horizontal bars — x+2.1 to x+4.0 = 1.9in wide, y+0.65 to y+2.1 = 1.45in
     try{
-      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',280,185);
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',1.9,1.48);
       s7.addImage({data:img,x:x+2.1,y:y+0.66,w:1.9,h:1.48});
     }catch(e){}
   }
@@ -1953,7 +2000,7 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
     });
     // Right column: RFM horizontal bars — x+2.1, y+0.57, w=1.9, h=1.26
     try{
-      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',280,200);
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',1.94,1.29);
       s3.addImage({data:img,x:x+2.06,y:y+0.53,w:1.94,h:1.29});
     }catch(e){}
   }
@@ -2045,7 +2092,7 @@ async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHd
     });
     // RFM bars — right side, larger canvas for legibility
     try{
-      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',280,200);
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',1.94,1.29);
       s3.addImage({data:img,x:x+2.06,y:y+0.53,w:1.94,h:1.29});
     }catch(e){}
   }

@@ -693,9 +693,10 @@ function processFiles(files){
       Object.entries(byDepot).forEach(([depot,accts])=>{
         if(!store[dateKey][depot]) store[dateKey][depot]={};
         Object.entries(accts).forEach(([acct,data])=>{
-          if(!store[dateKey][depot][acct]) store[dateKey][depot][acct]={revenue:0,count:0};
+          if(!store[dateKey][depot][acct]) store[dateKey][depot][acct]={revenue:0,count:0,kg:0};
           store[dateKey][depot][acct].revenue+=data.revenue;
           store[dateKey][depot][acct].count+=data.count;
+          store[dateKey][depot][acct].kg+=(data.kg||0);
         });
       });
       const depotNames=Object.keys(byDepot).map(d=>DEPOT_MAP[d]||`Depot ${d}`).join(', ');

@@ -1801,7 +1801,7 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
         {text:pct,options:{fontSize:8.5,fontFace:'Calibri',color:C.redD,align:'right',fill:{color:bg2}}},
         {text:seg.label,options:{fontSize:8.5,fontFace:'Calibri',color:C.grey1,fill:{color:bg2}}},
         {text:r.daysSince!==null?r.daysSince+'d':'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:r.daysSince>21?C.redD:C.grey2,align:'right',fill:{color:bg2}}},
-        {text:rfmH>0?rfmH.toFixed(1)+'/5':'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:C.grey1,align:'right',fill:{color:bg2}}},
+        {text:rfmH>0?rfmH.toFixed(1)+'/5':'\u2014',options:{fontSize:8.5,fontFace:'Calibri',bold:true,color:rfmH>=4?C.green:rfmH>=3?C.blue:rfmH>=2?C.amber:rfmH>0?C.redD:C.grey2,align:'right',fill:{color:bg2}}},
       ];
     }));
     s5.addTable(t5rows,{x:0.35,y:2.64,w:11.5,colW:[2.55,1.2,1.2,1.3,0.95,1.5,0.95,1.05],rowH:0.33,border:{pt:0.5,color:C.rule}});
@@ -1819,24 +1819,28 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
     const isChamp=r.segment==='champion',isLoyal=r.segment==='loyal',hCol=isChamp?C.green:isLoyal?C.blue:C.redD;
     s6.addShape('rect',{x,y,w:sc6W,h:sc6H,fill:{color:C.white},shadow:mkSh(),line:{color:C.rule,width:0.5}});
     s6.addShape('rect',{x,y,w:sc6W,h:0.6,fill:{color:hCol},line:{color:hCol,width:0}});
-    s6.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,28),{x:x+0.14,y:y+0.08,w:2.7,h:0.27,fontSize:11,fontFace:'Calibri',bold:true,color:C.white,margin:0});
-    s6.addText('Acct #'+r.acct,{x:x+0.14,y:y+0.36,w:2.7,h:0.18,fontSize:8,fontFace:'Calibri',color:C.white,margin:0,transparency:35});
-    s6.addText(seg.label.toUpperCase(),{x:x+3.15-0.4+0.4,y:y+0.15,w:1.25,h:0.2,fontSize:8,fontFace:'Calibri',bold:true,color:C.white,align:'right',margin:0,transparency:28});
-    // Stats — exact positions: 2 cols at x+0.14 and x+2.14, rows at y+0.72, y+1.45, y+2.18
-    // Row 1: Period Rev | Total Spend
-    // Row 2: Days Since | Change %
-    // Row 3: RFM horizontal bars (full width)
-    const stDefs=[['Period Rev','$'+fmtK(r.currRev)],['Total Spend','$'+fmtK(r.totalRev)],['Days Since',r.daysSince!==null?r.daysSince+'d':'\u2014'],['Change %',r.changePct!==null?(r.changePct>=0?'+':'')+r.changePct.toFixed(1)+'%':'\u2014']];
-    stDefs.forEach(([lbl,val],si)=>{
-      const sc2=si%2,sr2=Math.floor(si/2),sx=x+0.14+sc2*2.0,sy=y+0.72+sr2*0.73;
-      s6.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.9,h:0.17,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
-      s6.addText(val,{x:sx,y:sy+0.17,w:1.9,h:0.42,fontSize:15,fontFace:'Calibri',bold:true,color:C.black,margin:0});
+    // Header: name clipped to left 2.7in, acct# below, segment badge right — all within card
+    s6.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,26),{x:x+0.14,y:y+0.08,w:2.62,h:0.27,fontSize:11,fontFace:'Calibri',bold:true,color:C.white,margin:0});
+    s6.addText('Acct #'+r.acct,{x:x+0.14,y:y+0.36,w:2.62,h:0.18,fontSize:8,fontFace:'Calibri',color:C.white,margin:0,transparency:35});
+    s6.addText(seg.label.toUpperCase(),{x:x+2.85,y:y+0.13,w:1.1,h:0.32,fontSize:7.5,fontFace:'Calibri',bold:true,color:C.white,align:'right',valign:'middle',margin:0,transparency:25});
+    // 2 stat rows — cols at x+0.16 and x+2.1, each w=1.82
+    const s6Stats=[
+      {lbl:'Period Rev',   val:'$'+fmtK(r.currRev),  col:C.black},
+      {lbl:'Total Spend',  val:'$'+fmtK(r.totalRev), col:C.black},
+      {lbl:'Days Since',   val:r.daysSince!==null?r.daysSince+'d':'\u2014', col:r.daysSince>21?C.redD:C.black},
+      {lbl:'Change %',     val:r.changePct!==null?(r.changePct>=0?'+':'')+r.changePct.toFixed(1)+'%':'\u2014', col:r.changePct>=0?C.green:C.redD},
+    ];
+    s6Stats.forEach(({lbl,val,col},si)=>{
+      const sc2=si%2, sr2=Math.floor(si/2);
+      const sx=x+0.16+sc2*1.96, sy=y+0.72+sr2*0.73;
+      s6.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.82,h:0.17,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
+      s6.addText(val,{x:sx,y:sy+0.17,w:1.82,h:0.42,fontSize:14,fontFace:'Calibri',bold:true,color:col,margin:0});
     });
-    // RFM horizontal bar gauge — full card width in row 3 slot (y+2.18)
+    // RFM bars: full width, row 3 slot y+2.18 to y+2.72 (0.54in tall)
+    // Larger canvas (600x130px) so labels are comfortably legible
     try{
-      const rfmW=560,rfmH=112; // canvas px: wide & compact for 3.82in x 0.52in slot
-      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',rfmW,rfmH);
-      s6.addImage({data:img,x:x+0.14,y:y+2.2,w:sc6W-0.28,h:0.52});
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',600,130);
+      s6.addImage({data:img,x:x+0.14,y:y+2.19,w:sc6W-0.28,h:0.57});
     }catch(e){}
   }
   await new Promise(r=>setTimeout(r,20));
@@ -1949,8 +1953,8 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
     });
     // Right column: RFM horizontal bars — x+2.1, y+0.57, w=1.9, h=1.26
     try{
-      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',270,175);
-      s3.addImage({data:img,x:x+2.1,y:y+0.57,w:1.9,h:1.26});
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',280,200);
+      s3.addImage({data:img,x:x+2.06,y:y+0.53,w:1.94,h:1.29});
     }catch(e){}
   }
   await new Promise(r=>setTimeout(r,20));
@@ -1959,7 +1963,7 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
   const s4=pres.addSlide();bg(s4);hdr(s4,'Full Watchlist','All Flagged Accounts \u00b7 Ranked by Revenue Impact');foot(s4,4,T);
   slbl(s4,'All accounts with at-risk, lapsing, lost or significantly down-trading classification',0.5,1.025);
   const fullList=watchList.slice(0,18);
-  const wlHdr=tHdr(['Customer','Classification','Total Spend','Period Rev','Prior Rev','Change %','Days Since','R','F','M']);
+  const wlHdr=tHdr(['Customer','Classification','Total Spend','Period Rev','Prior Rev','Change %','Days','R','F','M','Health']);
   const wlRows=fullList.map((r,i)=>{
     const seg=SEGMENT_META[r.segment||'needsattention'],rdata=a.rfm?.[r.acct]||{},bg2=i%2===0?C.white:'F9F9F9',urgent=r.segment==='lost'||r.daysSince>30,pct=r.changePct!==null?r.changePct.toFixed(1)+'%':'\u2014';
     return [
@@ -1973,9 +1977,10 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
       {text:rdata.R!=null?String(rdata.R):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:C.grey1,align:'right',fill:{color:bg2}}},
       {text:rdata.F!=null?String(rdata.F):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:C.grey1,align:'right',fill:{color:bg2}}},
       {text:rdata.M!=null?String(rdata.M):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:C.grey1,align:'right',fill:{color:bg2}}},
+      {text:rdata.health!=null?rdata.health.toFixed(1):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',bold:true,color:rdata.health>=4?C.green:rdata.health>=3?C.blue:rdata.health>=2?C.amber:rdata.health>0?C.redD:C.grey2,align:'right',fill:{color:bg2}}},
     ];
   });
-  s4.addTable([...wlHdr,...wlRows],{x:0.5,y:1.235,w:11.4,colW:[2.4,1.35,1.2,1.05,1.05,0.95,0.95,0.55,0.55,0.7],rowH:0.31,border:{pt:0.5,color:C.rule}});
+  s4.addTable([...wlHdr,...wlRows],{x:0.5,y:1.235,w:11.4,colW:[2.2,1.25,1.1,1.0,1.0,0.88,0.82,0.5,0.5,0.5,0.75],rowH:0.31,border:{pt:0.5,color:C.rule}});
   buildMethodology(pres,a,C,mkSh,bg,hdr,foot,slbl,ac,T,5,depotLabel,dateRange,today);
 }
 
@@ -2024,24 +2029,24 @@ async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHd
     const isChamp=r.segment==='champion',acCol=isChamp?C.green:r.segment==='loyal'?C.blue:C.redD;
     s3.addShape('rect',{x,y,w:tc3W,h:tc3H,fill:{color:C.white},shadow:mkSh(),line:{color:C.rule,width:0.5}});
     s3.addShape('rect',{x,y,w:tc3W,h:tc3HdrH,fill:{color:acCol},line:{color:acCol,width:0}});
-    s3.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,28),{x:x+0.12,y:y+0.06,w:2.85,h:0.24,fontSize:10.5,fontFace:'Calibri',bold:true,color:C.white,margin:0});
-    s3.addText(seg.label,{x:x+3.35,y:y+0.12,w:1.1,h:0.2,fontSize:8,fontFace:'Calibri',bold:true,color:C.white,align:'right',margin:0,transparency:20});
-    s3.addText('Acct #'+r.acct,{x:x+0.12,y:y+0.3,w:3.91,h:0.16,fontSize:7.5,fontFace:'Calibri',color:C.white,margin:0,transparency:35});
-    // 4 stats in 2x2 grid — exact from corrected deck
-    // Left: Period Rev + Change % stacked
-    const tc3Stats=[['Period Rev','$'+fmtK(r.currRev)],['Change %',r.changePct!==null?(r.changePct>=0?'+':'')+Math.round(r.changePct)+'%':'\u2014']];
-    tc3Stats.forEach(([lbl,val],si)=>{
-      const sx=x+0.12,sy=y+0.57+si*0.66;
-      s3.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.8,h:0.16,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
-      s3.addText(val,{x:sx,y:sy+0.17,w:1.8,h:0.32,fontSize:13,fontFace:'Calibri',bold:true,color:si===1&&r.changePct>=0?C.green:si===1?C.redD:C.black,margin:0});
+    // Header: name left clipped, segment right — both inside card width
+    s3.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,26),{x:x+0.12,y:y+0.05,w:2.62,h:0.25,fontSize:10,fontFace:'Calibri',bold:true,color:C.white,margin:0});
+    s3.addText(seg.label,{x:x+2.78,y:y+0.08,w:1.22,h:0.22,fontSize:7.5,fontFace:'Calibri',bold:true,color:C.white,align:'right',valign:'middle',margin:0,transparency:20});
+    s3.addText('Acct #'+r.acct,{x:x+0.12,y:y+0.32,w:2.62,h:0.15,fontSize:7.5,fontFace:'Calibri',color:C.white,margin:0,transparency:35});
+    // Left: Period Rev + Change % — 2 stats, no overlap with RFM area
+    const tc3StatPairs=[
+      {lbl:'Period Rev', val:'$'+fmtK(r.currRev), col:C.black},
+      {lbl:'Change %',   val:r.changePct!==null?(r.changePct>=0?'+':'')+Math.round(r.changePct)+'%':'—', col:r.changePct>=0?C.green:C.redD},
+    ];
+    tc3StatPairs.forEach(({lbl,val,col},si)=>{
+      const sy=y+0.55+si*0.58;
+      s3.addText(lbl.toUpperCase(),{x:x+0.12,y:sy,w:1.84,h:0.15,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
+      s3.addText(val,{x:x+0.12,y:sy+0.16,w:1.84,h:0.35,fontSize:13,fontFace:'Calibri',bold:true,color:col,margin:0});
     });
-    // Total spend bottom left
-    s3.addText('TOTAL SPEND',{x:x+0.12,y:y+1.52,w:1.8,h:0.16,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
-    s3.addText('$'+fmtK(r.totalRev),{x:x+0.12,y:y+1.69,w:1.8,h:0.18,fontSize:12,fontFace:'Calibri',bold:true,color:C.black,margin:0});
-    // Right: RFM bars
+    // RFM bars — right side, larger canvas for legibility
     try{
-      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',270,165);
-      s3.addImage({data:img,x:x+2.1,y:y+0.62,w:1.9,h:1.22});
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',280,200);
+      s3.addImage({data:img,x:x+2.06,y:y+0.53,w:1.94,h:1.29});
     }catch(e){}
   }
   await new Promise(r=>setTimeout(r,20));
@@ -2076,7 +2081,7 @@ async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHd
       {text:rdata.R!=null?String(rdata.R):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:C.grey1,align:'right',fill:{color:bg2}}},
       {text:rdata.F!=null?String(rdata.F):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:C.grey1,align:'right',fill:{color:bg2}}},
       {text:rdata.M!=null?String(rdata.M):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:C.grey1,align:'right',fill:{color:bg2}}},
-      {text:rdata.health!=null?rdata.health.toFixed(1):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:isChamp?C.green:C.black,align:'right',fill:{color:bg2},bold:isChamp}},
+      {text:rdata.health!=null?rdata.health.toFixed(1):'\u2014',options:{fontSize:8.5,fontFace:'Calibri',bold:true,color:rdata.health>=4?C.green:rdata.health>=3?C.blue:rdata.health>=2?C.amber:rdata.health>0?C.redD:C.grey2,align:'right',fill:{color:bg2}}},
       {text:r.daysSince!==null?r.daysSince+'d':'\u2014',options:{fontSize:8.5,fontFace:'Calibri',color:r.daysSince>14?C.amber:C.grey2,align:'right',fill:{color:bg2}}},
     ];
   });

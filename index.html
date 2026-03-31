@@ -291,6 +291,7 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
 }
 @media(max-width:540px){.kpis{grid-template-columns:1fr 1fr}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 </head>
 <body>
 
@@ -309,6 +310,18 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
       <select class="depot-select" id="depotSelect" onchange="onDepotChange()">
         <option value="all">All Depots</option>
       </select>
+    </div>
+    <div class="hd-div"></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button onclick="document.getElementById('headerFileInput').click()" style="font-family:var(--cond);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:var(--white);padding:6px 13px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4.5 4L8 1l3.5 3M2 11v3h12v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Load Files
+      </button>
+      <input type="file" id="headerFileInput" accept=".csv" multiple style="display:none" onchange="handleFileSelect(event)">
+      <button onclick="openReportModal()" style="font-family:var(--cond);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--red);border:none;color:var(--white);padding:6px 13px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s" onmouseover="this.style.background='#a50d25'" onmouseout="this.style.background='var(--red)'">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="3" rx="1" fill="currentColor"/><rect x="1" y="6.5" width="9" height="2" rx="1" fill="currentColor"/><rect x="1" y="11" width="11" height="2" rx="1" fill="currentColor"/></svg>
+        Generate Report
+      </button>
     </div>
     <div class="hd-div"></div>
     <div class="hd-sync busy" id="syncStatus">
@@ -457,6 +470,78 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
       <button class="md-close" onclick="closeModalDirect()">✕</button>
     </div>
     <div class="md-body" id="mdBody"></div>
+  </div>
+</div>
+
+
+<!-- REPORT GENERATOR MODAL -->
+<div id="reportModalOverlay" style="position:fixed;inset:0;background:rgba(5,10,25,.65);z-index:600;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)closeReportModal()">
+  <div style="background:var(--white);border-radius:12px;width:580px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--sh-lg)">
+    <!-- Modal header -->
+    <div style="background:var(--navy);padding:24px 28px 20px;border-radius:12px 12px 0 0;position:relative">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.45);margin-bottom:6px">Customer Intelligence</div>
+      <div style="font-family:var(--cond);font-size:22px;font-weight:700;color:var(--white);letter-spacing:.01em">Generate Report</div>
+      <div style="font-size:11.5px;color:rgba(255,255,255,.5);margin-top:4px">Presentation-ready PowerPoint · COPE Sensitive Freight</div>
+      <button onclick="closeReportModal()" style="position:absolute;top:18px;right:18px;background:rgba(255,255,255,.12);border:none;color:var(--white);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <div style="padding:24px 28px">
+      <!-- Report type -->
+      <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">Report Type</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px" id="reportTypeList">
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'var(--navy)':'var(--rule)'">
+          <input type="radio" name="reportType" value="portfolio" checked style="margin-top:3px;accent-color:var(--navy)">
+          <div>
+            <div style="font-family:var(--cond);font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em">Portfolio Health Review</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5">Executive summary · RFM segmentation matrix · Revenue concentration (Pareto) · Top accounts · At-risk customers · Period comparison</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'var(--navy)':'var(--rule)'">
+          <input type="radio" name="reportType" value="atrisk" style="margin-top:3px;accent-color:var(--navy)">
+          <div>
+            <div style="font-family:var(--cond);font-size:13px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.04em">At-Risk Customer Report</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5">Deep-dive on lapsing and at-risk accounts · Individual customer scorecards · Revenue at risk · Recommended actions</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid var(--rule);border-radius:8px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'var(--navy)':'var(--rule)'">
+          <input type="radio" name="reportType" value="champion" style="margin-top:3px;accent-color:var(--navy)">
+          <div>
+            <div style="font-family:var(--cond);font-size:13px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.04em">Top Customer Report</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5">Champion and loyal account profiles · Revenue trend · Engagement depth · Growth opportunities</div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Scope -->
+      <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">Scope</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">
+        <div>
+          <div style="font-size:10.5px;color:var(--muted);margin-bottom:5px;font-weight:600">Depot</div>
+          <select id="reportDepot" style="width:100%;font-family:var(--sans);font-size:12px;background:var(--off);border:1.5px solid var(--rule);border-radius:6px;color:var(--ink);padding:7px 10px">
+            <option value="current">Current selection</option>
+            <option value="all">All Depots</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:var(--muted);margin-bottom:5px;font-weight:600">Period</div>
+          <select id="reportPeriod" style="width:100%;font-family:var(--sans);font-size:12px;background:var(--off);border:1.5px solid var(--rule);border-radius:6px;color:var(--ink);padding:7px 10px">
+            <option value="current">Current window</option>
+            <option value="5">Last 5 days</option>
+            <option value="10">Last 10 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div id="reportStatus" style="display:none;padding:12px 14px;border-radius:7px;font-size:12px;margin-bottom:16px;background:var(--off);border:1px solid var(--rule);color:var(--muted)">Preparing report…</div>
+
+      <!-- Actions -->
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button onclick="closeReportModal()" style="font-family:var(--sans);font-size:12px;font-weight:600;color:var(--muted);background:var(--off);border:1.5px solid var(--rule);padding:9px 18px;border-radius:7px;cursor:pointer">Cancel</button>
+        <button onclick="generateReport()" id="generateBtn" style="font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--navy);color:var(--white);border:none;padding:9px 22px;border-radius:7px;cursor:pointer">Generate PowerPoint</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1346,6 +1431,480 @@ function updateSpotlight(filtered, a) {
 
   spotlight.style.display = 'block';
 }
+
+
+// ═══ REPORT GENERATOR ═══
+function openReportModal(){
+  document.getElementById('reportModalOverlay').style.display='flex';
+  // Populate depot options from current DEPOT_MAP
+  const sel = document.getElementById('reportDepot');
+  sel.innerHTML = '<option value="current">Current selection (' + (DEPOT_MAP[activeDepot]||'All Depots') + ')</option><option value="all">All Depots</option>';
+  Object.entries(DEPOT_MAP).forEach(([num,name])=>{
+    const opt = document.createElement('option');
+    opt.value = num; opt.textContent = `${name} (${num})`;
+    sel.appendChild(opt);
+  });
+}
+function closeReportModal(){
+  document.getElementById('reportModalOverlay').style.display='none';
+}
+
+async function generateReport(){
+  const type = document.querySelector('input[name="reportType"]:checked')?.value || 'portfolio';
+  const btn = document.getElementById('generateBtn');
+  const status = document.getElementById('reportStatus');
+  btn.textContent = 'Building…'; btn.disabled = true;
+  status.style.display = 'block';
+  status.style.background = '#f0f9ff'; status.style.borderColor = '#bae6fd'; status.style.color = '#0369a1';
+  status.textContent = 'Analysing customer data…';
+
+  try {
+    // Get the current analysis
+    const a = analyse();
+    if (!a || !a.rows.length) { throw new Error('No data loaded. Load CSV files first.'); }
+
+    const depotSel = document.getElementById('reportDepot').value;
+    const depotLabel = depotSel === 'current' ? (DEPOT_MAP[activeDepot]||'All Depots')
+                     : depotSel === 'all' ? 'All Depots'
+                     : (DEPOT_MAP[depotSel]||'Depot '+depotSel);
+
+    const today = new Date().toLocaleDateString('en-AU', {day:'2-digit',month:'short',year:'numeric'});
+    const dateRange = a.allDates.length ? `${a.allDates[0]} to ${a.allDates[a.allDates.length-1]}` : '—';
+
+    status.textContent = 'Building presentation…';
+    await new Promise(r => setTimeout(r, 50));
+
+    const pres = new PptxGenJS();
+    pres.layout = 'LAYOUT_WIDE'; // 13.3 x 7.5 inches
+    pres.author = 'COPE Sensitive Freight';
+    pres.title = 'Customer Trading Report';
+
+    // ── COLOURS ──
+    const C = {
+      navy: '1a2744', navyD: '111b30', navyM: '243460',
+      red: 'c8102e', redL: 'fdf2f4',
+      white: 'FFFFFF', off: 'f5f6fa', rule: 'e2e6f0',
+      ink2: '2d3d6b', muted: '7b88a8',
+      green: '0e7a47', greenL: 'edf7f2',
+      amber: 'b45309', amberL: 'fffbeb',
+    };
+
+    const mkShadow = () => ({type:'outer',color:'000000',blur:8,offset:3,angle:135,opacity:0.10});
+
+    // Helper: slide footer
+    function addFooter(slide, pageNum, total){
+      slide.addShape('rect',{x:0,y:7.2,w:13.3,h:0.3,fill:{color:C.navy},line:{color:C.navy,width:0}});
+      slide.addText('COPE Sensitive Freight  ·  Customer Trading Report  ·  Confidential',{x:0.4,y:7.22,w:9,h:0.26,fontSize:7,color:'FFFFFF',fontFace:'Barlow',bold:false,valign:'middle',margin:0,transparency:40});
+      slide.addText(`${pageNum} / ${total}  ·  ${today}`,{x:10,y:7.22,w:3,h:0.26,fontSize:7,color:'FFFFFF',fontFace:'Barlow',align:'right',valign:'middle',margin:0,transparency:40});
+    }
+
+    // Helper: section label
+    function addEyebrow(slide, text, x, y, col){
+      slide.addText(text.toUpperCase(),{x,y,w:10,h:0.22,fontSize:8,fontFace:'Barlow',bold:true,charSpacing:5,color:col||C.muted,margin:0});
+    }
+
+    // Helper: stat card
+    function addStatCard(slide, x, y, w, h, label, value, sub, accentColor){
+      slide.addShape('rect',{x,y,w,h,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+      slide.addShape('rect',{x,y,w,h:0.04,fill:{color:accentColor||C.navy},line:{color:accentColor||C.navy,width:0}});
+      slide.addText(label.toUpperCase(),{x:x+0.15,y:y+0.12,w:w-0.3,h:0.18,fontSize:7.5,fontFace:'Barlow',bold:true,charSpacing:3,color:C.muted,margin:0});
+      slide.addText(value,{x:x+0.15,y:y+0.32,w:w-0.3,h:0.5,fontSize:22,fontFace:'Barlow Condensed',bold:true,color:C.navy,margin:0});
+      if(sub) slide.addText(sub,{x:x+0.15,y:y+0.82,w:w-0.3,h:0.18,fontSize:8,fontFace:'Barlow',color:C.muted,margin:0});
+    }
+
+    // ────────────────────────────────────────────
+    // SLIDE 1: COVER
+    // ────────────────────────────────────────────
+    const s1 = pres.addSlide();
+    s1.background = {color: C.navy};
+    // Red accent bar left edge
+    s1.addShape('rect',{x:0,y:0,w:0.35,h:7.5,fill:{color:C.red},line:{color:C.red,width:0}});
+    // Title block
+    s1.addText('CUSTOMER
+TRADING REPORT',{x:0.7,y:1.6,w:8,h:2.2,fontSize:52,fontFace:'Barlow Condensed',bold:true,color:C.white,lineSpacingMultiple:1.0,margin:0});
+    s1.addShape('rect',{x:0.7,y:3.9,w:1.2,h:0.05,fill:{color:C.red},line:{color:C.red,width:0}});
+    s1.addText(`${depotLabel}  ·  ${dateRange}`,{x:0.7,y:4.1,w:10,h:0.35,fontSize:14,fontFace:'Barlow',color:'FFFFFF',margin:0,transparency:35});
+    s1.addText(`${a.allDates.length} Days of Data  ·  Generated ${today}`,{x:0.7,y:4.55,w:10,h:0.28,fontSize:11,fontFace:'Barlow',color:'FFFFFF',margin:0,transparency:50});
+    // Bottom COPE brand
+    s1.addText('COPE SENSITIVE FREIGHT',{x:0.7,y:6.6,w:8,h:0.35,fontSize:11,fontFace:'Barlow Condensed',bold:true,charSpacing:6,color:'FFFFFF',margin:0,transparency:40});
+    // Decorative grid of dots (right side)
+    for(let row=0;row<8;row++){for(let col=0;col<5;col++){
+      s1.addShape('oval',{x:9.5+col*0.55,y:0.8+row*0.8,w:0.08,h:0.08,fill:{color:'FFFFFF',transparency:82},line:{color:'FFFFFF',transparency:82,width:0}});
+    }}
+
+    status.textContent = 'Building executive summary…';
+    await new Promise(r=>setTimeout(r,30));
+
+    // ────────────────────────────────────────────
+    // SLIDE 2: EXECUTIVE SUMMARY
+    // ────────────────────────────────────────────
+    const totalPages = type === 'portfolio' ? 8 : type === 'atrisk' ? 6 : 6;
+    const s2 = pres.addSlide();
+    s2.background = {color: C.off};
+    s2.addShape('rect',{x:0,y:0,w:13.3,h:0.9,fill:{color:C.navy},line:{color:C.navy,width:0}});
+    addEyebrow(s2,'Executive Summary',0.4,0.15,'FFFFFF');
+    s2.addText(type==='portfolio'?'Portfolio Health Overview':type==='atrisk'?'At-Risk Customer Overview':'Top Customer Overview',
+      {x:0.4,y:0.32,w:10,h:0.45,fontSize:22,fontFace:'Barlow Condensed',bold:true,color:C.white,margin:0});
+    addFooter(s2,2,totalPages);
+
+    // KPI strip
+    const totalRev = a.rows.reduce((s,r)=>s+r.totalRev,0);
+    const currRev = a.rows.reduce((s,r)=>s+r.currRev,0);
+    const activeCount = a.rows.filter(r=>r.currRev>0).length;
+    const champCount = a.rows.filter(r=>r.segment==='champion').length;
+    const riskCount = a.rows.filter(r=>r.segment==='atrisk'||r.segment==='lapsing').length;
+    const lostCount = a.rows.filter(r=>r.segment==='lost').length;
+
+    const kpiW = 2.0, kpiGap = 0.1, kpiY = 1.1, kpiH = 1.2;
+    const kpis = [
+      {lbl:'Period Revenue', val:'$'+fmtK(currRev), sub:`${a.curr.length} days`, col:C.navy},
+      {lbl:'Active Customers', val:String(activeCount), sub:'in current period', col:C.navyM},
+      {lbl:'Champion Accounts', val:String(champCount), sub:'top RFM score', col:C.green},
+      {lbl:'At-Risk', val:String(riskCount), sub:'lapsing or at-risk', col:C.amber},
+      {lbl:'Lost', val:String(lostCount), sub:'no recent activity', col:C.red},
+      {lbl:'Total Lifetime', val:'$'+fmtK(totalRev), sub:'all loaded days', col:C.navyM},
+    ];
+    kpis.forEach((k,i)=>{ addStatCard(s2, 0.4+i*(kpiW+kpiGap), kpiY, kpiW, kpiH, k.lbl, k.val, k.sub, k.col); });
+
+    // Key narrative
+    const downCount = a.rows.filter(r=>r.trend==='down').length;
+    const upCount = a.rows.filter(r=>r.trend==='up').length;
+    const narrative = `The ${depotLabel} portfolio shows ${activeCount} active customers generating $${fmtK(currRev)} in the current period. `+
+      `${champCount} accounts are classified as Champions with top-tier RFM scores. `+
+      `${downCount} customers are down-trading versus the prior period, while ${riskCount} show early at-risk indicators based on declining recency and frequency. `+
+      `${lostCount} accounts have no recent consignments and require immediate attention.`;
+
+    s2.addShape('rect',{x:0.4,y:2.55,w:12.5,h:1.6,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+    s2.addShape('rect',{x:0.4,y:2.55,w:0.06,h:1.6,fill:{color:C.navy},line:{color:C.navy,width:0}});
+    addEyebrow(s2,'Key Finding',0.6,2.68);
+    s2.addText(narrative,{x:0.6,y:2.88,w:12.1,h:1.15,fontSize:10.5,fontFace:'Barlow',color:C.ink2,lineSpacingMultiple:1.4,margin:0});
+
+    // Segment breakdown bar chart
+    const segCounts = {};
+    Object.values(SEGMENT_META).forEach(m=>{ segCounts[m.label]=0; });
+    a.rows.forEach(r=>{ const m=SEGMENT_META[r.segment||'needsattention']; if(m) segCounts[m.label]=(segCounts[m.label]||0)+1; });
+    const segEntries = Object.entries(segCounts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+
+    s2.addShape('rect',{x:0.4,y:4.35,w:12.5,h:2.5,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+    addEyebrow(s2,'Customer Segments',0.6,4.5);
+    s2.addChart('bar',[{name:'Customers',labels:segEntries.map(e=>e[0]),values:segEntries.map(e=>e[1])}],{
+      x:0.4,y:4.65,w:12.5,h:2.1,
+      barDir:'col',
+      chartColors:[C.green,'3b82f6',C.amber,C.red,'6b7280',C.navyM,'8b5cf6',C.navyD],
+      chartArea:{fill:{color:C.white}},
+      catAxisLabelColor:C.muted, valAxisLabelColor:C.muted,
+      valGridLine:{color:C.rule,size:0.5}, catGridLine:{style:'none'},
+      showValue:true, dataLabelColor:C.navyD, dataLabelFontSize:9,
+      showLegend:false,
+    });
+
+    status.textContent = 'Building RFM segmentation…';
+    await new Promise(r=>setTimeout(r,30));
+
+    // ────────────────────────────────────────────
+    // SLIDE 3: RFM SEGMENTATION MATRIX
+    // ────────────────────────────────────────────
+    const s3 = pres.addSlide();
+    s3.background = {color: C.off};
+    s3.addShape('rect',{x:0,y:0,w:13.3,h:0.9,fill:{color:C.navy},line:{color:C.navy,width:0}});
+    addEyebrow(s3,'Customer Intelligence',0.4,0.15,'FFFFFF');
+    s3.addText('RFM Segmentation',{x:0.4,y:0.32,w:10,h:0.45,fontSize:22,fontFace:'Barlow Condensed',bold:true,color:C.white,margin:0});
+    addFooter(s3,3,totalPages);
+
+    // Segment cards grid 4x2
+    const segs = [
+      {key:'champion',color:C.green,icon:'🏆'},
+      {key:'loyal',color:'3b82f6',icon:'⭐'},
+      {key:'promising',color:'10b981',icon:'🌱'},
+      {key:'atrisk',color:C.amber,icon:'⚠️'},
+      {key:'lapsing',color:'f97316',icon:'📉'},
+      {key:'new',color:'8b5cf6',icon:'✨'},
+      {key:'needsattention',color:C.muted,icon:'👁'},
+      {key:'lost',color:C.red,icon:'❌'},
+    ];
+    const colW=3.1,colH=2.6,colGap=0.1,rowGap=0.12;
+    segs.forEach((seg,i)=>{
+      const col=i%4, row=Math.floor(i/4);
+      const x=0.4+col*(colW+colGap), y=1.05+row*(colH+rowGap);
+      const meta=SEGMENT_META[seg.key];
+      const count=a.rows.filter(r=>r.segment===seg.key).length;
+      const revTotal=a.rows.filter(r=>r.segment===seg.key).reduce((s,r)=>s+r.currRev,0);
+      s3.addShape('rect',{x,y,w:colW,h:colH,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+      s3.addShape('rect',{x,y,w:colW,h:0.06,fill:{color:seg.color},line:{color:seg.color,width:0}});
+      s3.addText(meta.label.toUpperCase(),{x:x+0.15,y:y+0.18,w:colW-0.3,h:0.22,fontSize:10,fontFace:'Barlow Condensed',bold:true,charSpacing:3,color:seg.color,margin:0});
+      s3.addText(String(count),{x:x+0.15,y:y+0.42,w:colW-0.3,h:0.55,fontSize:36,fontFace:'Barlow Condensed',bold:true,color:C.navy,margin:0});
+      s3.addText('customers',{x:x+0.15,y:y+0.98,w:colW-0.3,h:0.2,fontSize:9,fontFace:'Barlow',color:C.muted,margin:0});
+      s3.addText('$'+fmtK(revTotal)+' period rev',{x:x+0.15,y:y+1.22,w:colW-0.3,h:0.2,fontSize:9,fontFace:'Barlow',color:C.ink2,bold:true,margin:0});
+      s3.addText(meta.desc,{x:x+0.15,y:y+1.5,w:colW-0.3,h:0.9,fontSize:8.5,fontFace:'Barlow',color:C.muted,lineSpacingMultiple:1.35,margin:0});
+    });
+
+    status.textContent = 'Building revenue analysis…';
+    await new Promise(r=>setTimeout(r,30));
+
+    // ────────────────────────────────────────────
+    // SLIDE 4: REVENUE CONCENTRATION (PARETO)
+    // ────────────────────────────────────────────
+    const s4 = pres.addSlide();
+    s4.background = {color: C.off};
+    s4.addShape('rect',{x:0,y:0,w:13.3,h:0.9,fill:{color:C.navy},line:{color:C.navy,width:0}});
+    addEyebrow(s4,'Revenue Analysis',0.4,0.15,'FFFFFF');
+    s4.addText('Revenue Concentration',{x:0.4,y:0.32,w:10,h:0.45,fontSize:22,fontFace:'Barlow Condensed',bold:true,color:C.white,margin:0});
+    addFooter(s4,4,totalPages);
+
+    // Sort by revenue descending
+    const sorted = [...a.rows].sort((a,b)=>b.currRev-a.currRev).filter(r=>r.currRev>0);
+    let cumRev=0;
+    const paretoData = sorted.map(r=>{ cumRev+=r.currRev; return {...r, cumPct: cumRev/currRev*100}; });
+    const top20count = Math.ceil(sorted.length*0.2);
+    const top20rev = sorted.slice(0,top20count).reduce((s,r)=>s+r.currRev,0);
+    const top20pct = currRev>0?Math.round(top20rev/currRev*100):0;
+    const top10 = sorted.slice(0,Math.min(10,sorted.length));
+
+    // Pareto insight card
+    s4.addShape('rect',{x:0.4,y:1.05,w:12.5,h:0.8,fill:{color:C.navy},shadow:mkShadow(),line:{color:C.navy,width:0}});
+    s4.addText(`Top ${top20pct}% of revenue`,{x:0.65,y:1.18,w:5,h:0.4,fontSize:26,fontFace:'Barlow Condensed',bold:true,color:C.white,margin:0});
+    s4.addText(`comes from the top ${top20count} customers (${Math.round(top20count/sorted.length*100)}% of your active base)`,{x:5.5,y:1.25,w:7,h:0.5,fontSize:11,fontFace:'Barlow',color:'FFFFFF',margin:0,transparency:25,valign:'middle'});
+
+    // Top 10 table
+    s4.addShape('rect',{x:0.4,y:2.0,w:6.1,h:5.0,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+    addEyebrow(s4,'Top 10 by Period Revenue',0.6,2.12);
+    const tRows = [[
+      {text:'Customer',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off}}},
+      {text:'Revenue',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off},align:'right'}},
+      {text:'Share',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off},align:'right'}},
+      {text:'Segment',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off}}},
+    ],...top10.map((r,i)=>{
+      const seg=SEGMENT_META[r.segment||'needsattention'];
+      const bg=i%2===0?C.white:'f8f9fc';
+      return [
+        {text:(acctName(r.acct)||'Acct #'+r.acct).substring(0,28),options:{fontSize:9,fontFace:'Barlow',color:C.navy,fill:{color:bg}}},
+        {text:'$'+fmt(r.currRev),options:{fontSize:9,fontFace:'Barlow',color:C.ink2,align:'right',fill:{color:bg}}},
+        {text:(currRev>0?(r.currRev/currRev*100).toFixed(1):'0')+'%',options:{fontSize:9,fontFace:'Barlow',color:C.muted,align:'right',fill:{color:bg}}},
+        {text:seg.label,options:{fontSize:9,fontFace:'Barlow',color:C.ink2,fill:{color:bg}}},
+      ];
+    })];
+    s4.addTable(tRows,{x:0.4,y:2.3,w:6.1,colW:[2.8,1.2,0.8,1.3],rowH:0.35,fontSize:9,fontFace:'Barlow',border:{pt:0.5,color:C.rule}});
+
+    // Bar chart top 10
+    s4.addShape('rect',{x:6.7,y:2.0,w:6.2,h:5.0,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+    addEyebrow(s4,'Period Revenue — Top Customers',6.9,2.12);
+    s4.addChart('bar',[{
+      name:'Revenue',
+      labels:top10.map(r=>(acctName(r.acct)||'#'+r.acct).substring(0,18)),
+      values:top10.map(r=>Math.round(r.currRev))
+    }],{
+      x:6.7,y:2.3,w:6.2,h:4.65,barDir:'bar',
+      chartColors:[C.navy],
+      chartArea:{fill:{color:C.white}},
+      catAxisLabelColor:C.muted, catAxisLabelFontSize:8,
+      valAxisLabelColor:C.muted, valAxisLabelFontSize:8,
+      valGridLine:{color:C.rule,size:0.5}, catGridLine:{style:'none'},
+      showValue:true, dataLabelColor:C.navyD, dataLabelFontSize:8,
+      showLegend:false, barGapWidthPct:60,
+    });
+
+    status.textContent = 'Building movement analysis…';
+    await new Promise(r=>setTimeout(r,30));
+
+    // ────────────────────────────────────────────
+    // SLIDE 5: MOVEMENT SUMMARY (down/up/lost)
+    // ────────────────────────────────────────────
+    const s5 = pres.addSlide();
+    s5.background = {color: C.off};
+    s5.addShape('rect',{x:0,y:0,w:13.3,h:0.9,fill:{color:C.navy},line:{color:C.navy,width:0}});
+    addEyebrow(s5,'Period Analysis',0.4,0.15,'FFFFFF');
+    s5.addText('Customer Movement',{x:0.4,y:0.32,w:10,h:0.45,fontSize:22,fontFace:'Barlow Condensed',bold:true,color:C.white,margin:0});
+    addFooter(s5,5,totalPages);
+
+    // Movement cards
+    const mvmt = [
+      {label:'Up Trading', rows:a.rows.filter(r=>r.trend==='up'), color:C.green, icon:'▲'},
+      {label:'Down Trading', rows:a.rows.filter(r=>r.trend==='down'), color:C.red, icon:'▼'},
+      {label:'At Risk', rows:a.rows.filter(r=>r.trend==='risk'||r.segment==='atrisk'||r.segment==='lapsing'), color:C.amber, icon:'⚠'},
+      {label:'Lost', rows:a.rows.filter(r=>r.trend==='lost'||r.segment==='lost'), color:C.red, icon:'●'},
+    ];
+    mvmt.forEach((m,i)=>{
+      const x=0.4+i*3.2, y=1.1, w=3.0, h=1.1;
+      s5.addShape('rect',{x,y,w,h,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+      s5.addShape('rect',{x,y,w,h:0.05,fill:{color:m.color},line:{color:m.color,width:0}});
+      s5.addText(m.label.toUpperCase(),{x:x+0.15,y:y+0.12,w:w-0.3,h:0.2,fontSize:8,fontFace:'Barlow',bold:true,charSpacing:3,color:m.color,margin:0});
+      s5.addText(String(m.rows.length),{x:x+0.15,y:y+0.34,w:w-0.3,h:0.5,fontSize:32,fontFace:'Barlow Condensed',bold:true,color:C.navy,margin:0});
+      const revChg=m.rows.reduce((s,r)=>s+r.changeAbs,0);
+      s5.addText((revChg>=0?'+':'')+'$'+fmtK(Math.abs(revChg))+' vs prior',{x:x+0.15,y:y+0.85,w:w-0.3,h:0.2,fontSize:8.5,fontFace:'Barlow',color:revChg<0?C.red:C.green,margin:0,bold:true});
+    });
+
+    // Down-trading table
+    const downRows = a.rows.filter(r=>r.trend==='down'||r.trend==='lost').sort((a,b)=>a.changeAbs-b.changeAbs).slice(0,10);
+    if(downRows.length){
+      s5.addShape('rect',{x:0.4,y:2.35,w:12.5,h:4.6,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+      addEyebrow(s5,'Customers Requiring Attention',0.6,2.48);
+      const dTable = [[
+        {text:'Customer',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off}}},
+        {text:'Current Rev',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off},align:'right'}},
+        {text:'Prior Rev',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off},align:'right'}},
+        {text:'Change $',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off},align:'right'}},
+        {text:'Change %',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off},align:'right'}},
+        {text:'Health',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off}}},
+        {text:'Days Since',options:{bold:true,color:C.muted,fontSize:8,fontFace:'Barlow',fill:{color:C.off},align:'right'}},
+      ],...downRows.map((r,i)=>{
+        const seg=SEGMENT_META[r.segment||'needsattention'];
+        const bg=i%2===0?C.white:'f8f9fc';
+        const pct=r.changePct!==null?r.changePct.toFixed(1)+'%':'—';
+        return [
+          {text:(acctName(r.acct)||'Acct #'+r.acct).substring(0,26),options:{fontSize:9,fontFace:'Barlow',color:C.navy,fill:{color:bg}}},
+          {text:'$'+fmt(r.currRev),options:{fontSize:9,fontFace:'Barlow',color:C.ink2,align:'right',fill:{color:bg}}},
+          {text:'$'+fmt(r.prevRev),options:{fontSize:9,fontFace:'Barlow',color:C.muted,align:'right',fill:{color:bg}}},
+          {text:(r.changeAbs>=0?'+':'')+'$'+fmt(r.changeAbs),options:{fontSize:9,fontFace:'Barlow',color:C.red,align:'right',fill:{color:bg},bold:true}},
+          {text:pct,options:{fontSize:9,fontFace:'Barlow',color:C.red,align:'right',fill:{color:bg}}},
+          {text:seg.label,options:{fontSize:9,fontFace:'Barlow',color:C.ink2,fill:{color:bg}}},
+          {text:r.daysSince!==null?String(r.daysSince)+'d':'—',options:{fontSize:9,fontFace:'Barlow',color:r.daysSince>21?C.red:C.muted,align:'right',fill:{color:bg}}},
+        ];
+      })];
+      s5.addTable(dTable,{x:0.4,y:2.68,w:12.5,colW:[3.0,1.5,1.5,1.5,1.2,1.8,1.0],rowH:0.35,fontSize:9,fontFace:'Barlow',border:{pt:0.5,color:C.rule}});
+    }
+
+    status.textContent = 'Building top account profiles…';
+    await new Promise(r=>setTimeout(r,30));
+
+    // ────────────────────────────────────────────
+    // SLIDE 6: TOP ACCOUNT PROFILES
+    // ────────────────────────────────────────────
+    const s6 = pres.addSlide();
+    s6.background = {color: C.off};
+    s6.addShape('rect',{x:0,y:0,w:13.3,h:0.9,fill:{color:C.navy},line:{color:C.navy,width:0}});
+    addEyebrow(s6,'Account Profiles',0.4,0.15,'FFFFFF');
+    s6.addText('Top Account Scorecards',{x:0.4,y:0.32,w:10,h:0.45,fontSize:22,fontFace:'Barlow Condensed',bold:true,color:C.white,margin:0});
+    addFooter(s6,6,totalPages);
+
+    const top6 = sorted.slice(0,6);
+    const cardW=4.1, cardH=2.9, cardCols=3;
+    top6.forEach((r,i)=>{
+      const col=i%cardCols, row=Math.floor(i/cardCols);
+      const x=0.4+col*(cardW+0.1), y=1.05+row*(cardH+0.12);
+      const seg=SEGMENT_META[r.segment||'needsattention'];
+      const rdata=a.rfm?.[r.acct]||{};
+      s6.addShape('rect',{x,y,w:cardW,h:cardH,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+      // Header strip
+      s6.addShape('rect',{x,y,w:cardW,h:0.55,fill:{color:C.navy},line:{color:C.navy,width:0}});
+      s6.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,30),{x:x+0.12,y:y+0.08,w:cardW-1.2,h:0.22,fontSize:10,fontFace:'Barlow',bold:true,color:C.white,margin:0});
+      s6.addText(`Acct #${r.acct}`,{x:x+0.12,y:y+0.3,w:cardW-1.2,h:0.18,fontSize:7.5,fontFace:'Barlow',color:'FFFFFF',margin:0,transparency:40});
+      s6.addText(seg.label.toUpperCase(),{x:x+cardW-1.4,y:y+0.15,w:1.3,h:0.25,fontSize:8,fontFace:'Barlow',bold:true,color:C.white,align:'right',margin:0,transparency:30});
+      // Stats grid
+      const cStats=[
+        {l:'Period Rev',v:'$'+fmtK(r.currRev)},
+        {l:'Total Spend',v:'$'+fmtK(r.totalRev)},
+        {l:'Health Score',v:(rdata.health||1).toFixed(1)+'/5'},
+        {l:'R / F / M',v:`${rdata.R||'—'} · ${rdata.F||'—'} · ${rdata.M||'—'}`},
+        {l:'Days Since',v:r.daysSince!==null?r.daysSince+'d':'—'},
+        {l:'Change %',v:r.changePct!==null?(r.changePct>=0?'+':'')+r.changePct.toFixed(1)+'%':'—'},
+      ];
+      cStats.forEach((st,si)=>{
+        const sc=si%2, sr2=Math.floor(si/2);
+        const sx=x+0.12+sc*2.0, sy=y+0.65+sr2*0.65;
+        s6.addText(st.l.toUpperCase(),{x:sx,y:sy,w:1.9,h:0.18,fontSize:6.5,fontFace:'Barlow',bold:true,charSpacing:2,color:C.muted,margin:0});
+        s6.addText(st.v,{x:sx,y:sy+0.18,w:1.9,h:0.38,fontSize:15,fontFace:'Barlow Condensed',bold:true,color:C.navy,margin:0});
+      });
+    });
+
+    status.textContent = 'Building at-risk analysis…';
+    await new Promise(r=>setTimeout(r,30));
+
+    // ────────────────────────────────────────────
+    // SLIDE 7: AT-RISK DEEP DIVE
+    // ────────────────────────────────────────────
+    const s7 = pres.addSlide();
+    s7.background = {color: C.off};
+    s7.addShape('rect',{x:0,y:0,w:13.3,h:0.9,fill:{color:C.red},line:{color:C.red,width:0}});
+    addEyebrow(s7,'Risk Assessment',0.4,0.15,'FFFFFF');
+    s7.addText('At-Risk & Lapsing Accounts',{x:0.4,y:0.32,w:10,h:0.45,fontSize:22,fontFace:'Barlow Condensed',bold:true,color:C.white,margin:0});
+    addFooter(s7,7,totalPages);
+
+    const atRisk = a.rows.filter(r=>r.segment==='atrisk'||r.segment==='lapsing'||r.trend==='risk')
+                         .sort((a,b)=>b.totalRev-a.totalRev).slice(0,8);
+
+    const revAtRisk = atRisk.reduce((s,r)=>s+r.totalRev,0);
+    // Summary strip
+    s7.addShape('rect',{x:0.4,y:1.05,w:12.5,h:0.85,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+    addStatCard(s7,0.4,1.05,2.5,0.85,'At-Risk Customers',String(atRisk.length),'',C.red);
+    addStatCard(s7,3.1,1.05,2.5,0.85,'Revenue at Risk','$'+fmtK(revAtRisk),'total spend',C.amber);
+    const avgDaysSince = atRisk.length ? Math.round(atRisk.reduce((s,r)=>s+(r.daysSince||0),0)/atRisk.length) : 0;
+    addStatCard(s7,5.8,1.05,2.5,0.85,'Avg Days Inactive',String(avgDaysSince)+'d','since last shipment',C.amber);
+    s7.addShape('rect',{x:8.5,y:1.05,w:4.4,h:0.85,fill:{color:C.off},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+    s7.addText('These accounts have historically shipped with COPE but are showing signs of reduced engagement. Proactive outreach recommended.',
+      {x:8.65,y:1.12,w:4.1,h:0.7,fontSize:8.5,fontFace:'Barlow',color:C.ink2,lineSpacingMultiple:1.35,margin:0});
+
+    // At-risk cards
+    const arCardW=3.05, arCardH=2.6;
+    atRisk.forEach((r,i)=>{
+      if(i>=8)return;
+      const col=i%4, row=Math.floor(i/4);
+      const x=0.4+col*(arCardW+0.1), y=2.05+row*(arCardH+0.1);
+      const seg=SEGMENT_META[r.segment||'needsattention'];
+      const rdata=a.rfm?.[r.acct]||{};
+      const hlColor = r.daysSince>30?C.red:C.amber;
+      s7.addShape('rect',{x,y,w:arCardW,h:arCardH,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+      s7.addShape('rect',{x,y,w:arCardW,h:0.04,fill:{color:hlColor},line:{color:hlColor,width:0}});
+      s7.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,24),{x:x+0.12,y:y+0.1,w:arCardW-0.25,h:0.22,fontSize:10,fontFace:'Barlow',bold:true,color:C.navy,margin:0});
+      s7.addText(`Acct #${r.acct}  ·  ${seg.label}`,{x:x+0.12,y:y+0.32,w:arCardW-0.25,h:0.18,fontSize:7.5,fontFace:'Barlow',color:C.muted,margin:0});
+      s7.addShape('rect',{x,y:y+0.54,w:arCardW,h:0.005,fill:{color:C.rule},line:{color:C.rule,width:0}});
+      const arStats=[
+        {l:'Total Spend',v:'$'+fmtK(r.totalRev)},
+        {l:'Period Rev',v:'$'+fmtK(r.currRev)},
+        {l:'Days Inactive',v:r.daysSince!==null?r.daysSince+'d':'—',color:hlColor},
+        {l:'Health Score',v:(rdata.health||1).toFixed(1)+'/5'},
+      ];
+      arStats.forEach((st,si)=>{
+        s7.addText(st.l.toUpperCase(),{x:x+0.12,y:y+0.62+si*0.46,w:arCardW-0.25,h:0.16,fontSize:6.5,fontFace:'Barlow',bold:true,charSpacing:2,color:C.muted,margin:0});
+        s7.addText(st.v,{x:x+0.12,y:y+0.78+si*0.46,w:arCardW-0.25,h:0.28,fontSize:14,fontFace:'Barlow Condensed',bold:true,color:st.color||C.navy,margin:0});
+      });
+    });
+
+    // ────────────────────────────────────────────
+    // SLIDE 8: CLOSING / METHODOLOGY
+    // ────────────────────────────────────────────
+    const s8 = pres.addSlide();
+    s8.background = {color: C.navy};
+    s8.addShape('rect',{x:0,y:0,w:0.35,h:7.5,fill:{color:C.red},line:{color:C.red,width:0}});
+    s8.addText('METHODOLOGY',{x:0.7,y:1.2,w:10,h:0.4,fontSize:11,fontFace:'Barlow Condensed',bold:true,charSpacing:8,color:'FFFFFF',margin:0,transparency:45});
+    s8.addShape('rect',{x:0.7,y:1.7,w:1.0,h:0.05,fill:{color:C.red},line:{color:C.red,width:0}});
+    s8.addText('RFM Analysis Framework',{x:0.7,y:1.85,w:10,h:0.55,fontSize:30,fontFace:'Barlow Condensed',bold:true,color:C.white,margin:0});
+
+    const methods = [
+      {title:'Recency (R)', body:'How recently the customer shipped with COPE. Scored 1–5 relative to the full customer portfolio, where 5 indicates the most recently active accounts.'},
+      {title:'Frequency (F)', body:'How often the customer ships across the loaded data window. Higher frequency scores indicate consistent, habitual customers.'},
+      {title:'Monetary (M)', body:'Total revenue contribution. Customers are scored percentile-rank against the portfolio — 5 indicates top-quartile revenue contribution.'},
+      {title:'Personal Baseline', body:'Each customer's 30-day rolling average revenue on active days. Deviation from this baseline — not a global threshold — determines down-trading for champion accounts.'},
+    ];
+    methods.forEach((m,i)=>{
+      const y=2.6+i*1.1;
+      s8.addShape('rect',{x:0.7,y,w:0.06,h:0.85,fill:{color:C.red},line:{color:C.red,width:0}});
+      s8.addText(m.title,{x:0.9,y,w:4,h:0.28,fontSize:11,fontFace:'Barlow',bold:true,color:C.white,margin:0});
+      s8.addText(m.body,{x:0.9,y:y+0.3,w:11,h:0.55,fontSize:9.5,fontFace:'Barlow',color:'FFFFFF',margin:0,transparency:30,lineSpacingMultiple:1.4});
+    });
+
+    s8.addText(`Data window: ${dateRange}  ·  ${a.allDates.length} days  ·  ${a.rows.length} customers  ·  Generated ${today}`,
+      {x:0.7,y:7.05,w:12,h:0.25,fontSize:8,fontFace:'Barlow',color:'FFFFFF',margin:0,transparency:55});
+    addFooter(s8,8,totalPages);
+
+    status.textContent = 'Writing file…';
+    await new Promise(r=>setTimeout(r,30));
+
+    // Save
+    const filename = `COPE_Customer_Report_${depotLabel.replace(/[^a-zA-Z0-9]/g,'_')}_${today.replace(/[^0-9]/g,'')}.pptx`;
+    await pres.writeFile({fileName: filename});
+
+    status.style.background='var(--green-l)'; status.style.borderColor='var(--green-b)'; status.style.color='var(--green)';
+    status.textContent = `✓ Report downloaded: ${filename}`;
+    btn.textContent='Generate PowerPoint'; btn.disabled=false;
+
+  } catch(err){
+    console.error(err);
+    status.style.background='var(--red-l)'; status.style.borderColor='var(--red-b)'; status.style.color='var(--red)';
+    status.textContent='Error: '+err.message;
+    btn.textContent='Generate PowerPoint'; btn.disabled=false;
+  }
+}
+
 
 init();
 </script>

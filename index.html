@@ -548,10 +548,19 @@ function parseCSV(text) {
   const idx=n=>hdr.findIndex(h=>h===n);
   const dI=idx('Depot Origin'),acI=idx('Sender Account Number');
   const ntI=idx('Nett Amount'),fuI=idx('Fuel Levy'),rkI=idx('Risk Levy'),dtI=idx('Date Order Completed');
-  // Fuzzy match for charge weight column - handles spacing/casing variations
-  const cwI = hdr.findIndex(h => h.toLowerCase().includes('charge') && h.toLowerCase().includes('weight'));
-  console.log('CSV headers:', hdr.slice(0,5), '... total:', hdr.length);
-  console.log('Depot col:', dI, 'Acct col:', acI, 'ChargeWeight col:', cwI, '(header:', hdr[cwI], ')');
+  // Find charge weight column - try multiple strategies
+  let cwI = hdr.findIndex(h => h.toLowerCase().includes('charge') && h.toLowerCase().includes('weight'));
+  // Fallback: find by position relative to 'Weight (kg)' column
+  if (cwI < 0) {
+    const wI = hdr.findIndex(h => h.toLowerCase() === 'weight (kg)');
+    if (wI >= 0) cwI = wI + 1;
+  }
+  // Fallback 2: look for AAE_Con_ID and go one back
+  if (cwI < 0) {
+    const aaeI = hdr.findIndex(h => h.toLowerCase().includes('aae_con'));
+    if (aaeI >= 0) cwI = aaeI - 1;
+  }
+  console.log('CW col index:', cwI, 'header:', hdr[cwI]);
   if(dI<0||acI<0) throw new Error('Required columns not found. Ensure the header row is included.');
   const rows=[];
   for(let x=1;x<lines.length;x++){
@@ -561,18 +570,28 @@ function parseCSV(text) {
     if(depot==='NaN'||!c[dI]) continue;
     const acct=String(parseInt(String(c[acI]).trim(),10));
     if(acct==='NaN') continue;
-    // Charge weight - scan from cwI forward up to 5 cols to handle Excel pipe-split offset
-    let cwRaw = '0';
-    if (cwI >= 0) {
-      for (let ci = cwI; ci <= Math.min(cwI+5, c.length-1); ci++) {
-        const v = c[ci];
-        if (v && v.trim() && !isNaN(parseFloat(v.split('|')[0]))) {
-          cwRaw = v; break;
+    // Charge weight - scan all columns for pipe-delimited numeric weight value
+    // This handles Excel-opened files where pipe-split creates extra columns
+    let cw = 0;
+    // First try the detected column index
+    if (cwI >= 0 && c[cwI]) {
+      const v = c[cwI];
+      if (/^[\d.|]+$/.test(v.trim())) {
+        cw = v.split('|').reduce((s,x)=>s+(parseFloat(x)||0), 0);
+      }
+    }
+    // If still 0, scan forward from cwI up to 8 positions
+    if (cw === 0 && cwI >= 0) {
+      for (let ci = cwI+1; ci <= Math.min(cwI+8, c.length-1); ci++) {
+        const v = (c[ci]||'').trim();
+        if (v && /^[\d.|]+$/.test(v) && parseFloat(v) > 0) {
+          cw = v.split('|').reduce((s,x)=>s+(parseFloat(x)||0), 0);
+          if (rows.length === 0) console.log('CW found at offset', ci-cwI, 'from cwI, value:', v, '->', cw);
+          break;
         }
       }
     }
-    const cw = cwRaw.split('|').reduce((s,v)=>s+(parseFloat(v)||0),0);
-    if (rows.length === 0) console.log('First row kg debug — cwI:', cwI, 'c[cwI]:', c[cwI], 'cwRaw:', cwRaw, 'cw:', cw, 'row cols:', c.length);
+    if (rows.length === 0) console.log('Row 0 — cwI:', cwI, 'c[cwI]:', c[cwI], 'final cw:', cw, 'total cols:', c.length);
     rows.push({acct,depot,revenue:(parseFloat(c[ntI])||0)+(parseFloat(c[fuI])||0)+(parseFloat(c[rkI])||0),kg:cw,date:c[dtI]||''});
   }
   return rows;

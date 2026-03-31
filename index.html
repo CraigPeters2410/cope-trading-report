@@ -1669,7 +1669,7 @@ async function generateReport(){
       const meta=SEGMENT_META[seg.key];
       const cnt=a.rows.filter(r=>r.segment===seg.key).length;
       const rev=a.rows.filter(r=>r.segment===seg.key).reduce((s,r)=>s+r.currRev,0);
-      slide.addShape && null; // avoid lint
+
       s3.addShape('rect',{x,y,w:cW,h:cH,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
       s3.addShape('rect',{x,y,w:cW,h:0.07,fill:{color:seg.ac},line:{color:seg.ac,width:0}});
       s3.addText(meta.label.toUpperCase(),{x:x+0.15,y:y+0.14,w:cW-0.3,h:0.22,fontSize:10,

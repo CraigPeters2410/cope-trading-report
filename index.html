@@ -1468,27 +1468,99 @@ function closeReportModal(){
 }
 
 
-// ═══ RFM CANVAS GAUGE ═══
+// ═══ RFM HORIZONTAL BAR GAUGE (Option A — COPE palette) ═══
+// Draws clean horizontal progress bars in COPE brand colours
+// wp/hp = canvas pixels; the image is then sized in inches by the caller
 function makeRFMImage(R,F,M,health,segKey,wp,hp){
   return new Promise(resolve=>{
     const cv=document.createElement('canvas');
-    cv.width=wp||400; cv.height=hp||220;
-    const ctx=cv.getContext('2d'),w=cv.width,h=cv.height;
-    const sC={champion:'#107C41',loyal:'#1F4E79',promising:'#2E75B6',atrisk:'#C55A11',lapsing:'#C55A11',new:'#7030A0',needsattention:'#888888',lost:'#A01419'};
-    const qC=s=>s>=4?'#107C41':s>=3?'#2E75B6':s>=2?'#C55A11':'#A01419';
-    ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,w,h);
-    function arc(cx,cy,r,score,lbl){
-      const pct=(score-1)/4,sa=Math.PI*0.75,ea=Math.PI*2.25,fa=sa+pct*(ea-sa);
-      ctx.beginPath();ctx.arc(cx,cy,r,sa,ea);ctx.strokeStyle='#E8E8E8';ctx.lineWidth=r*0.22;ctx.lineCap='round';ctx.stroke();
-      if(pct>0){ctx.beginPath();ctx.arc(cx,cy,r,sa,fa);ctx.strokeStyle=qC(score);ctx.lineWidth=r*0.22;ctx.lineCap='round';ctx.stroke();}
-      ctx.fillStyle=qC(score);ctx.font=`bold ${Math.round(r*0.55)}px Calibri,Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(score),cx,cy-r*0.05);
-      ctx.fillStyle='#888888';ctx.font=`bold ${Math.round(r*0.28)}px Calibri,Arial`;ctx.fillText(lbl,cx,cy+r*0.52);
-    }
-    const gr=Math.round(Math.min(w*0.13,h*0.26)),gcy=Math.round(h*0.42),sp=w/4;
-    arc(sp,gcy,gr,R||1,'RECENCY');arc(sp*2,gcy,gr,F||1,'FREQUENCY');arc(sp*3,gcy,gr,M||1,'MONETARY');
-    const hStr=health?health.toFixed(1):'—',hCol=health>=4?'#107C41':health>=3?'#2E75B6':health>=2?'#C55A11':'#A01419';
-    ctx.fillStyle='#BBBBBB';ctx.font=`bold ${Math.round(h*0.07)}px Calibri,Arial`;ctx.textAlign='center';ctx.fillText('HEALTH SCORE',w/2,h*0.72);
-    ctx.fillStyle=hCol;ctx.font=`bold ${Math.round(h*0.22)}px Calibri,Arial`;ctx.fillText(hStr+' / 5',w/2,h*0.9);
+    const DPR=2; // render at 2x for crispness
+    cv.width=(wp||400)*DPR; cv.height=(hp||160)*DPR;
+    cv.style.width=(wp||400)+'px'; cv.style.height=(hp||160)+'px';
+    const ctx=cv.getContext('2d');
+    ctx.scale(DPR,DPR);
+    const w=wp||400, h=hp||160;
+
+    // COPE palette
+    const scoreCol=s=>s>=4?'#107C41':s>=3?'#1F4E79':s>=2?'#C55A11':'#A01419';
+    const trackCol='#E2E6F0';
+    const labelCol='#7B88A8';
+    const valCol=s=>scoreCol(s);
+
+    // White background
+    ctx.fillStyle='#FFFFFF';
+    ctx.fillRect(0,0,w,h);
+
+    // Layout constants
+    const padL=8, padR=10, padT=10;
+    const labelW=78;    // width reserved for "RECENCY" label
+    const scoreW=22;    // width for "4/5" text on right
+    const barX=padL+labelW+6;
+    const barW=w-barX-scoreW-padR;
+    const barH=7;
+    const rowH=(h-padT-6)/3;  // 3 rows
+
+    const dims=[
+      {lbl:'RECENCY',   score:R||1},
+      {lbl:'FREQUENCY', score:F||1},
+      {lbl:'MONETARY',  score:M||1},
+    ];
+
+    dims.forEach((d,i)=>{
+      const cy=padT + i*rowH + rowH/2;
+
+      // Label
+      ctx.fillStyle=labelCol;
+      ctx.font='600 8.5px "Calibri",Arial,sans-serif';
+      ctx.letterSpacing='0.06em';
+      ctx.textAlign='left';
+      ctx.textBaseline='middle';
+      ctx.fillText(d.lbl, padL, cy);
+
+      // Track
+      ctx.fillStyle=trackCol;
+      ctx.beginPath();
+      ctx.roundRect(barX, cy-barH/2, barW, barH, barH/2);
+      ctx.fill();
+
+      // Fill
+      const fillW=Math.max(barH, (d.score/5)*barW);
+      ctx.fillStyle=scoreCol(d.score);
+      ctx.globalAlpha=0.85;
+      ctx.beginPath();
+      ctx.roundRect(barX, cy-barH/2, fillW, barH, barH/2);
+      ctx.fill();
+      ctx.globalAlpha=1;
+
+      // Score label right
+      ctx.fillStyle=valCol(d.score);
+      ctx.font='700 9px "Calibri",Arial,sans-serif';
+      ctx.textAlign='right';
+      ctx.fillText(d.score+'/5', w-padR, cy);
+    });
+
+    // Thin bottom rule + health score line
+    const ruleY=h-18;
+    ctx.strokeStyle=trackCol;
+    ctx.lineWidth=0.5;
+    ctx.beginPath();
+    ctx.moveTo(padL, ruleY);
+    ctx.lineTo(w-padR, ruleY);
+    ctx.stroke();
+
+    // Health score text
+    const hCol=scoreCol(Math.round(health||1));
+    ctx.font='600 8px "Calibri",Arial,sans-serif';
+    ctx.fillStyle=labelCol;
+    ctx.textAlign='left';
+    ctx.letterSpacing='0.05em';
+    ctx.fillText('HEALTH', padL, h-8);
+
+    ctx.font='700 10px "Calibri",Arial,sans-serif';
+    ctx.fillStyle=hCol;
+    ctx.textAlign='right';
+    ctx.fillText((health||0).toFixed(1)+' / 5', w-padR, h-8);
+
     resolve(cv.toDataURL('image/png').replace('data:image/png;base64,','image/png;base64,'));
   });
 }
@@ -1751,14 +1823,21 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
     s6.addText('Acct #'+r.acct,{x:x+0.14,y:y+0.36,w:2.7,h:0.18,fontSize:8,fontFace:'Calibri',color:C.white,margin:0,transparency:35});
     s6.addText(seg.label.toUpperCase(),{x:x+3.15-0.4+0.4,y:y+0.15,w:1.25,h:0.2,fontSize:8,fontFace:'Calibri',bold:true,color:C.white,align:'right',margin:0,transparency:28});
     // Stats — exact positions: 2 cols at x+0.14 and x+2.14, rows at y+0.72, y+1.45, y+2.18
-    const stDefs=[['Period Rev','$'+fmtK(r.currRev)],['Total Spend','$'+fmtK(r.totalRev)],['Health Score',(rdata.health||1).toFixed(1)+'/5'],['R \u00b7 F \u00b7 M',(rdata.R||'\u2014')+' \u00b7 '+(rdata.F||'\u2014')+' \u00b7 '+(rdata.M||'\u2014')],['Days Since',r.daysSince!==null?r.daysSince+'d':'\u2014'],['Change %',r.changePct!==null?(r.changePct>=0?'+':'')+r.changePct.toFixed(1)+'%':'\u2014']];
+    // Row 1: Period Rev | Total Spend
+    // Row 2: Days Since | Change %
+    // Row 3: RFM horizontal bars (full width)
+    const stDefs=[['Period Rev','$'+fmtK(r.currRev)],['Total Spend','$'+fmtK(r.totalRev)],['Days Since',r.daysSince!==null?r.daysSince+'d':'\u2014'],['Change %',r.changePct!==null?(r.changePct>=0?'+':'')+r.changePct.toFixed(1)+'%':'\u2014']];
     stDefs.forEach(([lbl,val],si)=>{
       const sc2=si%2,sr2=Math.floor(si/2),sx=x+0.14+sc2*2.0,sy=y+0.72+sr2*0.73;
       s6.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.9,h:0.17,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
       s6.addText(val,{x:sx,y:sy+0.17,w:1.9,h:0.42,fontSize:15,fontFace:'Calibri',bold:true,color:C.black,margin:0});
     });
-    // RFM gauge image
-    try{const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',320,180);s6.addImage({data:img,x:x+sc6W-1.55,y:y+0.65,w:1.42,h:0.8});}catch(e){}
+    // RFM horizontal bar gauge — full card width in row 3 slot (y+2.18)
+    try{
+      const rfmW=560,rfmH=112; // canvas px: wide & compact for 3.82in x 0.52in slot
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',rfmW,rfmH);
+      s6.addImage({data:img,x:x+0.14,y:y+2.2,w:sc6W-0.28,h:0.52});
+    }catch(e){}
   }
   await new Promise(r=>setTimeout(r,20));
   // S7 At-Risk — exact layout from corrected deck (6 cards, 3x2, at-risk positions)
@@ -1781,14 +1860,18 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
     s7.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,28),{x:x+0.14,y:y+0.1,w:3.87,h:0.26,fontSize:11,fontFace:'Calibri',bold:true,color:C.black,margin:0});
     s7.addText('Acct #'+r.acct+'  \u00b7  '+seg.label,{x:x+0.14,y:y+0.36,w:3.87,h:0.18,fontSize:8,fontFace:'Calibri',color:C.grey2,margin:0});
     s7.addShape('rect',{x:x+0.14,y:y+0.58,w:3.87,h:0.004,fill:{color:C.rule},line:{color:C.rule,width:0}});
-    const arSts=[['Total Spend','$'+fmtK(r.totalRev)],['Period Rev','$'+fmtK(r.currRev)],['Days Since Ship',r.daysSince!==null?r.daysSince+'d':'\u2014'],['RFM Health',(rdata.health||0).toFixed(1)+'/5']];
-    const arCols=[0.54-0.4,2.475-0.4];
+    // Left column: 3 key stats stacked
+    const arSts=[['Total Spend','$'+fmtK(r.totalRev)],['Period Rev','$'+fmtK(r.currRev)],['Days Since',r.daysSince!==null?r.daysSince+'d':'\u2014']];
     arSts.forEach(([lbl,val],si)=>{
-      const sc2=si%2,sr2=Math.floor(si/2),sx=x+arCols[sc2],sy=y+0.66+sr2*0.87;
-      s7.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.835,h:0.17,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
-      s7.addText(val,{x:sx,y:sy+0.17,w:1.835,h:0.38,fontSize:15,fontFace:'Calibri',bold:true,color:urgent&&si===2?C.redD:C.black,margin:0});
+      const sx=x+0.14,sy=y+0.66+si*0.51;
+      s7.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.85,h:0.16,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
+      s7.addText(val,{x:sx,y:sy+0.17,w:1.85,h:0.32,fontSize:13,fontFace:'Calibri',bold:true,color:si===2&&urgent?C.redD:C.black,margin:0});
     });
-    try{const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',280,155);s7.addImage({data:img,x:x+arW7-1.2,y:y+0.65,w:1.1,h:0.61});}catch(e){}
+    // Right column: RFM horizontal bars — x+2.1 to x+4.0 = 1.9in wide, y+0.65 to y+2.1 = 1.45in
+    try{
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',280,185);
+      s7.addImage({data:img,x:x+2.1,y:y+0.66,w:1.9,h:1.48});
+    }catch(e){}
   }
   // S8 Methodology
   buildMethodology(pres,a,C,mkSh,bg,hdr,foot,slbl,ac,T,8,depotLabel,dateRange,today);
@@ -1853,14 +1936,22 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
     s3.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,28),{x:x+0.12,y:y+0.06,w:2.85,h:0.24,fontSize:10.5,fontFace:'Calibri',bold:true,color:C.white,margin:0});
     s3.addText(seg.label,{x:x+3.35,y:y+0.12,w:1.1,h:0.2,fontSize:8,fontFace:'Calibri',bold:true,color:C.white,align:'right',margin:0,transparency:20});
     s3.addText('Acct #'+r.acct,{x:x+0.12,y:y+0.3,w:3.91,h:0.16,fontSize:7.5,fontFace:'Calibri',color:C.white,margin:0,transparency:35});
-    const ar3Stats=[['Total Spend','$'+fmtK(r.totalRev)],['Days Since',r.daysSince!==null?r.daysSince+'d':'\u2014'],['Period Change',r.changePct!==null?(r.changePct>=0?'+':'')+Math.round(r.changePct)+'%':'\u2014'],['RFM Health',(rdata.health||0).toFixed(1)+'/5']];
-    const ar3ColXs=[0.52-0.4,2.475-0.4];
-    ar3Stats.forEach(([lbl,val],si)=>{
-      const sc2=si%2,sr2=Math.floor(si/2),sx=x+ar3ColXs[sc2],sy=y+0.68+sr2*0.72;
-      s3.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.875,h:0.16,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
-      s3.addText(val,{x:sx,y:sy+0.17,w:1.875,h:0.36,fontSize:14,fontFace:'Calibri',bold:true,color:C.black,margin:0});
+    // Left column: 3 stats stacked — Total Spend, Period Change, Days Since
+    const ar3LeftStats=[
+      ['Total Spend','$'+fmtK(r.totalRev),C.black],
+      ['Period Change',r.changePct!==null?(r.changePct>=0?'+':'')+Math.round(r.changePct)+'%':'\u2014',r.changePct<0?C.redD:C.black],
+      ['Days Since',r.daysSince!==null?r.daysSince+'d':'\u2014',urgent?C.redD:C.black],
+    ];
+    ar3LeftStats.forEach(([lbl,val,col],si)=>{
+      const sx=x+0.12,sy=y+0.57+si*0.45;
+      s3.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.82,h:0.15,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
+      s3.addText(val,{x:sx,y:sy+0.16,w:1.82,h:0.27,fontSize:12,fontFace:'Calibri',bold:true,color:col,margin:0});
     });
-    try{const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',260,145);s3.addImage({data:img,x:x+ar3W-1.15,y:y+ar3HdrH+0.05,w:1.08,h:0.6});}catch(e){}
+    // Right column: RFM horizontal bars — x+2.1, y+0.57, w=1.9, h=1.26
+    try{
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',270,175);
+      s3.addImage({data:img,x:x+2.1,y:y+0.57,w:1.9,h:1.26});
+    }catch(e){}
   }
   await new Promise(r=>setTimeout(r,20));
   // S4 Full watchlist table
@@ -1937,14 +2028,21 @@ async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHd
     s3.addText(seg.label,{x:x+3.35,y:y+0.12,w:1.1,h:0.2,fontSize:8,fontFace:'Calibri',bold:true,color:C.white,align:'right',margin:0,transparency:20});
     s3.addText('Acct #'+r.acct,{x:x+0.12,y:y+0.3,w:3.91,h:0.16,fontSize:7.5,fontFace:'Calibri',color:C.white,margin:0,transparency:35});
     // 4 stats in 2x2 grid — exact from corrected deck
-    const tc3Stats=[['Period Rev','$'+fmtK(r.currRev)],['RFM Health',(rdata.health||0).toFixed(1)+'/5'],['R \u00b7 F \u00b7 M',(rdata.R||'\u2014')+' \u00b7 '+(rdata.F||'\u2014')+' \u00b7 '+(rdata.M||'\u2014')],['Change %',r.changePct!==null?(r.changePct>=0?'+':'')+Math.round(r.changePct)+'%':'\u2014']];
-    const tc3ColXs=[0.52-0.4,2.475-0.4];
+    // Left: Period Rev + Change % stacked
+    const tc3Stats=[['Period Rev','$'+fmtK(r.currRev)],['Change %',r.changePct!==null?(r.changePct>=0?'+':'')+Math.round(r.changePct)+'%':'\u2014']];
     tc3Stats.forEach(([lbl,val],si)=>{
-      const sc2=si%2,sr2=Math.floor(si/2),sx=x+tc3ColXs[sc2],sy=y+0.57+sr2*0.72;
-      s3.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.875,h:0.16,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
-      s3.addText(val,{x:sx,y:sy+0.17,w:1.875,h:0.36,fontSize:14,fontFace:'Calibri',bold:true,color:isChamp&&si===1?C.green:C.black,margin:0});
+      const sx=x+0.12,sy=y+0.57+si*0.66;
+      s3.addText(lbl.toUpperCase(),{x:sx,y:sy,w:1.8,h:0.16,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
+      s3.addText(val,{x:sx,y:sy+0.17,w:1.8,h:0.32,fontSize:13,fontFace:'Calibri',bold:true,color:si===1&&r.changePct>=0?C.green:si===1?C.redD:C.black,margin:0});
     });
-    try{const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',260,145);s3.addImage({data:img,x:x+tc3W-1.15,y:y+tc3HdrH+0.05,w:1.08,h:0.6});}catch(e){}
+    // Total spend bottom left
+    s3.addText('TOTAL SPEND',{x:x+0.12,y:y+1.52,w:1.8,h:0.16,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
+    s3.addText('$'+fmtK(r.totalRev),{x:x+0.12,y:y+1.69,w:1.8,h:0.18,fontSize:12,fontFace:'Calibri',bold:true,color:C.black,margin:0});
+    // Right: RFM bars
+    try{
+      const img=await makeRFMImage(rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',270,165);
+      s3.addImage({data:img,x:x+2.1,y:y+0.62,w:1.9,h:1.22});
+    }catch(e){}
   }
   await new Promise(r=>setTimeout(r,20));
   // S4 Leaderboard table

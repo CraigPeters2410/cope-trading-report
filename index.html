@@ -1532,8 +1532,7 @@ async function generateReport(){
     // Red accent bar left edge
     s1.addShape('rect',{x:0,y:0,w:0.35,h:7.5,fill:{color:C.red},line:{color:C.red,width:0}});
     // Title block
-    s1.addText('CUSTOMER
-TRADING REPORT',{x:0.7,y:1.6,w:8,h:2.2,fontSize:52,fontFace:'Barlow Condensed',bold:true,color:C.white,lineSpacingMultiple:1.0,margin:0});
+    s1.addText('CUSTOMER\nTRADING REPORT',{x:0.7,y:1.6,w:8,h:2.2,fontSize:52,fontFace:'Barlow Condensed',bold:true,color:C.white,lineSpacingMultiple:1.0,margin:0});
     s1.addShape('rect',{x:0.7,y:3.9,w:1.2,h:0.05,fill:{color:C.red},line:{color:C.red,width:0}});
     s1.addText(`${depotLabel}  ·  ${dateRange}`,{x:0.7,y:4.1,w:10,h:0.35,fontSize:14,fontFace:'Barlow',color:'FFFFFF',margin:0,transparency:35});
     s1.addText(`${a.allDates.length} Days of Data  ·  Generated ${today}`,{x:0.7,y:4.55,w:10,h:0.28,fontSize:11,fontFace:'Barlow',color:'FFFFFF',margin:0,transparency:50});

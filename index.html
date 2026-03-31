@@ -1280,7 +1280,7 @@ function openModal(acct){
 
   const body=document.getElementById('mdBody');
   body.innerHTML=`
-    <!-- RFM SCORES -->
+    
     <div class="md-section-lbl">RFM Health Score</div>
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
       <div style="position:relative;width:72px;height:72px;flex-shrink:0">
@@ -1319,7 +1319,7 @@ function openModal(acct){
       </div>
     </div>
 
-    <!-- KEY FINDING -->
+    
     ${insightText?`
     <div class="md-section-lbl">Key Finding</div>
     <div class="md-insight" style="margin-bottom:20px">
@@ -1327,7 +1327,7 @@ function openModal(acct){
       <div class="md-insight-text">${insightText}</div>
     </div>`:''}
 
-    <!-- PERFORMANCE STATS -->
+    
     <div class="md-section-lbl">Performance Summary</div>
     <div class="md-stats" style="margin-bottom:20px">
       <div class="md-stat"><div class="md-stat-lbl">Total Spend</div><div class="md-stat-val">$${fmtK(totalRev)}</div><div class="md-stat-sub">all loaded days</div></div>
@@ -1341,11 +1341,11 @@ function openModal(acct){
       <div class="md-stat"><div class="md-stat-lbl">Days Since Ship</div><div class="md-stat-val ${(rdata.recency||0)>21?'red':(rdata.recency||0)>7?'amber':''}" style="font-size:14px">${rdata.recency!==null?rdata.recency:'—'}</div><div class="md-stat-sub">calendar days</div></div>
     </div>
 
-    <!-- CHART -->
+    
     <div class="md-section-lbl">Revenue History</div>
     <div class="md-chart-wrap"><canvas id="drillChart" height="150"></canvas></div>
 
-    <!-- BREAKDOWN TABLE -->
+    
     <div class="md-section-lbl">Daily Breakdown</div>
     <table class="md-table">
       <thead><tr><th>Date</th><th>Revenue</th><th>Consignments</th><th>Charge Kg</th><th>Avg / Con</th></tr></thead>

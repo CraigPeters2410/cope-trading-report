@@ -313,7 +313,7 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
     </div>
     <div class="hd-div"></div>
     <div style="display:flex;align-items:center;gap:6px">
-      <button onclick="document.getElementById('headerFileInput').click()" style="font-family:var(--cond);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:var(--white);padding:6px 13px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+      <button id="loadFilesBtn" onclick="document.getElementById('headerFileInput').click()" style="font-family:var(--cond);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:var(--white);padding:6px 13px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4.5 4L8 1l3.5 3M2 11v3h12v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Load Files
       </button>
@@ -787,11 +787,19 @@ function onDrop(e){
   if(!files.length){toast('No CSV files found.','bad');return;}
   processFiles(files);
 }
-function handleFileSelect(e){console.log('Files selected:',e.target.files.length);if(e.target.files.length)processFiles(Array.from(e.target.files));e.target.value='';}
+function handleFileSelect(e){
+  const files = Array.from(e.target.files||[]);
+  // Reset input immediately so same files can be selected again
+  try { e.target.value = ''; } catch(_) {}
+  if(files.length) processFiles(files);
+}
 
 function processFiles(files){
+  // Show loading state on header button
+  const loadBtn=document.getElementById('loadFilesBtn');
+  if(loadBtn) loadBtn.innerHTML='<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"><animateTransform attributeName="transform" type="rotate" from="0 8 8" to="360 8 8" dur="1s" repeatCount="indefinite"/></circle></svg> Loading…';
   const container=document.getElementById('fileResults');
-  container.innerHTML='';
+  if(container) container.innerHTML='';
   const hdr=document.createElement('div');
   hdr.style.cssText='font-size:11px;color:var(--muted);padding:6px 2px;font-weight:600';
   hdr.id='batchProgress';
@@ -804,7 +812,11 @@ function processFiles(files){
       const prog=document.getElementById('batchProgress');
       if(prog)prog.remove();
       render();scheduleSave();
-      toast(`${ok} of ${files.length} file${files.length>1?'s':''} loaded`,ok===files.length?'ok':'bad');
+      const msg = `${ok} of ${files.length} file${files.length>1?'s':''} loaded`;
+      toast(msg, ok===files.length?'ok':'bad');
+      // Reset header button
+      const btn=document.getElementById('loadFilesBtn');
+      if(btn) btn.innerHTML='<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4.5 4L8 1l3.5 3M2 11v3h12v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Load Files';
       setTimeout(()=>{
         const c=document.getElementById('fileResults');
         if(c){c.style.transition='opacity 0.6s ease';c.style.opacity='0';setTimeout(()=>{c.innerHTML='';c.style.opacity='1';c.style.transition='';},700);}

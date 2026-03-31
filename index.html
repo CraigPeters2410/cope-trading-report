@@ -1643,6 +1643,11 @@ async function generateReport(){
     status.textContent = 'Building RFM segmentation\u2026';
     await new Promise(r=>setTimeout(r,30));
 
+    // ── Report-type–specific slide selection ──
+    // portfolio: slides 3,4,5,6,7,8
+    // atrisk:    slides 5,7,8 (movement + at-risk + methodology)
+    // champion:  slides 3,6,8 (RFM + scorecards + methodology)
+
     // ════════════════════════════════════════════
     // SLIDE 3 — RFM SEGMENTATION
     // ════════════════════════════════════════════
@@ -1688,7 +1693,10 @@ async function generateReport(){
     // ════════════════════════════════════════════
     // SLIDE 4 — REVENUE CONCENTRATION
     // ════════════════════════════════════════════
-    const s4 = pres.addSlide();
+    
+
+    if(type !== 'atrisk') {
+const s4 = pres.addSlide();
     applyContentBg(s4);
     addSlideHeader(s4,'Revenue Concentration','Pareto Analysis \u00b7 Top Account Deep Dive');
     addFooter(s4,4,totalPages);
@@ -1747,7 +1755,10 @@ async function generateReport(){
     // ════════════════════════════════════════════
     // SLIDE 5 — CUSTOMER MOVEMENT
     // ════════════════════════════════════════════
-    const s5 = pres.addSlide();
+    
+    } // end portfolio/champion only
+
+const s5 = pres.addSlide();
     applyContentBg(s5);
     addSlideHeader(s5,'Customer Movement',a.prev.length?'Current vs Prior Period':'Current Period');
     addFooter(s5,5,totalPages);
@@ -1817,7 +1828,10 @@ async function generateReport(){
     // ════════════════════════════════════════════
     // SLIDE 6 — TOP ACCOUNT SCORECARDS
     // ════════════════════════════════════════════
-    const s6 = pres.addSlide();
+    
+
+    if(type !== 'atrisk') {
+const s6 = pres.addSlide();
     applyContentBg(s6);
     addSlideHeader(s6,'Top Account Scorecards','Champion & Loyal Accounts \u00b7 Full RFM Profile');
     addFooter(s6,6,totalPages);
@@ -1865,80 +1879,110 @@ async function generateReport(){
     // ════════════════════════════════════════════
     // SLIDE 7 — AT-RISK DEEP DIVE
     // ════════════════════════════════════════════
+    
+    } // end portfolio/champion only
+
     const s7 = pres.addSlide();
     applyContentBg(s7);
     addSlideHeader(s7,'At-Risk \u0026 Lapsing Accounts','Revenue at Risk \u00b7 Early Warning Signals');
-    addFooter(s7,7,totalPages);
+    addFooter(s7, type==='portfolio'?7:4, totalPages);
 
     const atRisk=a.rows.filter(r=>r.segment==='atrisk'||r.segment==='lapsing'||r.trend==='risk')
-      .sort((a,b)=>b.totalRev-a.totalRev).slice(0,8);
+      .sort((a,b)=>b.totalRev-a.totalRev).slice(0,6);
     const revAtRisk=atRisk.reduce((s,r)=>s+r.totalRev,0);
     const avgDays=atRisk.length?Math.round(atRisk.reduce((s,r)=>s+(r.daysSince||0),0)/atRisk.length):0;
 
     // Summary strip
-    addStatCard(s7, 0.4,  0.95, 2.5, 1.0, 'At-Risk Accounts', String(atRisk.length), 'identified', C.redD);
-    addStatCard(s7, 3.05, 0.95, 2.5, 1.0, 'Revenue at Risk',  '$'+fmtK(revAtRisk), 'historical spend', C.amber);
-    addStatCard(s7, 5.7,  0.95, 2.5, 1.0, 'Avg Days Inactive', String(avgDays)+'d', 'since last shipment', C.amber);
-    // Insight
+    addStatCard(s7, 0.4,  0.95, 2.5, 1.0, 'At-Risk Accounts',  String(atRisk.length),    'identified',        C.redD);
+    addStatCard(s7, 3.05, 0.95, 2.5, 1.0, 'Revenue at Risk',   '$'+fmtK(revAtRisk),      'historical spend',  C.amber);
+    addStatCard(s7, 5.7,  0.95, 2.5, 1.0, 'Avg Days Inactive', String(avgDays)+'d',      'since last ship',   C.amber);
     s7.addShape('rect',{x:8.35,y:0.95,w:4.55,h:1.0,fill:{color:C.redBg},shadow:mkShadow(),line:{color:C.redD,width:0.5}});
     s7.addShape('rect',{x:8.35,y:0.95,w:0.06,h:1.0,fill:{color:C.redD},line:{color:C.redD,width:0}});
-    s7.addText('These accounts have historically shipped with COPE but are showing reduced engagement. Proactive outreach is recommended before revenue is permanently lost.',
+    s7.addText('These accounts have historically shipped with COPE but show reduced engagement. Proactive outreach recommended before revenue is lost.',
       {x:8.55,y:1.05,w:4.2,h:0.78,fontSize:9,fontFace:'Calibri',color:C.black,lineSpacingMultiple:1.35,margin:0});
 
-    // At-risk cards
-    const arW=3.05, arH=2.85;
+    // 6 cards in 3x2 grid — fixed height so nothing overflows
+    const arW=4.15, arH=2.55, arGap=0.08;
     atRisk.forEach((r,i)=>{
-      if(i>=8)return;
-      const col=i%4, row=Math.floor(i/4);
-      const x=0.4+col*(arW+0.08), y=2.1+row*(arH+0.08);
+      const col=i%3, row=Math.floor(i/3);
+      const x=0.4+col*(arW+arGap), y=2.12+row*(arH+arGap);
       const seg=SEGMENT_META[r.segment||'needsattention'];
       const rdata=a.rfm?.[r.acct]||{};
       const urgent=r.daysSince>30;
       s7.addShape('rect',{x,y,w:arW,h:arH,fill:{color:C.white},shadow:mkShadow(),line:{color:urgent?C.redD:C.rule,width:urgent?1:0.5}});
       s7.addShape('rect',{x,y,w:arW,h:0.06,fill:{color:urgent?C.redD:C.amber},line:{color:urgent?C.redD:C.amber,width:0}});
-      s7.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,24),{x:x+0.12,y:y+0.1,w:arW-0.24,h:0.24,
-        fontSize:10.5,fontFace:'Calibri',bold:true,color:C.black,margin:0});
-      s7.addText('Acct #'+r.acct+'  \u00b7  '+seg.label,{x:x+0.12,y:y+0.34,w:arW-0.24,h:0.18,
-        fontSize:7.5,fontFace:'Calibri',color:C.grey2,margin:0});
-      s7.addShape('rect',{x,y:y+0.57,w:arW,h:0.005,fill:{color:C.rule},line:{color:C.rule,width:0}});
+      s7.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,30),
+        {x:x+0.14,y:y+0.1,w:arW-0.28,h:0.26,fontSize:11,fontFace:'Calibri',bold:true,color:C.black,margin:0});
+      s7.addText('Acct #'+r.acct+'  \u00b7  '+seg.label,
+        {x:x+0.14,y:y+0.36,w:arW-0.28,h:0.18,fontSize:8,fontFace:'Calibri',color:C.grey2,margin:0});
+      s7.addShape('rect',{x:x+0.14,y:y+0.58,w:arW-0.28,h:0.005,fill:{color:C.rule},line:{color:C.rule,width:0}});
       const arStats=[
-        {l:'Total Spend', v:'$'+fmtK(r.totalRev)},
-        {l:'Period Rev',  v:'$'+fmtK(r.currRev)},
-        {l:'Days Since',  v:r.daysSince!==null?r.daysSince+'d':'\u2014', col:urgent?C.redD:C.amber},
-        {l:'RFM Health',  v:(rdata.health||0).toFixed(1)+'/5'},
+        {l:'Total Spend',v:'$'+fmtK(r.totalRev)},
+        {l:'Period Rev', v:'$'+fmtK(r.currRev)},
+        {l:'Days Since', v:r.daysSince!==null?r.daysSince+'d':'\u2014', col:urgent?C.redD:C.amber},
+        {l:'RFM Health', v:(rdata.health||0).toFixed(1)+'/5'},
       ];
+      const colW2=(arW-0.28)/2;
       arStats.forEach((st,si)=>{
-        s7.addText(st.l.toUpperCase(),{x:x+0.12,y:y+0.64+si*0.5,w:arW-0.24,h:0.16,fontSize:6.5,
+        const sc=si%2, sr=Math.floor(si/2);
+        const sx=x+0.14+sc*colW2, sy=y+0.65+sr*0.85;
+        s7.addText(st.l.toUpperCase(),{x:sx,y:sy,w:colW2-0.1,h:0.17,fontSize:6.5,
           fontFace:'Calibri',bold:true,charSpacing:2,color:C.grey2,margin:0});
-        s7.addText(st.v,{x:x+0.12,y:y+0.8+si*0.5,w:arW-0.24,h:0.3,fontSize:15,
+        s7.addText(st.v,{x:sx,y:sy+0.18,w:colW2-0.1,h:0.36,fontSize:16,
           fontFace:'Calibri',bold:true,color:st.col||C.black,margin:0});
       });
     });
 
-    // ════════════════════════════════════════════
-    // SLIDE 8 — SECTION DIVIDER / METHODOLOGY
-    // ════════════════════════════════════════════
-    const s8 = pres.addSlide();
-    applyCoverBg(s8);
-    s8.addText('Methodology',{x:1.0,y:2.2,w:8,h:1.1,fontSize:44,fontFace:'Calibri',bold:true,color:C.white,margin:0});
-    s8.addShape('rect',{x:1.0,y:3.4,w:1.4,h:0.06,fill:{color:C.white},line:{color:C.white,width:0},transparency:25});
-    s8.addText('RFM Analysis \u00b7 Personal Baseline \u00b7 Segment Definitions',{x:1.0,y:3.55,w:10,h:0.32,
-      fontSize:13,fontFace:'Calibri',color:C.white,margin:0,transparency:20});
-    const mItems=[
-      {t:'Recency (R)', b:'How recently the customer shipped. Scored 1\u20135 relative to the full customer portfolio. Score of 5 = most recently active.'},
-      {t:'Frequency (F)', b:'How often the customer ships across the loaded data window. Higher frequency signals habitual, sticky customers.'},
-      {t:'Monetary (M)', b:'Total revenue contribution. Percentile-ranked against the portfolio. Score of 5 = top-quartile revenue.'},
-      {t:'Personal Baseline', b:'Each customer\'s 30-day rolling average revenue. Used instead of a global threshold for Champion/Loyal accounts, so deviation is meaningful to them specifically.'},
-    ];
-    mItems.forEach((m,i)=>{
-      const y=4.1+i*0.75;
-      s8.addShape('rect',{x:1.0,y,w:0.06,h:0.62,fill:{color:C.white},line:{color:C.white,width:0},transparency:30});
-      s8.addText(m.t,{x:1.15,y,w:4,h:0.25,fontSize:11,fontFace:'Calibri',bold:true,color:C.white,margin:0});
-      s8.addText(m.b,{x:1.15,y:y+0.26,w:11,h:0.38,fontSize:9,fontFace:'Calibri',color:C.white,margin:0,transparency:25,lineSpacingMultiple:1.3});
-    });
-    s8.addText('Data: '+dateRange+'  \u00b7  '+a.allDates.length+' days  \u00b7  '+a.rows.length+' customers  \u00b7  Generated '+today,
-      {x:1.0,y:7.15,w:11,h:0.22,fontSize:8,fontFace:'Calibri',color:C.white,margin:0,transparency:45});
+    status.textContent = 'Building methodology slide\u2026';
+    await new Promise(r=>setTimeout(r,30));
 
+
+    const s8 = pres.addSlide();
+    applyContentBg(s8);
+    addSlideHeader(s8,'Methodology','RFM Analysis Framework \u00b7 How Scores Are Calculated');
+    addFooter(s8, totalPages, totalPages);
+
+    sectionLabel(s8,'How customer health scores are calculated in this report',0.4,0.94);
+
+    // RFM explanation cards — 3 across top
+    const rfmDefs=[
+      {t:'Recency (R)',    d:'How recently the customer shipped. Scored 1\u20135 relative to the full portfolio. Score of 5 = most recently active account.',    ac:C.redD},
+      {t:'Frequency (F)', d:'How often the customer ships across the loaded data window. Higher frequency signals habitual, sticky customers who depend on COPE.', ac:C.black},
+      {t:'Monetary (M)',  d:'Total revenue contribution percentile-ranked against the portfolio. Score of 5 = top-quintile revenue contributor.',                   ac:'1F4E79'},
+    ];
+    rfmDefs.forEach((d,i)=>{
+      const x=0.4+i*4.3;
+      s8.addShape('rect',{x,y:1.12,w:4.15,h:1.9,fill:{color:C.white},shadow:mkShadow(),line:{color:C.rule,width:0.5}});
+      s8.addShape('rect',{x,y:1.12,w:4.15,h:0.06,fill:{color:d.ac},line:{color:d.ac,width:0}});
+      s8.addText(d.t,{x:x+0.15,y:1.22,w:3.9,h:0.28,fontSize:13,fontFace:'Calibri',bold:true,color:C.black,margin:0});
+      s8.addText(d.d,{x:x+0.15,y:1.55,w:3.9,h:1.35,fontSize:9.5,fontFace:'Calibri',color:C.grey1,lineSpacingMultiple:1.45,margin:0});
+    });
+
+    // Personal baseline card — full width
+    addAccentCard(s8, 0.4, 3.2, 12.5, 1.1,
+      'Personal Baseline Comparison',
+      'For Champion and Loyal accounts, down-trading is measured against each customer\'s own 30-day rolling average revenue on active days \u2014 not a global 20% threshold. This means a champion dropping 15% from their personal baseline is flagged even when a global threshold would miss it. For all other segments, standard percentage thresholds apply.');
+
+    // Segment reference table
+    sectionLabel(s8,'Segment Definitions',0.4,4.47);
+    const segRows = Object.entries(SEGMENT_META).map(([key,meta])=>{
+      const cnt = a.rows.filter(r=>r.segment===key).length;
+      return [
+        {text:meta.label,options:{fontSize:9,fontFace:'Calibri',bold:true,color:C.black}},
+        {text:meta.desc, options:{fontSize:9,fontFace:'Calibri',color:C.grey1}},
+        {text:String(cnt)+'  customers',options:{fontSize:9,fontFace:'Calibri',color:C.black,align:'right',bold:true}},
+      ];
+    });
+    const segHeader = [[
+      {text:'Segment',    options:{bold:true,fill:{color:C.offwhite},color:C.grey2,fontSize:8,fontFace:'Calibri'}},
+      {text:'Definition', options:{bold:true,fill:{color:C.offwhite},color:C.grey2,fontSize:8,fontFace:'Calibri'}},
+      {text:'In Portfolio',options:{bold:true,fill:{color:C.offwhite},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},
+    ]];
+    s8.addTable([...segHeader,...segRows],{x:0.4,y:4.67,w:12.5,colW:[2.2,8.5,1.8],
+      rowH:0.3,border:{pt:0.5,color:C.rule}});
+
+    status.textContent = 'Writing file\u2026';
+    await new Promise(r=>setTimeout(r,30));
     status.textContent = 'Writing file\u2026';
     await new Promise(r=>setTimeout(r,30));
 

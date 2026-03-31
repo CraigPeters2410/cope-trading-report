@@ -313,7 +313,7 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
     </div>
     <div class="hd-div"></div>
     <div style="display:flex;align-items:center;gap:6px">
-      <button id="loadFilesBtn" onclick="document.getElementById('headerFileInput').click()" style="font-family:var(--cond);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:var(--white);padding:6px 13px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+      <button id="loadFilesBtn" onclick="requirePassword(function(){document.getElementById('headerFileInput').click();})" style="font-family:var(--cond);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:var(--white);padding:6px 13px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4.5 4L8 1l3.5 3M2 11v3h12v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Load Files
       </button>
@@ -951,18 +951,32 @@ function computeRFM(allDates, fs) {
   const recencyVals = Object.values(stats).map(s => s.recency).filter(v => v !== null);
   const freqVals    = Object.values(stats).map(s => s.frequency);
   const monVals     = Object.values(stats).map(s => s.monetary);
+  // avgRevPerDay: total revenue / active days — rewards high-value episodic customers
+  // (medical, project accounts that book infrequently but spend heavily per booking)
+  const avgRevVals  = Object.values(stats).map(s => s.avgOrderRev);
 
   const rfm = {};
   allAccts.forEach(acct => {
     const s = stats[acct];
     // Recency: lower days = better = higher score
     const R = s.recency !== null ? score(recencyVals, s.recency, false) : 1;
-    // Frequency: higher = better
-    const F = score(freqVals, s.frequency, true);
+
+    // Frequency: blended score that doesn't penalise high-value episodic customers.
+    // Raw frequency score (how often they book) averaged with their avg-revenue-per-active-day
+    // score (how much they spend when they do book). This prevents medical/project accounts
+    // from being classified as low-value simply because they don't book daily.
+    const Fraw  = score(freqVals, s.frequency, true);
+    const Favgr = score(avgRevVals, s.avgOrderRev, true); // high spend-per-booking = high score
+    // Blend: 60% raw frequency, 40% revenue quality — episodic high-value accounts
+    // get a meaningful frequency score boost proportional to their per-booking spend
+    const F = Math.round(Fraw * 0.6 + Favgr * 0.4);
+
     // Monetary: higher = better
     const M = score(monVals, s.monetary, true);
 
-    const health = Math.round((R + F + M) / 3 * 10) / 10; // 1.0 - 5.0
+    // Health: weighted — monetary and recency slightly upweighted vs raw frequency
+    // because a customer who spends heavily and recently is valuable even if infrequent
+    const health = Math.round((R * 0.35 + F * 0.30 + M * 0.35) * 10) / 10; // weighted 1-5
 
     // Segment label
     // Lost threshold: inactive for more than 45 calendar days OR
@@ -1407,7 +1421,26 @@ function closeModalDirect(){document.getElementById('modalOverlay').classList.re
 function fmt(n){if(!n&&n!==0)return '0.00';return Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtK(n){if(!n&&n!==0)return '0';n=Math.abs(n);if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return n.toFixed(0);}
 async function removeDate(d){if(!confirm(`Remove data for ${d}?`))return;delete store[d];render();scheduleSave();toast(`Removed ${d}`,'ok');}
-async function confirmClear(){if(!confirm('Clear ALL data? This deletes everything from the cloud for all users.'))return;store={};render();scheduleSave();document.getElementById('fileResults').innerHTML='';toast('All data cleared','ok');}
+
+// ── Password gate for protected actions ──
+const _PROTECTED_PW = 'Volume2410';
+let _pwUnlocked = false, _pwTimer = null;
+function requirePassword(callback){
+  // Stay unlocked for 5 minutes after correct password
+  if(_pwUnlocked){ callback(); return; }
+  const entered = prompt('Enter password to continue:');
+  if(entered === null) return; // cancelled
+  if(entered === _PROTECTED_PW){
+    _pwUnlocked = true;
+    clearTimeout(_pwTimer);
+    _pwTimer = setTimeout(()=>{ _pwUnlocked=false; }, 5*60*1000); // lock after 5min
+    callback();
+  } else {
+    alert('Incorrect password.');
+  }
+}
+
+async function confirmClear(){requirePassword(async function(){if(!confirm('Clear ALL data? This deletes everything from the cloud for all users.'))return;store={};render();scheduleSave();document.getElementById('fileResults').innerHTML='';toast('All data cleared','ok');});} // end confirmClear
 let _tt;
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+type;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3800);}
 
@@ -1472,12 +1505,13 @@ function closeReportModal(){
 // wIn/hIn = exact inches of the addImage slot — canvas matches this aspect ratio at 96dpi*2
 function makeRFMImage(R,F,M,health,segKey,wIn,hIn){
   return new Promise(resolve=>{
-    const DPR=2, PPI=96;
+    const DPR=4, PPI=96;  // 4x for crisp text at any PPTX zoom
     const w=Math.round(wIn*PPI), h=Math.round(hIn*PPI);
     const cv=document.createElement('canvas');
     cv.width=w*DPR; cv.height=h*DPR;
     const ctx=cv.getContext('2d');
     ctx.scale(DPR,DPR);
+    ctx.imageSmoothingEnabled=false;
 
     const scoreCol=s=>s>=4?'#107C41':s>=3?'#1F4E79':s>=2?'#C55A11':'#A01419';
     const trackCol='#E2E6F0';

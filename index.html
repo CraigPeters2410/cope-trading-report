@@ -223,6 +223,54 @@ canvas{display:block;width:100%!important}
 /* ── CUSTOM RANGE ── */
 #customRangeWrap{background:var(--off);border-top:1px solid var(--rule-l);padding:12px 20px;margin-top:0}
 
+
+/* ── RFM & HEALTH SCORE ── */
+.health-bar-wrap{display:flex;align-items:center;gap:6px;min-width:80px}
+.health-bar{flex:1;height:5px;border-radius:3px;background:var(--rule);overflow:hidden}
+.health-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.health-num{font-family:var(--cond);font-size:12px;font-weight:700;min-width:18px;text-align:right}
+
+.rfm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.rfm-card{border:1px solid var(--rule);border-radius:6px;padding:12px 14px;position:relative;overflow:hidden}
+.rfm-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.rfm-card.r-card::after{background:var(--red)}
+.rfm-card.f-card::after{background:var(--navy)}
+.rfm-card.m-card::after{background:var(--green)}
+.rfm-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:6px}
+.rfm-score{font-family:var(--cond);font-size:28px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.rfm-score.s5{color:var(--green)}.rfm-score.s4{color:#3b82f6}.rfm-score.s3{color:var(--amber)}.rfm-score.s2{color:#f97316}.rfm-score.s1{color:var(--red)}
+.rfm-sub{font-size:10px;color:var(--muted);margin-top:4px}
+.rfm-dots{display:flex;gap:3px;margin-top:8px}
+.rfm-dot{width:8px;height:8px;border-radius:50%;background:var(--rule)}
+.rfm-dot.filled{background:currentColor}
+
+.health-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.hb-champion{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.hb-loyal{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+.hb-atrisk{background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+.hb-lapsing{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
+.hb-lost{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.hb-new{background:#f5f3ff;color:#4c1d95;border:1px solid #ddd6fe}
+.hb-promising{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+.hb-needsattention{background:#fafafa;color:var(--muted);border:1px solid var(--rule)}
+
+/* Health score in table */
+.hs-cell{display:flex;align-items:center;gap:6px}
+.hs-ring{width:28px;height:28px;flex-shrink:0}
+.hs-ring svg{width:28px;height:28px}
+.hs-val{font-family:var(--cond);font-size:13px;font-weight:700}
+
+/* Baseline indicator */
+.baseline-bar{position:relative;width:60px;height:6px;border-radius:3px;background:var(--rule)}
+.baseline-fill{position:absolute;top:0;left:0;height:100%;border-radius:3px}
+.baseline-marker{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink-2);border-radius:1px}
+
+/* Days since chip */
+.days-chip{font-family:var(--cond);font-size:11px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.03em}
+.days-hot{background:#fef2f2;color:var(--red)}
+.days-warm{background:#fffbeb;color:var(--amber)}
+.days-ok{background:#f0fdf4;color:var(--green)}
+
 /* ── EMPTY ── */
 .empty{padding:56px 20px;text-align:center}
 .empty-icon{font-size:36px;margin-bottom:12px;opacity:.28}
@@ -756,6 +804,106 @@ function onRangeChange(){
 }
 
 // ═══ ANALYSIS ═══
+
+// ═══ RFM ENGINE ═══
+function computeRFM(allDates, fs) {
+  // Build per-customer stats across ALL dates
+  const allAccts = new Set(allDates.flatMap(d => Object.keys(fs[d])));
+  const today = allDates[allDates.length - 1] || '';
+
+  const stats = {};
+  allAccts.forEach(acct => {
+    const activeDays = allDates.filter(d => fs[d][acct]?.revenue > 0);
+    const revenues = activeDays.map(d => fs[d][acct].revenue);
+    const lastDate = activeDays[activeDays.length - 1] || null;
+    const totalRev = revenues.reduce((s, v) => s + v, 0);
+    const avgRev = revenues.length ? totalRev / revenues.length : 0;
+
+    // Days since last shipment
+    let daysSince = null;
+    if (lastDate && today) {
+      const d1 = new Date(today), d2 = new Date(lastDate);
+      daysSince = Math.round((d1 - d2) / 86400000);
+    }
+
+    // Personal 30-day baseline (rolling avg of revenue on active days)
+    const recent30 = allDates.slice(-30).filter(d => fs[d][acct]?.revenue > 0);
+    const baseline = recent30.length
+      ? recent30.reduce((s, d) => s + fs[d][acct].revenue, 0) / recent30.length
+      : avgRev;
+
+    stats[acct] = {
+      recency: daysSince,           // days since last order
+      frequency: activeDays.length, // total active days
+      monetary: totalRev,           // total revenue
+      avgOrderRev: avgRev,
+      baseline,                     // personal expected daily revenue
+      activeDays: activeDays.length,
+      totalDays: allDates.length,
+    };
+  });
+
+  // Score each dimension 1-5 using percentile ranking
+  const score = (arr, val, ascending = false) => {
+    const sorted = [...arr].sort((a, b) => a - b);
+    const pct = sorted.filter(v => v <= val).length / sorted.length;
+    const s = Math.ceil(pct * 5);
+    return ascending ? s : 6 - s;
+  };
+
+  const recencyVals = Object.values(stats).map(s => s.recency).filter(v => v !== null);
+  const freqVals    = Object.values(stats).map(s => s.frequency);
+  const monVals     = Object.values(stats).map(s => s.monetary);
+
+  const rfm = {};
+  allAccts.forEach(acct => {
+    const s = stats[acct];
+    // Recency: lower days = better = higher score
+    const R = s.recency !== null ? score(recencyVals, s.recency, false) : 1;
+    // Frequency: higher = better
+    const F = score(freqVals, s.frequency, true);
+    // Monetary: higher = better
+    const M = score(monVals, s.monetary, true);
+
+    const health = Math.round((R + F + M) / 3 * 10) / 10; // 1.0 - 5.0
+
+    // Segment label
+    let segment;
+    if (s.recency === null || s.recency > allDates.length * 0.8) {
+      segment = 'lost';
+    } else if (R >= 4 && F >= 4 && M >= 4) {
+      segment = 'champion';
+    } else if (R >= 3 && F >= 4) {
+      segment = 'loyal';
+    } else if (R >= 4 && F <= 2) {
+      segment = 'promising';
+    } else if (R <= 2 && F >= 3) {
+      segment = 'atrisk';
+    } else if (R <= 2 && F >= 2) {
+      segment = 'lapsing';
+    } else if (F <= 1 && M <= 2) {
+      segment = 'new';
+    } else {
+      segment = 'needsattention';
+    }
+
+    rfm[acct] = { R, F, M, health, segment, ...s };
+  });
+
+  return rfm;
+}
+
+const SEGMENT_META = {
+  champion:       { label: 'Champion',        css: 'hb-champion',       desc: 'High value, frequent, recent' },
+  loyal:          { label: 'Loyal',            css: 'hb-loyal',          desc: 'Frequent shipper, consistent revenue' },
+  promising:      { label: 'Promising',        css: 'hb-promising',      desc: 'Recent but still building frequency' },
+  atrisk:         { label: 'At Risk',          css: 'hb-atrisk',         desc: 'Was active, now going quiet' },
+  lapsing:        { label: 'Lapsing',          css: 'hb-lapsing',        desc: 'Declining recency and activity' },
+  needsattention: { label: 'Needs Attention',  css: 'hb-needsattention', desc: 'Inconsistent pattern' },
+  new:            { label: 'New',              css: 'hb-new',            desc: 'Recently acquired' },
+  lost:           { label: 'Lost',             css: 'hb-lost',           desc: 'No recent activity' },
+};
+
 function analyse(){
   const fs=getFilteredStore();
   const allDates=Object.keys(fs).sort();
@@ -800,9 +948,40 @@ function analyse(){
     const activeDays=allDates.filter(d=>fs[d][acct]?.revenue>0);
     return{acct,currRev,prevRev,changeAbs,changePct,totalRev,totalCount,currCount,currKg,totalKg,trend,spark,firstSeen:activeDays[0]||null,lastSeen:activeDays[activeDays.length-1]||null,activeDays:activeDays.length};
   });
+  // Compute RFM for all customers
+  const rfm = computeRFM(allDates, fs);
+  // Attach to rows + refine trend using RFM
+  rows.forEach(r => {
+    const r0 = rfm[r.acct] || {};
+    r.rfm = r0;
+    r.health = r0.health || 1;
+    r.segment = r0.segment || 'needsattention';
+    r.daysSince = r0.recency;
+    r.baseline = r0.baseline || 0;
+    // Refine trend using personal baseline instead of global threshold
+    if (allDates.length > 1) {
+      if (r.currRev === 0 && r.prevRev > 0) r.trend = 'lost';
+      else if (r.prevRev === 0 && r.currRev > 0) r.trend = 'new';
+      else if (r.segment === 'champion' || r.segment === 'loyal') {
+        // Champions/loyals: use tighter personal baseline
+        const vsBaseline = r.baseline > 0 ? ((r.currRev / curr.length) - r.baseline) / r.baseline * 100 : null;
+        if (vsBaseline !== null && vsBaseline <= -25) r.trend = 'down';
+        else if (vsBaseline !== null && vsBaseline >= 25) r.trend = 'up';
+        else if (r.rfm && r.rfm.R <= 2) r.trend = 'risk';
+        else r.trend = 'stable';
+      } else {
+        // Standard threshold for others
+        const p = r.changePct;
+        if (p !== null && p <= -20) r.trend = 'down';
+        else if (p !== null && p >= 20) r.trend = 'up';
+        else if (r.segment === 'atrisk' || r.segment === 'lapsing') r.trend = 'risk';
+        else r.trend = r.trend || 'stable';
+      }
+    }
+  });
   const periodRev=rows.reduce((s,r)=>s+r.currRev,0);
   const avgDailyRev=curr.length?periodRev/curr.length:0;
-  return{allDates,curr,prev,rows,periodRev,avgDailyRev,fs};
+  return{allDates,curr,prev,rows,periodRev,avgDailyRev,fs,rfm};
 }
 
 // ═══ RENDER ═══
@@ -814,10 +993,10 @@ function render(){
   if(a){
     document.getElementById('kRevenue').textContent='$'+fmtK(a.periodRev);
     document.getElementById('kRevenueSub').textContent=`last ${a.curr.length} day${a.curr.length!==1?'s':''}`;
-    document.getElementById('kDown').textContent=a.rows.filter(r=>r.trend==='down').length;
-    document.getElementById('kLost').textContent=a.rows.filter(r=>r.trend==='lost').length;
-    document.getElementById('kUp').textContent=a.rows.filter(r=>r.trend==='up').length;
-    document.getElementById('kRisk').textContent=a.rows.filter(r=>r.trend==='risk').length;
+    document.getElementById('kDown').textContent=a.rows.filter(r=>r.trend==='down'||r.trend==='lost').length;
+    document.getElementById('kLost').textContent=a.rows.filter(r=>r.segment==='lost').length;
+    document.getElementById('kUp').textContent=a.rows.filter(r=>r.trend==='up'||r.segment==='champion').length;
+    document.getElementById('kRisk').textContent=a.rows.filter(r=>r.segment==='atrisk'||r.segment==='lapsing').length;
     document.getElementById('sActive').textContent=a.rows.filter(r=>r.currRev>0).length;
     document.getElementById('sAvgDay').textContent='$'+fmtK(a.avgDailyRev);
     document.getElementById('sTotalDays').textContent=allDates.length;
@@ -906,22 +1085,54 @@ function renderTable(){
     <thead><tr>
       <th>Customer</th><th>${ch} Rev</th>
       ${prev.length?`<th>${ph} Rev</th><th>Chg $</th><th>Chg %</th>`:''}
-      <th>Total (All Time)</th><th>Movement</th><th>Trend</th>
+      <th>Total (All Time)</th><th>Health · Segment</th><th>Last Ship</th><th>Movement</th><th>Trend</th>
     </tr></thead>
     <tbody>${filtered.map(r=>rowHTML(r,maxSpark,prev)).join('')}</tbody>
   </table>`;
 }
 
+function healthRing(score) {
+  const pct = (score - 1) / 4; // 0-1
+  const r = 11, circ = 2 * Math.PI * r;
+  const dash = pct * circ;
+  const col = score >= 4 ? '#0e7a47' : score >= 3 ? '#3b82f6' : score >= 2 ? '#f59e0b' : '#c8102e';
+  return `<svg viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="${r}" fill="none" stroke="#e2e6f0" stroke-width="3"/>
+    <circle cx="14" cy="14" r="${r}" fill="none" stroke="${col}" stroke-width="3"
+      stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
+      stroke-dashoffset="${(circ * 0.25).toFixed(1)}"
+      stroke-linecap="round" transform="rotate(-90 14 14)"/>
+    <text x="14" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="${col}" font-family="Barlow Condensed,sans-serif">${score.toFixed(1)}</text>
+  </svg>`;
+}
+
+function daysSinceChip(days) {
+  if (days === null || days === undefined) return '';
+  const cls = days <= 7 ? 'days-ok' : days <= 21 ? 'days-warm' : 'days-hot';
+  return `<span class="days-chip ${cls}">${days}d</span>`;
+}
+
 function rowHTML(r,maxSpark,prev){
   const badges={lost:`<span class="badge badge-lost">● Lost</span>`,down:`<span class="badge badge-down">▼ Down ${r.changePct!=null?Math.abs(r.changePct).toFixed(0)+'%':''}</span>`,risk:`<span class="badge badge-risk">⚠ At Risk</span>`,up:`<span class="badge badge-up">▲ Up ${r.changePct!=null?Math.abs(r.changePct).toFixed(0)+'%':''}</span>`,new:`<span class="badge badge-new">★ New</span>`,stable:`<span class="badge badge-stable">— Stable</span>`};
+  const seg = SEGMENT_META[r.segment] || SEGMENT_META.needsattention;
   const name=acctName(r.acct);
   const spark=r.spark.map(v=>{const h=v===0?2:Math.max(2,Math.round((v/maxSpark)*22));return `<div class="spark-bar${v===0?' zero':''}" style="height:${h}px" title="$${fmt(v)}"></div>`;}).join('');
   const cc=r.changeAbs<0?'neg':r.changeAbs>0?'pos':'';
   return `<tr onclick="openModal('${r.acct}')">
-    <td><div class="cust-name" title="${name||'Acct #'+r.acct}">${name||'Acct #'+r.acct}</div>${name?`<div class="cust-acct">Acct #${r.acct}</div>`:''}</td>
+    <td>
+      <div class="cust-name" title="${name||'Acct #'+r.acct}">${name||'Acct #'+r.acct}</div>
+      ${name?`<div class="cust-acct">Acct #${r.acct}</div>`:''}
+    </td>
     <td><span class="num">$${fmt(r.currRev)}</span></td>
     ${prev.length?`<td><span class="num">$${fmt(r.prevRev)}</span></td><td><span class="num ${cc}">${r.changeAbs>=0?'+':''}$${fmt(r.changeAbs)}</span></td><td><span class="num ${cc}">${r.changePct!=null?(r.changePct>=0?'+':'')+r.changePct.toFixed(1)+'%':'—'}</span></td>`:''}
     <td><span class="num">$${fmt(r.totalRev)}</span></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="hs-ring">${healthRing(r.health||1)}</div>
+        <span class="health-badge ${seg.css}" style="font-size:10px;padding:3px 8px">${seg.label}</span>
+      </div>
+    </td>
+    <td>${daysSinceChip(r.daysSince)}</td>
     <td>${badges[r.trend]||''}</td>
     <td><div class="spark">${spark}</div></td>
   </tr>`;
@@ -931,16 +1142,18 @@ function rowHTML(r,maxSpark,prev){
 function openModal(acct){
   const a=analyse();
   if(!a)return;
-  const{allDates,curr,prev,fs}=a;
+  const{allDates,curr,prev,fs,rfm}=a;
   const name=acctName(acct);
   const row=a.rows.find(r=>r.acct===acct);
+  const rdata=rfm?.[acct]||{};
+  const seg=SEGMENT_META[rdata.segment||'needsattention'];
 
-  document.getElementById('mdEyebrow').textContent=activeDepot==='all'?'Customer Analysis — All Depots':`Customer Analysis — ${DEPOT_MAP[activeDepot]||'Depot '+activeDepot}`;
+  document.getElementById('mdEyebrow').textContent=
+    activeDepot==='all'?'Customer Analysis — All Depots':`Customer Analysis — ${DEPOT_MAP[activeDepot]||'Depot '+activeDepot}`;
   document.getElementById('mdName').textContent=name||`Account #${acct}`;
-  document.getElementById('mdAcct').textContent=name?`Account #${acct} · ${activeDepot==='all'?'All Depots':(DEPOT_MAP[activeDepot]||'Depot '+activeDepot)}`:'Account not found in rate report';
-  document.getElementById('mdBadge').innerHTML=row?{lost:`<span class="badge badge-lost">● Lost</span>`,down:`<span class="badge badge-down">▼ Down Trading</span>`,risk:`<span class="badge badge-risk">⚠ At Risk</span>`,up:`<span class="badge badge-up">▲ Up Trading</span>`,new:`<span class="badge badge-new">★ New Customer</span>`,stable:`<span class="badge badge-stable">— Stable</span>`}[row.trend]||'':'';
+  document.getElementById('mdAcct').textContent=name?`Account #${acct}`:'Account not found in rate report';
+  document.getElementById('mdBadge').innerHTML=`<span class="health-badge ${seg.css}">${seg.label}</span>`;
 
-  // Build daily data
   const daily=allDates.map(d=>({date:d,revenue:fs[d][acct]?.revenue||0,count:fs[d][acct]?.count||0,kg:fs[d][acct]?.kg||0}));
   const activeDays=daily.filter(d=>d.revenue>0);
   const totalRev=daily.reduce((s,d)=>s+d.revenue,0);
@@ -952,41 +1165,90 @@ function openModal(acct){
   const lastSeen=activeDays[activeDays.length-1]?.date||'—';
   const isRecentlyActive=lastSeen===allDates[allDates.length-1];
 
-  // Generate insight text
+  // Baseline vs current
+  const currDailyRev = curr.length && row ? row.currRev / curr.length : 0;
+  const baselineDelta = rdata.baseline > 0 ? ((currDailyRev - rdata.baseline) / rdata.baseline * 100) : null;
+
+  // Insight text
   let insightText='';
   if(row){
-    const pct=row.changePct;
-    if(row.trend==='lost') insightText=`<strong>No revenue in the current period.</strong> Last active on ${lastSeen}. Total lifetime spend of <strong>$${fmt(totalRev)}</strong> across ${activeDays.length} active days.`;
-    else if(row.trend==='down') insightText=`Revenue has declined <strong>${Math.abs(pct||0).toFixed(1)}%</strong> compared to the prior period. Current period: $${fmt(row.currRev)} vs prior: $${fmt(row.prevRev)}.`;
-    else if(row.trend==='up') insightText=`Strong growth of <strong>+${(pct||0).toFixed(1)}%</strong> vs prior period. Current: $${fmt(row.currRev)} vs prior: $${fmt(row.prevRev)}.`;
-    else if(row.trend==='risk') insightText=`Activity frequency is declining. Monitor closely — revenue is softening ahead of a potential larger drop.`;
-    else if(row.trend==='new') insightText=`New customer with <strong>$${fmt(totalRev)}</strong> in total spend across ${activeDays.length} active day${activeDays.length!==1?'s':''}.`;
-    else insightText=`Stable trading pattern. ${activeDays.length} active days recorded with average daily revenue of <strong>$${fmt(avgActiveDay)}</strong>.`;
+    const p=row.changePct;
+    if(row.trend==='lost') insightText=`<strong>No revenue in the current period.</strong> Last active ${lastSeen}. Lifetime spend of <strong>$${fmt(totalRev)}</strong>.`;
+    else if(row.trend==='down') insightText=`Revenue declined <strong>${Math.abs(p||0).toFixed(1)}%</strong> vs prior period. Current daily average of <strong>$${fmtK(currDailyRev)}</strong> vs personal baseline of <strong>$${fmtK(rdata.baseline||0)}</strong>.`;
+    else if(row.trend==='up') insightText=`Strong growth of <strong>+${(p||0).toFixed(1)}%</strong> vs prior period. Current daily average of <strong>$${fmtK(currDailyRev)}</strong>.`;
+    else if(row.segment==='atrisk'||row.segment==='lapsing') insightText=`Frequency is declining. Recency score of <strong>${rdata.R||'—'}/5</strong> signals reduced activity. Monitor closely.`;
+    else if(row.segment==='champion') insightText=`Top-tier customer. High recency, frequency and spend — all scoring above the 80th percentile.`;
+    else insightText=`${seg.desc}. Active on <strong>${activeDays.length}</strong> of ${allDates.length} loaded days with average daily revenue of <strong>$${fmtK(avgActiveDay)}</strong>.`;
   }
 
   const body=document.getElementById('mdBody');
   body.innerHTML=`
-    <div class="md-section-lbl">Performance Summary</div>
-    <div class="md-stats">
-      <div class="md-stat"><div class="md-stat-lbl">Total Spend</div><div class="md-stat-val">$${fmtK(totalRev)}</div><div class="md-stat-sub">all loaded days</div></div>
-      <div class="md-stat"><div class="md-stat-lbl">Consignments</div><div class="md-stat-val">${totalCount.toLocaleString()}</div><div class="md-stat-sub">${activeDays.length} active days</div></div>
-      <div class="md-stat"><div class="md-stat-lbl">Avg Order</div><div class="md-stat-val">$${fmtK(avgOrder)}</div><div class="md-stat-sub">per consignment</div></div>
-      <div class="md-stat"><div class="md-stat-lbl">Avg Active Day</div><div class="md-stat-val">$${fmtK(avgActiveDay)}</div><div class="md-stat-sub">when spending</div></div>
-      <div class="md-stat"><div class="md-stat-lbl">Total Charge Wt</div><div class="md-stat-val">${fmtK(totalKg)}kg</div><div class="md-stat-sub">all loaded days</div></div>
-      <div class="md-stat"><div class="md-stat-lbl">First Seen</div><div class="md-stat-val" style="font-size:15px">${firstSeen}</div><div class="md-stat-sub">&nbsp;</div></div>
-      <div class="md-stat"><div class="md-stat-lbl">Last Active</div><div class="md-stat-val ${isRecentlyActive?'green':'red'}" style="font-size:15px">${lastSeen}</div><div class="md-stat-sub">${isRecentlyActive?'Active recently':'Inactive'}</div></div>
+    <!-- RFM SCORES -->
+    <div class="md-section-lbl">RFM Health Score</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+      <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+        ${(()=>{
+          const h=rdata.health||1;
+          const pct=(h-1)/4;
+          const r2=30,circ=2*Math.PI*r2,dash=pct*circ;
+          const col=h>=4?'#0e7a47':h>=3?'#3b82f6':h>=2?'#f59e0b':'#c8102e';
+          return `<svg viewBox="0 0 72 72" width="72" height="72">
+            <circle cx="36" cy="36" r="${r2}" fill="none" stroke="#e2e6f0" stroke-width="6"/>
+            <circle cx="36" cy="36" r="${r2}" fill="none" stroke="${col}" stroke-width="6"
+              stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
+              stroke-dashoffset="${(circ*0.25).toFixed(1)}"
+              stroke-linecap="round" transform="rotate(-90 36 36)"/>
+            <text x="36" y="40" text-anchor="middle" font-size="18" font-weight="700" fill="${col}" font-family="Barlow Condensed,sans-serif">${h.toFixed(1)}</text>
+          </svg>`;
+        })()}
+      </div>
+      <div style="flex:1">
+        <div style="font-family:var(--cond);font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px">${seg.label}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">${seg.desc}</div>
+        <div style="display:flex;gap:16px">
+          ${['R','F','M'].map((dim,i)=>{
+            const scores=[rdata.R,rdata.F,rdata.M];
+            const labels=['Recency','Frequency','Monetary'];
+            const descs=['How recently shipped','How often they ship','How much they spend'];
+            const s=scores[i]||1;
+            const col=s>=4?'#0e7a47':s>=3?'#3b82f6':s>=2?'#f59e0b':'#c8102e';
+            return `<div>
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px">${labels[i]}</div>
+              <div style="font-family:var(--cond);font-size:20px;font-weight:700;color:${col};line-height:1">${s}<span style="font-size:12px;color:var(--subtle)">/5</span></div>
+              <div style="display:flex;gap:2px;margin-top:4px">${[1,2,3,4,5].map(n=>`<div style="width:7px;height:7px;border-radius:50%;background:${n<=s?col:'#e2e6f0'}"></div>`).join('')}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
     </div>
 
+    <!-- KEY FINDING -->
     ${insightText?`
     <div class="md-section-lbl">Key Finding</div>
-    <div class="md-insight">
-      <div class="md-insight-icon">${row?.trend==='lost'||row?.trend==='down'?'⚠️':row?.trend==='up'?'📈':'💡'}</div>
+    <div class="md-insight" style="margin-bottom:20px">
+      <div class="md-insight-icon">${row?.segment==='champion'?'🏆':row?.trend==='lost'||row?.trend==='down'?'⚠️':row?.trend==='up'?'📈':'💡'}</div>
       <div class="md-insight-text">${insightText}</div>
     </div>`:''}
 
+    <!-- PERFORMANCE STATS -->
+    <div class="md-section-lbl">Performance Summary</div>
+    <div class="md-stats" style="margin-bottom:20px">
+      <div class="md-stat"><div class="md-stat-lbl">Total Spend</div><div class="md-stat-val">$${fmtK(totalRev)}</div><div class="md-stat-sub">all loaded days</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Consignments</div><div class="md-stat-val">${totalCount.toLocaleString()}</div><div class="md-stat-sub">${activeDays.length} active days</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Avg Order</div><div class="md-stat-val">$${fmtK(avgOrder)}</div><div class="md-stat-sub">per consignment</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Daily Avg</div><div class="md-stat-val">$${fmtK(avgActiveDay)}</div><div class="md-stat-sub">when active</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Baseline</div><div class="md-stat-val ${baselineDelta!==null&&baselineDelta<-10?'red':baselineDelta!==null&&baselineDelta>10?'green':''}">$${fmtK(rdata.baseline||0)}</div><div class="md-stat-sub">${baselineDelta!==null?(baselineDelta>=0?'+':'')+baselineDelta.toFixed(0)+'% vs now':'personal avg'}</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Total Charge Wt</div><div class="md-stat-val">${fmtK(totalKg)}kg</div><div class="md-stat-sub">all loaded days</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">First Seen</div><div class="md-stat-val" style="font-size:14px">${firstSeen}</div><div class="md-stat-sub">&nbsp;</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Last Active</div><div class="md-stat-val ${isRecentlyActive?'green':'red'}" style="font-size:14px">${lastSeen}</div><div class="md-stat-sub">${rdata.recency!==null?rdata.recency+'d ago':''}</div></div>
+      <div class="md-stat"><div class="md-stat-lbl">Days Since Ship</div><div class="md-stat-val ${(rdata.recency||0)>21?'red':(rdata.recency||0)>7?'amber':''}" style="font-size:14px">${rdata.recency!==null?rdata.recency:'—'}</div><div class="md-stat-sub">calendar days</div></div>
+    </div>
+
+    <!-- CHART -->
     <div class="md-section-lbl">Revenue History</div>
     <div class="md-chart-wrap"><canvas id="drillChart" height="150"></canvas></div>
 
+    <!-- BREAKDOWN TABLE -->
     <div class="md-section-lbl">Daily Breakdown</div>
     <table class="md-table">
       <thead><tr><th>Date</th><th>Revenue</th><th>Consignments</th><th>Charge Kg</th><th>Avg / Con</th></tr></thead>
@@ -1012,13 +1274,15 @@ function openModal(acct){
     const labels=daily.map(d=>d.date.slice(5));
     const values=daily.map(d=>d.revenue);
     const avgLine=new Array(values.length).fill(avgActiveDay);
+    const baselineLine=new Array(values.length).fill(rdata.baseline||0);
     chartInst=new Chart(ctx,{
       type:'bar',
       data:{
         labels,
         datasets:[
           {type:'bar',data:values,backgroundColor:values.map(v=>v===0?'rgba(226,230,240,0.5)':'rgba(26,39,68,0.8)'),borderRadius:3,borderSkipped:false,label:'Revenue'},
-          {type:'line',data:avgLine,borderColor:'rgba(200,16,46,0.6)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,label:'Avg active day',fill:false}
+          {type:'line',data:avgLine,borderColor:'rgba(200,16,46,0.5)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,label:'Avg active day',fill:false},
+          {type:'line',data:baselineLine,borderColor:'rgba(59,130,246,0.6)',borderWidth:1.5,borderDash:[2,2],pointRadius:0,label:'30d baseline',fill:false}
         ]
       },
       options:{

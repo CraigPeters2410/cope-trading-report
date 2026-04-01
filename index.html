@@ -290,10 +290,140 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
   .md-stats{grid-template-columns:1fr 1fr}
 }
 @media(max-width:540px){.kpis{grid-template-columns:1fr 1fr}}
+
+/* ═══ LANDING PAGE ═══ */
+#landingPage {
+  position:fixed; inset:0; z-index:9999;
+  background:#1a0305;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Calibri','Arial',sans-serif;
+}
+#landingPage .lp-bg {
+  position:absolute; inset:0;
+  background-image:url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEA3ADcAAD/2wBDAAIBAQIBAQICAgICAgICAwUDAwMDAwYEBAMFBwYHBwcGBwcICQsJCAgKCAcHCg0KCgsM...');
+  background-size:cover; background-position:center;
+  opacity:0.18; pointer-events:none;
+}
+#landingPage .lp-box {
+  position:relative; z-index:1;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:16px;
+  padding:52px 56px 48px;
+  width:440px; max-width:92vw;
+  text-align:center;
+  backdrop-filter:blur(8px);
+}
+#landingPage .lp-logo {
+  width:140px; margin-bottom:28px;
+}
+#landingPage .lp-title {
+  color:#fff; font-size:22px; font-weight:700;
+  letter-spacing:0.04em; margin-bottom:6px;
+  text-transform:uppercase;
+}
+#landingPage .lp-sub {
+  color:rgba(255,255,255,0.5); font-size:13px;
+  margin-bottom:36px; letter-spacing:0.03em;
+}
+#landingPage .lp-label {
+  color:rgba(255,255,255,0.55); font-size:11px;
+  font-weight:700; letter-spacing:0.1em;
+  text-transform:uppercase; margin-bottom:8px;
+  text-align:left;
+}
+#landingPage .lp-input {
+  width:100%; padding:12px 16px;
+  background:rgba(255,255,255,0.08);
+  border:1.5px solid rgba(255,255,255,0.18);
+  border-radius:8px; color:#fff;
+  font-size:15px; font-family:'Calibri','Arial',sans-serif;
+  outline:none; box-sizing:border-box;
+  transition:border-color 0.2s;
+  margin-bottom:6px;
+}
+#landingPage .lp-input:focus { border-color:rgba(237,29,36,0.7); }
+#landingPage .lp-input.lp-error { border-color:#ED1D24; animation:lp-shake 0.3s; }
+@keyframes lp-shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  60%{transform:translateX(6px)}
+}
+#landingPage .lp-err-msg {
+  color:#ED1D24; font-size:12px; margin-bottom:16px;
+  min-height:18px; text-align:left;
+}
+#landingPage .lp-btn {
+  width:100%; padding:13px;
+  background:#ED1D24; border:none;
+  border-radius:8px; color:#fff;
+  font-size:14px; font-weight:700;
+  font-family:'Calibri','Arial',sans-serif;
+  letter-spacing:0.06em; text-transform:uppercase;
+  cursor:pointer; transition:background 0.15s;
+  margin-top:4px;
+}
+#landingPage .lp-btn:hover { background:#C01018; }
+#landingPage .lp-footer {
+  color:rgba(255,255,255,0.25); font-size:11px;
+  margin-top:28px; letter-spacing:0.04em;
+}
+#landingPage .lp-lock {
+  width:36px; height:36px; margin:0 auto 20px;
+  background:rgba(237,29,36,0.15);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 </head>
 <body>
+<div id="landingPage" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+
+  <!-- Background polygons -->
+  <svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 680 420" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <rect width="680" height="420" fill="#1c0304"/>
+    <polygon points="0,0 680,0 680,220 0,380" fill="#A01419" opacity="0.45"/>
+    <polygon points="0,0 680,0 680,160 0,300" fill="#ED1D24" opacity="0.18"/>
+    <polygon points="340,0 680,0 680,340" fill="#2C0305" opacity="0.4"/>
+    <polygon points="500,0 680,0 680,180" fill="#ED1D24" opacity="0.12"/>
+    <line x1="160" y1="0" x2="0" y2="200" stroke="white" stroke-width="0.5" opacity="0.06"/>
+    <line x1="320" y1="0" x2="160" y2="240" stroke="white" stroke-width="0.5" opacity="0.05"/>
+    <line x1="520" y1="0" x2="400" y2="420" stroke="white" stroke-width="0.4" opacity="0.06"/>
+  </svg>
+
+  <!-- Card -->
+  <div style="position:relative;z-index:1;width:300px;background:rgba(20,2,3,0.76);border:1.5px solid rgba(237,29,36,0.5);border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(237,29,36,0.15);">
+    <div style="height:4px;background:#ED1D24;"></div>
+    <div style="padding:24px 24px 20px;">
+
+      <!-- Logo -->
+      <div style="background:white;border-radius:8px;padding:16px 20px;margin-bottom:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+        <span style="font-family:'Arial Black','Arial',sans-serif;font-weight:900;font-size:36px;color:#ED1D24;letter-spacing:4px;line-height:1;">COPE</span>
+        <span style="font-family:'Arial Black','Arial',sans-serif;font-weight:900;font-size:9.5px;color:#1a1a1a;letter-spacing:3.5px;">SENSITIVE FREIGHT</span>
+      </div>
+
+      <div style="height:1px;background:rgba(255,255,255,0.1);margin-bottom:14px;"></div>
+
+      <div style="text-align:center;margin-bottom:18px;">
+        <div style="color:white;font-size:15px;font-weight:700;font-family:Calibri,Arial,sans-serif;">Customer Trading Report</div>
+        <div style="color:rgba(255,255,255,0.35);font-size:9px;letter-spacing:0.13em;margin-top:5px;font-family:Calibri,Arial,sans-serif;text-transform:uppercase;">Restricted Access &nbsp;·&nbsp; Confidential</div>
+      </div>
+
+      <div style="height:1.5px;background:#ED1D24;opacity:0.4;margin-bottom:14px;"></div>
+
+      <div style="color:rgba(255,255,255,0.45);font-size:9px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;font-family:Calibri,Arial,sans-serif;margin-bottom:6px;">Password</div>
+      <input id="lpInput" type="password" placeholder="Enter password to continue"
+             style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 13px;color:white;font-size:13px;font-family:Calibri,Arial,sans-serif;box-sizing:border-box;outline:none;margin-bottom:4px;"
+             onkeydown="if(event.key==='Enter')lpSubmit()"/>
+      <div id="lpErr" style="color:#ED1D24;font-size:11px;min-height:18px;margin-bottom:8px;font-family:Calibri,Arial,sans-serif;"></div>
+
+      <div onclick="lpSubmit()" style="background:#ED1D24;border:1px solid #A01419;border-radius:8px;padding:11px 0;text-align:center;color:white;font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;font-family:Calibri,Arial,sans-serif;margin-bottom:14px;">ENTER REPORT</div>
+
+      <div style="text-align:center;color:rgba(255,255,255,0.22);font-size:8.5px;font-family:Calibri,Arial,sans-serif;letter-spacing:0.05em;">Authorised users only &nbsp;·&nbsp; Internal use only</div>
+    </div>
+  </div>
+</div>
+
 
 <header>
   <div class="hd-l">
@@ -1501,160 +1631,96 @@ function closeReportModal(){
 }
 
 
-// ═══ RFM BARS — drawn as native PPTX vector shapes (no canvas, no blur) ═══
-// sx/sy = top-left of the RFM area in inches on the slide
-// areaW/areaH = total area in inches
-// slide = pptxgenjs slide object
-// C = colour palette
-function addRFMBars(slide, R, F, M, health, segKey, sx, sy, areaW, areaH, C){
-  const scoreCol = s => s>=4?C.green : s>=3?C.blue : s>=2?C.amber : C.redD;
-  const trackCol = 'E2E6F0';
-  const mutedCol = '8896AF';
-  const dims = [
-    {lbl:'RECENCY',   score: R||1},
-    {lbl:'FREQUENCY', score: F||1},
-    {lbl:'MONETARY',  score: M||1},
-  ];
+// ═══ RFM BARS — native PPTX shapes, exact positions from Craig's corrected files ═══
+// Three call signatures:
+//   addRFMBars(s, R,F,M,health,segKey, x,y, 's6')   → Portfolio S6 wide cards
+//   addRFMBars(s, R,F,M,health,segKey, x,y, 's7')   → At-risk S7 3-stat cards
+//   addRFMBars(s, R,F,M,health,segKey, x,y, '9card')→ 9-card layouts (both reports)
+function addRFMBars(slide, R, F, M, health, segKey, cx, cy, layout){
+  const sC = s => s>=4?'107C41': s>=3?'1F4E79': s>=2?'C55A11':'A01419';
+  const trkCol = 'E2E6F0';
+  const mutCol = '8896AF';
+  const dims   = [{lbl:'RECENCY',s:R||1},{lbl:'FREQUENCY',s:F||1},{lbl:'MONETARY',s:M||1}];
 
-  const isWide = (areaW / areaH) > 3.5;
+  if(layout === 's6'){
+    // ── Wide card layout (Portfolio S6): exact from corrected deck ──
+    // Positions relative to card (cx,cy)
+    const LBL_X=0.176, LBL_W=0.6876, LBL_H=0.0856;
+    const TRK_X=0.8876, TRK_W=2.5704, TRK_H=0.0489;
+    const SCO_X=3.578,  SCO_W=0.358;
+    const ROW_Y = [2.2036, 2.3566, 2.5095];
 
-  if(isWide){
-    // ── WIDE layout: Portfolio S6 full-width ──
-    // Single-line rows: label | bar | score
-    const pad    = 0.12;
-    const footH  = areaH * 0.26;
-    const barsH  = areaH - footH;
-    const rowH   = barsH / 3;
-    const lblW   = areaW * 0.18;
-    const scoW   = areaW * 0.10;
-    const barX   = sx + lblW + pad * 0.5;
-    const barW   = areaW - lblW - scoW - pad * 1.5;
-    const barH   = Math.min(0.07, rowH * 0.32);
-    const fszLbl = 7;
-    const fszSco = 7.5;
-
-    dims.forEach((d, i) => {
-      const rowCy = sy + i * rowH + rowH * 0.5;
-
+    dims.forEach((d,i) => {
+      const ry = ROW_Y[i];
       // Label
       slide.addText(d.lbl, {
-        x: sx + pad * 0.3, y: rowCy - rowH * 0.28, w: lblW, h: rowH * 0.56,
-        fontSize: fszLbl, fontFace: 'Calibri', bold: true,
-        color: mutedCol, valign: 'middle', margin: 0,
-        charSpacing: 1.5,
+        x:cx+LBL_X, y:cy+ry, w:LBL_W, h:LBL_H,
+        fontSize:7, fontFace:'Calibri', bold:true, charSpacing:1.5,
+        color:mutCol, valign:'middle', margin:0,
       });
-
-      // Track (full bar width)
-      slide.addShape('rect', {
-        x: barX, y: rowCy - barH / 2, w: barW, h: barH,
-        fill: {color: trackCol}, line: {color: trackCol, width: 0}, rectRadius: barH / 2,
-      });
-
-      // Fill
-      const fillW = Math.max(barH, (d.score / 5) * barW);
-      slide.addShape('rect', {
-        x: barX, y: rowCy - barH / 2, w: fillW, h: barH,
-        fill: {color: scoreCol(d.score)}, line: {color: scoreCol(d.score), width: 0}, rectRadius: barH / 2,
-      });
-
-      // Score
-      slide.addText(d.score + '/5', {
-        x: sx + areaW - scoW, y: rowCy - rowH * 0.28, w: scoW - pad * 0.2, h: rowH * 0.56,
-        fontSize: fszSco, fontFace: 'Calibri', bold: true,
-        color: scoreCol(d.score), align: 'right', valign: 'middle', margin: 0,
-      });
-    });
-
-    // Rule
-    const ruleY = sy + barsH + 0.01;
-    slide.addShape('rect', {
-      x: sx + pad * 0.3, y: ruleY, w: areaW - pad * 0.6, h: 0.005,
-      fill: {color: trackCol}, line: {color: trackCol, width: 0},
-    });
-
-    // Health line
-    const hy  = sy + barsH + footH * 0.55;
-    const fhH = footH * 0.7;
-    slide.addText('HEALTH SCORE', {
-      x: sx + pad * 0.3, y: hy - fhH / 2, w: areaW * 0.55, h: fhH,
-      fontSize: 7, fontFace: 'Calibri', bold: true,
-      color: mutedCol, valign: 'middle', margin: 0, charSpacing: 1.5,
-    });
-    const hStr = (health || 0).toFixed(1) + ' / 5';
-    slide.addText(hStr, {
-      x: sx + areaW * 0.55, y: hy - fhH / 2, w: areaW * 0.42, h: fhH,
-      fontSize: 8, fontFace: 'Calibri', bold: true,
-      color: scoreCol(Math.round(health || 1)), align: 'right', valign: 'middle', margin: 0,
-    });
-
-  } else {
-    // ── TALL layout: right-half of 9-cards and S7 ──
-    // Two-line rows: label on top, bar + score below
-    const pad    = 0.10;
-    const footH  = areaH * 0.22;
-    const barsH  = areaH - footH - pad;
-    const rowH   = barsH / 3;
-    const lblFrac = 0.42;
-    const barH   = Math.min(0.065, rowH * (1 - lblFrac) * 0.45);
-    const scoW   = areaW * 0.22;
-    const barTrackW = areaW - pad * 2 - scoW - 0.04;
-    const fszLbl = 6.5;
-    const fszSco = 7;
-
-    dims.forEach((d, i) => {
-      const ry      = sy + pad * 0.5 + i * rowH;
-      const labelCy = ry + rowH * lblFrac * 0.5;
-      const barCy   = ry + rowH * lblFrac + rowH * (1 - lblFrac) * 0.5;
-
-      // Label
-      slide.addText(d.lbl, {
-        x: sx + pad, y: labelCy - rowH * lblFrac * 0.5, w: areaW - pad * 2, h: rowH * lblFrac,
-        fontSize: fszLbl, fontFace: 'Calibri', bold: true,
-        color: mutedCol, valign: 'middle', margin: 0, charSpacing: 1.5,
-      });
-
       // Track
       slide.addShape('rect', {
-        x: sx + pad, y: barCy - barH / 2, w: barTrackW, h: barH,
-        fill: {color: trackCol}, line: {color: trackCol, width: 0}, rectRadius: barH / 2,
+        x:cx+TRK_X, y:cy+ry+0.0184, w:TRK_W, h:TRK_H,
+        fill:{color:trkCol}, line:{color:trkCol,width:0},
       });
-
       // Fill
-      const fillW = Math.max(barH, (d.score / 5) * barTrackW);
+      const fw = Math.max(TRK_H, (d.s/5)*TRK_W);
       slide.addShape('rect', {
-        x: sx + pad, y: barCy - barH / 2, w: fillW, h: barH,
-        fill: {color: scoreCol(d.score)}, line: {color: scoreCol(d.score), width: 0}, rectRadius: barH / 2,
+        x:cx+TRK_X, y:cy+ry+0.0184, w:fw, h:TRK_H,
+        fill:{color:sC(d.s)}, line:{color:sC(d.s),width:0},
       });
-
-      // Score — right of bar, on bar centre line
-      slide.addText(d.score + '/5', {
-        x: sx + pad + barTrackW + 0.04, y: barCy - rowH * (1-lblFrac) * 0.5,
-        w: scoW, h: rowH * (1 - lblFrac),
-        fontSize: fszSco, fontFace: 'Calibri', bold: true,
-        color: scoreCol(d.score), align: 'right', valign: 'middle', margin: 0,
+      // Score
+      slide.addText(d.s+'/5', {
+        x:cx+SCO_X, y:cy+ry, w:SCO_W, h:LBL_H,
+        fontSize:7.5, fontFace:'Calibri', bold:true,
+        color:sC(d.s), align:'right', valign:'middle', margin:0,
       });
     });
-
     // Rule
-    const ruleY = sy + barsH + pad * 0.5;
-    slide.addShape('rect', {
-      x: sx + pad, y: ruleY, w: areaW - pad * 2, h: 0.005,
-      fill: {color: trackCol}, line: {color: trackCol, width: 0},
-    });
+    slide.addShape('rect',{x:cx+0.176,y:cy+2.6388,w:3.748,h:0.005,fill:{color:trkCol},line:{color:trkCol,width:0}});
+    // Health label + value
+    slide.addText('HEALTH SCORE',{x:cx+0.176,y:cy+2.717,w:2.101,h:0.1128,fontSize:7,fontFace:'Calibri',bold:true,charSpacing:1.5,color:mutCol,valign:'middle',margin:0});
+    slide.addText((health||0).toFixed(1)+' / 5',{x:cx+2.241,y:cy+2.717,w:1.6044,h:0.1128,fontSize:8,fontFace:'Calibri',bold:true,color:sC(Math.round(health||1)),align:'right',valign:'middle',margin:0});
 
-    // Health
-    const hy  = sy + barsH + pad * 0.5 + footH * 0.55;
-    const fhH = footH * 0.72;
-    slide.addText('HEALTH', {
-      x: sx + pad, y: hy - fhH / 2, w: areaW * 0.52, h: fhH,
-      fontSize: 7, fontFace: 'Calibri', bold: true,
-      color: mutedCol, valign: 'middle', margin: 0, charSpacing: 1.5,
+  } else if(layout === 's7'){
+    // ── S7 at-risk tall card layout ──
+    const LBL_X=2.2, LBL_W=1.7, LBL_H=0.1476;
+    const TRK_X=2.2, TRK_W=1.242, TRK_H=0.065;
+    const SCO_X=3.482, SCO_W=0.418, SCO_H=0.2039;
+    const ROW_LBL_Y = [0.710, 1.0615, 1.4129];
+    const ROW_TRK_Y = [0.927, 1.2785, 1.630];
+    const ROW_SCO_Y = [0.8576, 1.2091, 1.5605];
+
+    dims.forEach((d,i) => {
+      slide.addText(d.lbl,{x:cx+LBL_X,y:cy+ROW_LBL_Y[i],w:LBL_W,h:LBL_H,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:1.5,color:mutCol,valign:'middle',margin:0});
+      slide.addShape('rect',{x:cx+TRK_X,y:cy+ROW_TRK_Y[i],w:TRK_W,h:TRK_H,fill:{color:trkCol},line:{color:trkCol,width:0}});
+      const fw=Math.max(TRK_H,(d.s/5)*TRK_W);
+      slide.addShape('rect',{x:cx+TRK_X,y:cy+ROW_TRK_Y[i],w:fw,h:TRK_H,fill:{color:sC(d.s)},line:{color:sC(d.s),width:0}});
+      slide.addText(d.s+'/5',{x:cx+SCO_X,y:cy+ROW_SCO_Y[i],w:SCO_W,h:SCO_H,fontSize:7,fontFace:'Calibri',bold:true,color:sC(d.s),align:'right',valign:'middle',margin:0});
     });
-    slide.addText((health || 0).toFixed(1) + '/5', {
-      x: sx + areaW * 0.52, y: hy - fhH / 2, w: areaW * 0.44, h: fhH,
-      fontSize: 8, fontFace: 'Calibri', bold: true,
-      color: scoreCol(Math.round(health || 1)), align: 'right', valign: 'middle', margin: 0,
+    slide.addShape('rect',{x:cx+2.2,y:cy+1.7644,w:1.7,h:0.005,fill:{color:trkCol},line:{color:trkCol,width:0}});
+    slide.addText('HEALTH',{x:cx+2.2,y:cy+1.8263,w:0.988,h:0.2344,fontSize:7,fontFace:'Calibri',bold:true,charSpacing:1.5,color:mutCol,valign:'middle',margin:0});
+    slide.addText((health||0).toFixed(1)+'/5',{x:cx+3.088,y:cy+1.8263,w:0.836,h:0.2344,fontSize:8,fontFace:'Calibri',bold:true,color:sC(Math.round(health||1)),align:'right',valign:'middle',margin:0});
+
+  } else {
+    // ── 9-card layout (at-risk S3 + top customer S3) ──
+    const LBL_X=2.16, LBL_W=1.74, LBL_H=0.1269;
+    const TRK_X=2.16, TRK_W=1.2732, TRK_H=0.065;
+    const SCO_X=3.4732, SCO_W=0.4268, SCO_H=0.1752;
+    const ROW_LBL_Y = [0.58, 0.8821, 1.1841];
+    const ROW_TRK_Y = [0.762, 1.064, 1.3661];
+    const ROW_SCO_Y = [0.7069, 1.0089, 1.311];
+
+    dims.forEach((d,i) => {
+      slide.addText(d.lbl,{x:cx+LBL_X,y:cy+ROW_LBL_Y[i],w:LBL_W,h:LBL_H,fontSize:6.5,fontFace:'Calibri',bold:true,charSpacing:1.5,color:mutCol,valign:'middle',margin:0});
+      slide.addShape('rect',{x:cx+TRK_X,y:cy+ROW_TRK_Y[i],w:TRK_W,h:TRK_H,fill:{color:trkCol},line:{color:trkCol,width:0}});
+      const fw=Math.max(TRK_H,(d.s/5)*TRK_W);
+      slide.addShape('rect',{x:cx+TRK_X,y:cy+ROW_TRK_Y[i],w:fw,h:TRK_H,fill:{color:sC(d.s)},line:{color:sC(d.s),width:0}});
+      slide.addText(d.s+'/5',{x:cx+SCO_X,y:cy+ROW_SCO_Y[i],w:SCO_W,h:SCO_H,fontSize:7,fontFace:'Calibri',bold:true,color:sC(d.s),align:'right',valign:'middle',margin:0});
     });
+    slide.addShape('rect',{x:cx+2.16,y:cy+1.4862,w:1.74,h:0.005,fill:{color:trkCol},line:{color:trkCol,width:0}});
+    slide.addText('HEALTH',{x:cx+2.16,y:cy+1.5401,w:1.0088,h:0.2043,fontSize:7,fontFace:'Calibri',bold:true,charSpacing:1.5,color:mutCol,valign:'middle',margin:0});
+    slide.addText((health||0).toFixed(1)+'/5',{x:cx+3.0688,y:cy+1.5401,w:0.8536,h:0.2043,fontSize:8,fontFace:'Calibri',bold:true,color:sC(Math.round(health||1)),align:'right',valign:'middle',margin:0});
   }
 }
 
@@ -1898,7 +1964,7 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
         {text:rfmH>0?rfmH.toFixed(1)+'/5':'\u2014',options:{fontSize:8.5,fontFace:'Calibri',bold:true,color:rfmH>=4?C.green:rfmH>=3?C.blue:rfmH>=2?C.amber:rfmH>0?C.redD:C.grey2,align:'right',fill:{color:bg2}}},
       ];
     }));
-    s5.addTable(t5rows,{x:0.35,y:2.64,w:11.5,colW:[2.55,1.2,1.2,1.3,0.95,1.5,0.95,1.05],rowH:0.33,border:{pt:0.5,color:C.rule}});
+    s5.addTable(t5rows,{x:0.35,y:2.64,w:12.5,colW:[2.55,1.2,1.2,1.3,0.95,1.5,0.95,1.05],rowH:0.33,border:{pt:0.5,color:C.rule}});
   }
   await new Promise(r=>setTimeout(r,20));
   // S6 Top Account Scorecards — exact layout from corrected deck
@@ -1932,7 +1998,7 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
     });
     // RFM bars: full width, row 3 slot y+2.18 to y+2.72 (0.54in tall)
     // Larger canvas (600x130px) so labels are comfortably legible
-    addRFMBars(s6,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x+0.14,y+2.17,sc6W-0.28,0.62,C);
+    addRFMBars(s6,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x,y,'s6');
   }
   await new Promise(r=>setTimeout(r,20));
   // S7 At-Risk — exact layout from corrected deck (6 cards, 3x2, at-risk positions)
@@ -1963,7 +2029,7 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
       s7.addText(val,{x:sx,y:sy+0.17,w:1.85,h:0.32,fontSize:13,fontFace:'Calibri',bold:true,color:si===2&&urgent?C.redD:C.black,margin:0});
     });
     // Right column: RFM horizontal bars — x+2.1 to x+4.0 = 1.9in wide, y+0.65 to y+2.1 = 1.45in
-    addRFMBars(s7,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x+2.1,y+0.66,1.9,1.48,C);
+    addRFMBars(s7,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x,y,'s7');
   }
   // S8 Methodology
   buildMethodology(pres,a,C,mkSh,bg,hdr,foot,slbl,ac,T,8,depotLabel,dateRange,today);
@@ -2040,7 +2106,7 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
       s3.addText(val,{x:sx,y:sy+0.16,w:1.82,h:0.27,fontSize:12,fontFace:'Calibri',bold:true,color:col,margin:0});
     });
     // Right column: RFM horizontal bars — x+2.1, y+0.57, w=1.9, h=1.26
-    addRFMBars(s3,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x+2.06,y+0.53,1.94,1.29,C);
+    addRFMBars(s3,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x,y,'9card');
   }
   await new Promise(r=>setTimeout(r,20));
   // S4 Full watchlist table
@@ -2129,7 +2195,7 @@ async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHd
       s3.addText(val,{x:x+0.12,y:sy+0.16,w:1.84,h:0.35,fontSize:13,fontFace:'Calibri',bold:true,color:col,margin:0});
     });
     // RFM bars — right side, larger canvas for legibility
-    addRFMBars(s3,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x+2.06,y+0.53,1.94,1.29,C);
+    addRFMBars(s3,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x,y,'9card');
   }
   await new Promise(r=>setTimeout(r,20));
   // S4 Leaderboard table
@@ -2174,6 +2240,49 @@ async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHd
 
 
 init();
+
+
+// ═══ LANDING PAGE ═══
+const LP_PW = 'CopeSky2026#';
+const LP_KEY = 'cope_report_authed';
+
+function lpCheck(){
+  // Session-based: locked whenever the page is freshly loaded
+  // sessionStorage clears when the tab/window is closed
+  if(sessionStorage.getItem(LP_KEY) === '1'){
+    document.getElementById('landingPage').style.display='none';
+  } else {
+    document.getElementById('landingPage').style.display='flex';
+    setTimeout(()=>{ const inp=document.getElementById('lpInput'); if(inp)inp.focus(); },100);
+  }
+}
+
+function lpSubmit(){
+  const inp = document.getElementById('lpInput');
+  const err = document.getElementById('lpErr');
+  if(!inp) return;
+  if(inp.value === LP_PW){
+    sessionStorage.setItem(LP_KEY,'1');
+    const lp = document.getElementById('landingPage');
+    lp.style.transition='opacity 0.4s';
+    lp.style.opacity='0';
+    setTimeout(()=>{ lp.style.display='none'; lp.style.opacity=''; },400);
+  } else {
+    inp.value='';
+    inp.classList.add('lp-error');
+    err.textContent='Incorrect password. Please try again.';
+    setTimeout(()=>inp.classList.remove('lp-error'), 500);
+    inp.focus();
+  }
+}
+
+// Allow Enter key to submit
+document.addEventListener('DOMContentLoaded',()=>{
+  lpCheck();
+  const inp = document.getElementById('lpInput');
+  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') lpSubmit(); });
+});
+
 </script>
 </body>
 </html>

@@ -1174,7 +1174,7 @@ function computeRFM(allDates, fs) {
       }
     }
 
-    // Division mix from latest store entry
+    // Service mix from latest store entry
     const divMix = {};
     allDates.forEach(d=>{
       const entry = fs[d]?.[acct];
@@ -1193,7 +1193,7 @@ function computeRFM(allDates, fs) {
       recentCadence,
       cadenceShift,       // >1.3 = booking less often = warning
       consecutiveDecline, // how many fortnights in a row frequency dropped
-      divMix,             // {Warehouse, Tailgate, Site-to-Site} revenue breakdown
+      divMix,             // {Warehouse, Tailgate, Site-to-Site} service mix revenue
     };
   });
 
@@ -1467,7 +1467,7 @@ function renderTable(){
     <thead><tr>
       <th>Customer</th><th>${ch} Rev</th>
       ${prev.length?`<th>${ph} Rev</th><th>Chg $</th><th>Chg %</th>`:''}
-      <th>Total (All Time)</th><th>Health · Segment</th><th>Last Ship</th><th>Cadence</th><th>Division Mix</th><th>Movement</th><th>Trend</th>
+      <th>Total (All Time)</th><th>Health · Segment</th><th>Last Ship</th><th>Cadence</th><th>Service Mix</th><th>Movement</th><th>Trend</th>
     </tr></thead>
     <tbody>${filtered.map(r=>rowHTML(r,maxSpark,prev)).join('')}</tbody>
   </table>`;
@@ -1740,12 +1740,12 @@ function openModal(acct){
         const tp=Math.round(tw/divTotal*100),wp=Math.round(ww/divTotal*100),sp=100-tp-wp;
         const divCols=[{lbl:'Tailgate',rev:tw,pct:tp,col:'#A01419'},{lbl:'Warehouse',rev:ww,pct:wp,col:'#1F4E79'},{lbl:'Site-to-Site',rev:sw,pct:sp,col:'#107C41'}];
         divHtml = `<div style="background:#f8f9fa;border-radius:8px;padding:14px 16px;margin-bottom:14px">
-          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:10px">Division Mix</div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:10px">Service Mix</div>
           <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:10px;gap:1px">${divCols.filter(d=>d.pct>0).map(d=>`<div style="width:${d.pct}%;background:${d.col};height:100%"></div>`).join('')}</div>
           <div style="display:flex;gap:16px;flex-wrap:wrap">${divCols.map(d=>`<div style="min-width:90px"><div style="display:flex;align-items:center;gap:5px;margin-bottom:2px"><div style="width:7px;height:7px;border-radius:50%;background:${d.col}"></div><div style="font-size:10px;color:#888">${d.lbl}</div></div><div style="font-size:17px;font-weight:700;color:#1a2744">$${fmtK(d.rev)}</div><div style="font-size:10px;color:#888">${d.pct}%</div></div>`).join('')}</div>
         </div>`;
       } else {
-        divHtml = '<div style="background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#888">Division mix not available. Reload your CSV files to populate this data.</div>';
+        divHtml = '<div style="background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#888">Service mix not available. Reload your CSV files to populate this data.</div>';
       }
       panel.innerHTML = cadenceHtml + divHtml;
     })();

@@ -1467,7 +1467,7 @@ function renderTable(){
     <thead><tr>
       <th>Customer</th><th>${ch} Rev</th>
       ${prev.length?`<th>${ph} Rev</th><th>Chg $</th><th>Chg %</th>`:''}
-      <th>Total (All Time)</th><th>Health · Segment</th><th>Last Ship</th><th>Cadence</th><th>Service Mix</th><th>Movement</th><th>Trend</th>
+      <th>Total (All Time)</th><th>Health · Segment</th><th>Last Ship</th><th>Cadence</th><th>Service Mix</th><th>Movement</th>
     </tr></thead>
     <tbody>${filtered.map(r=>rowHTML(r,maxSpark,prev)).join('')}</tbody>
   </table>`;
@@ -1534,7 +1534,6 @@ function rowHTML(r,maxSpark,prev){
     <td>${cadenceChip(r)}</td>
     <td>${divMixMini(r)}</td>
     <td>${badges[r.trend]||''}</td>
-    <td><div class="spark">${spark}</div></td>
   </tr>`;
 }
 
@@ -1559,18 +1558,23 @@ function cadenceChip(r){
 function divMixMini(r){
   const rdata = (window._lastAnalysis?.rfm||{})[r.acct] || {};
   const div = rdata.divMix;
-  if(!div) return '<span style="color:var(--muted);font-size:11px">—</span>';
-  const total = (div.Tailgate||0) + (div.Warehouse||0) + (div['Site-to-Site']||0);
-  if(total === 0) return '<span style="color:var(--muted);font-size:11px">—</span>';
-  const tw = Math.round((div.Tailgate||0)/total*100);
-  const ww = Math.round((div.Warehouse||0)/total*100);
-  const sw = 100 - tw - ww;
-  // Tiny stacked bar: Tailgate=red, Warehouse=blue, Site-to-Site=green
-  return `<div style="display:flex;gap:1px;align-items:center;width:60px;height:14px;border-radius:3px;overflow:hidden" title="Tailgate ${tw}% · Warehouse ${ww}% · Site-to-Site ${sw}%">
-    ${tw>0?`<div style="width:${tw}%;height:100%;background:#A01419" title="Tailgate ${tw}%"></div>`:''}
-    ${ww>0?`<div style="width:${ww}%;height:100%;background:#1F4E79" title="Warehouse ${ww}%"></div>`:''}
-    ${sw>0?`<div style="width:${sw}%;height:100%;background:#107C41" title="Site-to-Site ${sw}%"></div>`:''}
-  </div>`;
+  if(!div) return '<span style="color:#bbb;font-size:11px">—</span>';
+  const total = (div.Tailgate||0)+(div.Warehouse||0)+(div['Site-to-Site']||0);
+  if(total===0) return '<span style="color:#bbb;font-size:11px">—</span>';
+  // Build sorted list of non-zero divisions
+  const parts = [
+    {lbl:'T', full:'Tailgate',     pct:Math.round((div.Tailgate||0)/total*100),     col:'#A01419', bg:'#fdf2f2'},
+    {lbl:'W', full:'Warehouse',    pct:Math.round((div.Warehouse||0)/total*100),     col:'#1F4E79', bg:'#f0f4ff'},
+    {lbl:'S', full:'Site-to-Site', pct:Math.round((div['Site-to-Site']||0)/total*100), col:'#107C41', bg:'#f0fdf4'},
+  ].filter(p=>p.pct>0).sort((a,b)=>b.pct-a.pct);
+  const title = parts.map(p=>p.full+' '+p.pct+'%').join(' · ');
+  // Show up to 2 pills; if 3rd exists add a +1 indicator
+  const shown = parts.slice(0,2);
+  const rest  = parts.slice(2);
+  return '<div style="display:flex;gap:3px;align-items:center" title="'+title+'">'
+    + shown.map(p=>`<span style="background:${p.bg};color:${p.col};font-size:9.5px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap">${p.lbl} ${p.pct}%</span>`).join('')
+    + (rest.length ? `<span style="font-size:9px;color:#aaa">+${rest.length}</span>` : '')
+    + '</div>';
 }
 
 // ═══ McKINSEY DRILL-DOWN ═══

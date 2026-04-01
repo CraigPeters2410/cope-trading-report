@@ -696,6 +696,39 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+// ═══ LANDING PAGE — defined first so always available ═══
+const LP_PW  = 'CopeSky2026#';
+const LP_KEY = 'cope_report_authed';
+
+function lpCheck(){
+  if(sessionStorage.getItem(LP_KEY)==='1'){
+    document.getElementById('landingPage').style.display='none';
+  } else {
+    document.getElementById('landingPage').style.display='flex';
+    setTimeout(()=>{ const i=document.getElementById('lpInput'); if(i)i.focus(); },100);
+  }
+}
+
+function lpSubmit(){
+  const inp = document.getElementById('lpInput');
+  const err = document.getElementById('lpErr');
+  if(!inp) return;
+  if(inp.value === LP_PW){
+    sessionStorage.setItem(LP_KEY,'1');
+    const lp = document.getElementById('landingPage');
+    lp.style.transition='opacity 0.4s';
+    lp.style.opacity='0';
+    setTimeout(()=>{ lp.style.display='none'; lp.style.opacity=''; },400);
+  } else {
+    inp.value='';
+    inp.classList.add('lp-error');
+    err.textContent='Incorrect password. Please try again.';
+    setTimeout(()=>inp.classList.remove('lp-error'), 500);
+    inp.focus();
+  }
+}
+
+
 // ═══ CONFIG ═══
 const SUPABASE_URL = 'https://oufuwgvcqtsqeqoyxuad.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_uECVAXdG3Q6bD7FY2aXbxA_J9kE2236';

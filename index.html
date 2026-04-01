@@ -1705,7 +1705,52 @@ function openModal(acct){
 
   document.getElementById('modalOverlay').classList.add('open');
 
-  requestAnimationFrame(()=>{
+  // ── Cadence & Division panel ──
+    (()=>{
+      const panel = document.getElementById('cadenceDivPanel');
+      if(!panel) return;
+      const shift = rdata.cadenceShift;
+      const cd = rdata.consecutiveDecline || 0;
+      const divMix = rdata.divMix || {};
+      const divTotal = (divMix.Tailgate||0)+(divMix.Warehouse||0)+(divMix['Site-to-Site']||0);
+
+      let cadenceHtml = '';
+      if(shift !== null && shift !== undefined){
+        const pct = Math.round((shift-1)*100);
+        const isWarning = shift > 1.3, isStrong = shift > 1.8;
+        const statusCol = isStrong?'#991b1b':isWarning?'#9a3412':'#166534';
+        const statusBg  = isStrong?'#fef2f2':isWarning?'#fff7ed':'#f0fdf4';
+        const statusLbl = isStrong?'Significant slowdown':isWarning?'Booking less frequently':'Normal cadence';
+        const baselineDays = rdata.cadenceBaseline ? rdata.cadenceBaseline.toFixed(1) : '—';
+        const recentDays   = rdata.recentCadence   ? rdata.recentCadence.toFixed(1)   : '—';
+        cadenceHtml = `<div style="background:#f8f9fa;border-radius:8px;padding:14px 16px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:10px">Booking Cadence</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+            <div style="flex:1;min-width:110px"><div style="font-size:10px;color:#888;margin-bottom:2px">Baseline avg gap</div><div style="font-size:20px;font-weight:700;color:#1a2744">${baselineDays}d</div></div>
+            <div style="flex:1;min-width:110px"><div style="font-size:10px;color:#888;margin-bottom:2px">Last 30 days</div><div style="font-size:20px;font-weight:700;color:${statusCol}">${recentDays}d</div></div>
+            <div style="flex:1;min-width:110px"><div style="font-size:10px;color:#888;margin-bottom:2px">Status</div><div style="background:${statusBg};color:${statusCol};font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;display:inline-block">${statusLbl}</div>${cd>=2?`<div style="font-size:10px;color:#9a3412;margin-top:3px">↓ ${cd} fortnights declining</div>`:''}</div>
+          </div>
+          ${isWarning?`<div style="padding:7px 10px;background:${statusBg};border-left:3px solid ${statusCol};border-radius:0 4px 4px 0;font-size:11px;color:#555;line-height:1.5">Booking ${Math.abs(pct)}% less frequently than baseline.${isStrong?' Strong early warning signal.':''}</div>`:''}
+        </div>`;
+      }
+
+      let divHtml = '';
+      if(divTotal > 0){
+        const tw=divMix.Tailgate||0,ww=divMix.Warehouse||0,sw=divMix['Site-to-Site']||0;
+        const tp=Math.round(tw/divTotal*100),wp=Math.round(ww/divTotal*100),sp=100-tp-wp;
+        const divCols=[{lbl:'Tailgate',rev:tw,pct:tp,col:'#A01419'},{lbl:'Warehouse',rev:ww,pct:wp,col:'#1F4E79'},{lbl:'Site-to-Site',rev:sw,pct:sp,col:'#107C41'}];
+        divHtml = `<div style="background:#f8f9fa;border-radius:8px;padding:14px 16px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:10px">Division Mix</div>
+          <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:10px;gap:1px">${divCols.filter(d=>d.pct>0).map(d=>`<div style="width:${d.pct}%;background:${d.col};height:100%"></div>`).join('')}</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">${divCols.map(d=>`<div style="min-width:90px"><div style="display:flex;align-items:center;gap:5px;margin-bottom:2px"><div style="width:7px;height:7px;border-radius:50%;background:${d.col}"></div><div style="font-size:10px;color:#888">${d.lbl}</div></div><div style="font-size:17px;font-weight:700;color:#1a2744">$${fmtK(d.rev)}</div><div style="font-size:10px;color:#888">${d.pct}%</div></div>`).join('')}</div>
+        </div>`;
+      } else {
+        divHtml = '<div style="background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:11.5px;color:#888">Division mix not available. Reload your CSV files to populate this data.</div>';
+      }
+      panel.innerHTML = cadenceHtml + divHtml;
+    })();
+
+    requestAnimationFrame(()=>{
     if(chartInst){chartInst.destroy();chartInst=null;}
     const ctx=document.getElementById('drillChart')?.getContext('2d');
     if(!ctx)return;
@@ -2533,6 +2578,11 @@ function renderConcRisk(){
   const a = window._lastAnalysis;
   if(!a || !a.rows.length) return;
 
+  // Period context — defined first so available everywhere in this function
+  const periodDays  = a.curr ? a.curr.length : 0;
+  const periodLabel = periodDays === 1 ? '1 day' : periodDays + '-day period';
+  const annFactor   = periodDays > 0 ? 365 / periodDays : 1;
+
   // Filter rows to active depot
   const depotSel = activeDepot;
   const depotLabel = depotSel === 'all'
@@ -2573,18 +2623,12 @@ function renderConcRisk(){
   }
 
   rows.sort((x,y)=>y.currRev-x.currRev);
+
   const pct = SCENARIO_PCT[_concScenario] || 0.20;
   const totalCurr = rows.reduce((s,r)=>s+r.currRev,0);
   if(totalCurr === 0) return;
 
   // Period context
-  const periodDays = a.curr ? a.curr.length : 0;
-  const periodLabel = periodDays === 1 ? '1 day'
-    : periodDays <= 7  ? periodDays + '-day period'
-    : periodDays <= 31 ? periodDays + '-day period'
-    : periodDays + '-day period';
-  const annFactor = periodDays > 0 ? 365 / periodDays : 1;
-  const annStr = periodDays > 0 ? '  ·  $' + fmtK(totalCurr * annFactor) + ' annualised' : '';
 
   // Concentration
   const top5rev   = rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);

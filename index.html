@@ -1817,13 +1817,21 @@ async function generateReport(){
 // ══════════════════════════════════════════════
 // COVER SLIDE (shared)
 // ══════════════════════════════════════════════
-function buildCover(s,title,subtitle,depotLabel,dateRange,today,pageNum,total,bgCover,C,foot){
+function buildCover(s,title,subtitle,depotLabel,dateRange,today,pageNum,total,bgCover,C,foot,lineY){
+  // lineY = y position of the decorative white rule (varies slightly by report title length)
+  // Default 4.25 if not supplied
+  const ly = lineY || 4.25;
   bgCover(s);
+  // Main title — 52pt bold white, exact from corrected deck
   s.addText(title,{x:1.0,y:1.8,w:9.0,h:2.8,fontSize:52,fontFace:'Calibri',bold:true,color:C.white,lineSpacingMultiple:1.05,margin:0});
-  s.addShape('rect',{x:1.0,y:4.7,w:1.5,h:0.06,fill:{color:C.white},line:{color:C.white,width:0},transparency:30});
-  s.addText(subtitle,{x:1.0,y:4.82,w:10.0,h:0.32,fontSize:14,fontFace:'Calibri',bold:true,color:C.white,margin:0,transparency:15});
-  s.addText(depotLabel+'  \u00b7  '+dateRange,{x:1.0,y:5.2,w:10.0,h:0.28,fontSize:11,fontFace:'Calibri',color:C.white,margin:0,transparency:30});
-  s.addText('Generated '+today,{x:1.0,y:5.55,w:10.0,h:0.24,fontSize:9,fontFace:'Calibri',color:C.white,margin:0,transparency:45});
+  // White decorative rule
+  s.addShape('rect',{x:1.0,y:ly,w:2.2,h:0.05,fill:{color:C.white},line:{color:C.white,width:0}});
+  // Subtitle — 14pt bold white
+  s.addText(subtitle,{x:1.0,y:ly+0.12,w:10.0,h:0.32,fontSize:14,fontFace:'Calibri',bold:true,color:C.white,margin:0});
+  // Depot · Date range — 11pt white
+  s.addText(depotLabel+'  \u00b7  '+dateRange,{x:1.0,y:ly+0.50,w:10.0,h:0.28,fontSize:11,fontFace:'Calibri',color:C.white,margin:0});
+  // Generated date — 9pt white muted
+  s.addText('Generated '+today,{x:1.0,y:ly+0.85,w:10.0,h:0.24,fontSize:9,fontFace:'Calibri',color:C.white,margin:0,transparency:30});
   foot(s,pageNum,total);
 }
 
@@ -1869,7 +1877,7 @@ function buildMethodology(pres,a,C,mkSh,bg,hdr,foot,slbl,ac,T,n,depotLabel,dateR
 async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sorted,currRev,totalRevAll,activeCount,champCount,riskCount,lostCount,downCount,depotLabel,dateRange,today){
   const T=8;
   // S1 Cover
-  buildCover(pres.addSlide(),'Customer\nTrading Report','Portfolio Health Review',depotLabel,dateRange,today,1,T,bgCover,C,foot);
+  buildCover(pres.addSlide(),'Customer\nTrading Report','Portfolio Health Review',depotLabel,dateRange,today,1,T,bgCover,C,foot,4.305);
   await new Promise(r=>setTimeout(r,20));
   // S2 Executive Summary
   status.textContent='Building executive summary\u2026';
@@ -2036,7 +2044,7 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
 // ══════════════════════════════════════════════
 async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sorted,currRev,totalRevAll,activeCount,riskCount,lostCount,downCount,depotLabel,dateRange,today){
   const T=5;
-  buildCover(pres.addSlide(),'Customers\nTo Watch','At-Risk \u00b7 Down-Trading \u00b7 Lapsing Accounts',depotLabel,dateRange,today,1,T,bgCover,C,foot);
+  buildCover(pres.addSlide(),'Customers\nTo Watch','At-Risk \u00b7 Down-Trading \u00b7 Lapsing Accounts',depotLabel,dateRange,today,1,T,bgCover,C,foot,4.1945);
   await new Promise(r=>setTimeout(r,20));
   // S2 Risk Summary
   status.textContent='Building risk summary\u2026';
@@ -2088,7 +2096,7 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
     s3.addShape('rect',{x,y,w:ar3W,h:ar3H,fill:{color:C.white},shadow:mkSh(),line:{color:urgent?C.redD:C.amber,width:urgent?1:0.5}});
     s3.addShape('rect',{x,y,w:ar3W,h:ar3HdrH,fill:{color:urgent?C.redD:C.amber},line:{color:urgent?C.redD:C.amber,width:0}});
     s3.addText((acctName(r.acct)||'Acct #'+r.acct).substring(0,28),{x:x+0.12,y:y+0.06,w:2.85,h:0.24,fontSize:10.5,fontFace:'Calibri',bold:true,color:C.white,margin:0});
-    s3.addText(seg.label,{x:x+3.35,y:y+0.12,w:1.1,h:0.2,fontSize:8,fontFace:'Calibri',bold:true,color:C.white,align:'right',margin:0,transparency:20});
+    s3.addText(seg.label,{x:x+2.9232,y:y+0.1434,w:1.1,h:0.2,fontSize:8,fontFace:'Calibri',bold:true,color:C.white,align:'right',margin:0});
     s3.addText('Acct #'+r.acct,{x:x+0.12,y:y+0.3,w:3.91,h:0.16,fontSize:7.5,fontFace:'Calibri',color:C.white,margin:0,transparency:35});
     // Left column: 3 stats stacked — Total Spend, Period Change, Days Since
     const ar3LeftStats=[
@@ -2136,7 +2144,7 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
 // ══════════════════════════════════════════════
 async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sorted,currRev,totalRevAll,activeCount,champCount,depotLabel,dateRange,today){
   const T=5;
-  buildCover(pres.addSlide(),'Top Customer\nReport','Champions \u00b7 Loyal Accounts \u00b7 High-Value Customers',depotLabel,dateRange,today,1,T,bgCover,C,foot);
+  buildCover(pres.addSlide(),'Top Customer\nReport','Champions \u00b7 Loyal Accounts \u00b7 High-Value Customers',depotLabel,dateRange,today,1,T,bgCover,C,foot,4.2055);
   await new Promise(r=>setTimeout(r,20));
   // S2 Portfolio summary
   status.textContent='Building portfolio summary\u2026';

@@ -424,11 +424,10 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
 
       <div style="color:rgba(255,255,255,0.45);font-size:9px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;font-family:Calibri,Arial,sans-serif;margin-bottom:6px;">Password</div>
       <input id="lpInput" type="password" placeholder="Enter password to continue"
-             style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 13px;color:white;font-size:13px;font-family:Calibri,Arial,sans-serif;box-sizing:border-box;outline:none;margin-bottom:4px;"
-             onkeydown="if(event.key==='Enter')lpSubmit()"/>
+             style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 13px;color:white;font-size:13px;font-family:Calibri,Arial,sans-serif;box-sizing:border-box;outline:none;margin-bottom:4px;"/>
       <div id="lpErr" style="color:#ED1D24;font-size:11px;min-height:18px;margin-bottom:8px;font-family:Calibri,Arial,sans-serif;"></div>
 
-      <div onclick="lpSubmit()" style="background:#ED1D24;border:1px solid #A01419;border-radius:8px;padding:11px 0;text-align:center;color:white;font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;font-family:Calibri,Arial,sans-serif;margin-bottom:14px;">ENTER REPORT</div>
+      <div id="lpBtn" style="cursor:pointer;background:#ED1D24;border:1px solid #A01419;border-radius:8px;padding:11px 0;text-align:center;color:white;font-weight:700;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;font-family:Calibri,Arial,sans-serif;margin-bottom:14px;">ENTER REPORT</div>
 
       <div style="text-align:center;color:rgba(255,255,255,0.22);font-size:8.5px;font-family:Calibri,Arial,sans-serif;letter-spacing:0.05em;">Authorised users only &nbsp;·&nbsp; Internal use only</div>
     </div>
@@ -707,6 +706,18 @@ function lpCheck(){
     document.getElementById('landingPage').style.display='flex';
     setTimeout(()=>{ const i=document.getElementById('lpInput'); if(i)i.focus(); },100);
   }
+}
+
+function _wireLp(){
+  const inp = document.getElementById('lpInput');
+  const btn = document.getElementById('lpBtn');
+  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') lpSubmit(); });
+  if(btn) btn.addEventListener('click', lpSubmit);
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', _wireLp);
+} else {
+  _wireLp();
 }
 
 function lpSubmit(){

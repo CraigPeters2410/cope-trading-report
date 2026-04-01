@@ -952,10 +952,14 @@ function getFilteredStore(){
       merged[date]={};
       Object.values(depots).forEach(accts=>{
         Object.entries(accts).forEach(([acct,data])=>{
-          if(!merged[date][acct]) merged[date][acct]={revenue:0,count:0,kg:0};
+          if(!merged[date][acct]) merged[date][acct]={revenue:0,count:0,kg:0,div:{Warehouse:0,Tailgate:0,'Site-to-Site':0}};
           merged[date][acct].revenue+=data.revenue;
           merged[date][acct].count+=data.count;
           merged[date][acct].kg+=(data.kg||0);
+          if(data.div){
+            if(!merged[date][acct].div) merged[date][acct].div={Warehouse:0,Tailgate:0,'Site-to-Site':0};
+            Object.entries(data.div).forEach(([k,v])=>{ merged[date][acct].div[k]=(merged[date][acct].div[k]||0)+v; });
+          }
         });
       });
     });
@@ -1031,10 +1035,14 @@ function processFiles(files){
       Object.entries(byDepot).forEach(([depot,accts])=>{
         if(!store[dateKey][depot]) store[dateKey][depot]={};
         Object.entries(accts).forEach(([acct,data])=>{
-          if(!store[dateKey][depot][acct]) store[dateKey][depot][acct]={revenue:0,count:0,kg:0};
+          if(!store[dateKey][depot][acct]) store[dateKey][depot][acct]={revenue:0,count:0,kg:0,div:{Warehouse:0,Tailgate:0,'Site-to-Site':0}};
           store[dateKey][depot][acct].revenue+=data.revenue;
           store[dateKey][depot][acct].count+=data.count;
           store[dateKey][depot][acct].kg+=(data.kg||0);
+          if(data.div){
+            if(!store[dateKey][depot][acct].div) store[dateKey][depot][acct].div={Warehouse:0,Tailgate:0,'Site-to-Site':0};
+            Object.entries(data.div).forEach(([k,v])=>{ store[dateKey][depot][acct].div[k]=(store[dateKey][depot][acct].div[k]||0)+v; });
+          }
         });
       });
       const depotNames=Object.keys(byDepot).map(d=>DEPOT_MAP[d]||`Depot ${d}`).join(', ');
@@ -2533,7 +2541,15 @@ function renderConcRisk(){
 
   // Update subtitle
   const sub = document.getElementById('concPanelSubtitle');
-  if(sub) sub.textContent = depotLabel + ' · Portfolio stress-test · Early warning signals';
+  if(sub) sub.textContent = depotLabel + ' · ' + periodLabel + ' selected · stress-test & early warning';
+  const banner = document.getElementById('concPeriodText');
+  if(banner){
+    const dateFrom = a.curr && a.curr.length ? a.curr[0] : '—';
+    const dateTo   = a.curr && a.curr.length ? a.curr[a.curr.length-1] : '—';
+    banner.innerHTML = '<strong>Analysis period:</strong> ' + dateFrom + ' to ' + dateTo
+      + '  ·  <strong>' + periodDays + ' days</strong>'
+      + '  ·  All dollar figures are for this period unless marked <em>annualised</em>';
+  }
 
   // Get rows filtered to selected depot
   let rows;
@@ -2561,6 +2577,15 @@ function renderConcRisk(){
   const totalCurr = rows.reduce((s,r)=>s+r.currRev,0);
   if(totalCurr === 0) return;
 
+  // Period context
+  const periodDays = a.curr ? a.curr.length : 0;
+  const periodLabel = periodDays === 1 ? '1 day'
+    : periodDays <= 7  ? periodDays + '-day period'
+    : periodDays <= 31 ? periodDays + '-day period'
+    : periodDays + '-day period';
+  const annFactor = periodDays > 0 ? 365 / periodDays : 1;
+  const annStr = periodDays > 0 ? '  ·  $' + fmtK(totalCurr * annFactor) + ' annualised' : '';
+
   // Concentration
   const top5rev   = rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
   const top10rev  = rows.slice(0,10).reduce((s,r)=>s+r.currRev,0);
@@ -2585,10 +2610,10 @@ function renderConcRisk(){
   // KPI cards
   const kpiEl = document.getElementById('concKpis');
   if(kpiEl) kpiEl.innerHTML = [
-    {lbl:'Portfolio Revenue',    val:'$'+fmtK(totalCurr),       sub:rows.length+' active accounts',              col:'var(--navy)'},
+    {lbl:'Period Revenue',        val:'$'+fmtK(totalCurr),       sub:periodLabel+' · '+rows.length+' accounts',   col:'#1a2744'},
     {lbl:'Top 5 Concentration',  val:top5pct+'%',               sub:'$'+fmtK(top5rev)+' from 5 accounts',        col:top5pct>60?'#991b1b':top5pct>40?'#9a3412':'#166534'},
-    {lbl:'Top 10 Concentration', val:top10pct+'%',              sub:'$'+fmtK(top10rev)+' from 10 accounts',      col:top10pct>75?'#991b1b':'var(--navy)'},
-    {lbl:'Prob-Weighted Risk',   val:'$'+fmtK(pwRisk),          sub:'RFM-adjusted exposure estimate',             col:'#9a3412'},
+    {lbl:'Top 10 Concentration', val:top10pct+'%',              sub:'$'+fmtK(top10rev)+' from 10 accounts',      col:top10pct>75?'#991b1b':'#1a2744'},
+    {lbl:'Prob-Weighted Risk',   val:'$'+fmtK(pwRisk),          sub:periodLabel+' · $'+fmtK(pwRisk*annFactor)+' ann.', col:'#9a3412'},
   ].map(k=>`<div class="conc-kpi">
     <div class="conc-kpi-lbl">${k.lbl}</div>
     <div class="conc-kpi-val" style="color:${k.col}">${k.val}</div>
@@ -2607,11 +2632,12 @@ function renderConcRisk(){
       const stressed = Math.max(0,totalCurr-sc2.loss);
       const pctLoss  = Math.round(sc2.loss/totalCurr*100);
       const isActive = (i===0&&_concScenario==='mild')||(i===1&&_concScenario==='moderate')||(i===2&&_concScenario==='severe');
-      return `<div style="display:flex;gap:8px;padding:8px 10px;border-radius:6px;background:${isActive?'#fef2f2':'var(--off)'};border:1px solid ${isActive?'#fecaca':'transparent'}">
+      const annLoss = sc2.loss * annFactor;
+      return `<div style="display:flex;gap:8px;padding:8px 10px;border-radius:6px;background:${isActive?'#fef2f2':'#f5f5f5'};border:1px solid ${isActive?'#fecaca':'transparent'}">
         <div style="flex:1;font-size:11.5px;font-weight:600;color:#2C2C2C">${sc2.lbl}</div>
         <div style="text-align:right">
-          <div style="font-family:var(--cond);font-size:13px;font-weight:700;color:#991b1b">−$${fmtK(sc2.loss)}</div>
-          <div style="font-size:10px;color:#888888">→ $${fmtK(stressed)} remaining (${pctLoss}% at risk)</div>
+          <div style="font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;color:#991b1b">−$${fmtK(sc2.loss)} <span style="font-size:10px;font-weight:400;color:#888888">${periodLabel}</span></div>
+          <div style="font-size:10px;color:#888888">−$${fmtK(annLoss)} annualised · $${fmtK(stressed)} remaining (${pctLoss}% at risk)</div>
         </div>
       </div>`;
     }).join('');
@@ -2714,6 +2740,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   <!-- Scrollable body -->
   <div id="concPanelBody" style="flex:1;overflow-y:auto;padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;background:#ffffff">
     <div>
+      <div id="concPeriodBanner" style="grid-column:1/-1;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:7px;padding:8px 12px;margin-bottom:4px;font-size:11px;color:#1a2744;display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px">📅</span>
+        <span id="concPeriodText">Loading…</span>
+      </div>
       <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888888;margin-bottom:10px">Concentration Overview</div>
       <div id="concKpis" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px"></div>
       <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888888;margin-bottom:8px">Stress Scenario Results</div>

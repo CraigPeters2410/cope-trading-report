@@ -1460,6 +1460,22 @@ function renderTable(){
     </tr></thead>
     <tbody>${filtered.map(r=>rowHTML(r,maxSpark,prev)).join('')}</tbody>
   </table>`;
+
+  // Update concentration risk panel (inline — avoids hoisting issues)
+  const _panel = document.getElementById('concRiskPanel');
+  if(_panel){
+    if(a && a.rows.length>0){
+      _panel.style.display='block';
+      const _rows=[...a.rows].sort((x,y)=>y.currRev-x.currRev).filter(r=>r.currRev>0);
+      const _tot=_rows.reduce((s,r)=>s+r.currRev,0);
+      const _t5rev=_rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
+      const _t5pct=_tot>0?Math.round(_t5rev/_tot*100):0;
+      const _badge=document.getElementById('concRiskBadge');
+      if(_badge) _badge.textContent='Top 5 = '+_t5pct+'% of revenue';
+    } else {
+      _panel.style.display='none';
+    }
+  }
 }
 
 function healthRing(score) {
@@ -2586,42 +2602,7 @@ function renderConcRisk(){
 
 // Show concentration panel once data loads
 const _origRender = renderTable;
-function renderTable(){
-  _origRender.apply(this, arguments);
-  const a = window._lastAnalysis;
-  const panel = document.getElementById('concRiskPanel');
-  if(panel && a && a.rows.length>0){
-    panel.style.display = 'block';
-    const badge = document.getElementById('concRiskBadge');
-    const rows = [...a.rows].sort((x,y)=>y.currRev-x.currRev).filter(r=>r.currRev>0);
-    const totalCurr = rows.reduce((s,r)=>s+r.currRev,0);
-    const top5rev = rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
-    const top5pct = totalCurr>0?Math.round(top5rev/totalCurr*100):0;
-    if(badge) badge.textContent = `Top 5 = ${top5pct}% of revenue`;
-  } else if(panel){
-    panel.style.display='none';
-  }
-}
 
-
-
-init();
-
-
-// ═══ LANDING PAGE ═══
-const LP_PW = 'CopeSky2026#';
-const LP_KEY = 'cope_report_authed';
-
-function lpCheck(){
-  // Session-based: locked whenever the page is freshly loaded
-  // sessionStorage clears when the tab/window is closed
-  if(sessionStorage.getItem(LP_KEY) === '1'){
-    document.getElementById('landingPage').style.display='none';
-  } else {
-    document.getElementById('landingPage').style.display='flex';
-    setTimeout(()=>{ const inp=document.getElementById('lpInput'); if(inp)inp.focus(); },100);
-  }
-}
 
 function lpSubmit(){
   const inp = document.getElementById('lpInput');

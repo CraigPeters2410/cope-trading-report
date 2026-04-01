@@ -2600,9 +2600,18 @@ function renderConcRisk(){
   }
 }
 
-// Show concentration panel once data loads
-const _origRender = renderTable;
+// ═══ LANDING PAGE ═══
+const LP_PW  = 'CopeSky2026#';
+const LP_KEY = 'cope_report_authed';
 
+function lpCheck(){
+  if(sessionStorage.getItem(LP_KEY)==='1'){
+    document.getElementById('landingPage').style.display='none';
+  } else {
+    document.getElementById('landingPage').style.display='flex';
+    setTimeout(()=>{ const i=document.getElementById('lpInput'); if(i)i.focus(); },100);
+  }
+}
 
 function lpSubmit(){
   const inp = document.getElementById('lpInput');

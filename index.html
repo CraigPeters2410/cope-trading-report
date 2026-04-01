@@ -373,6 +373,17 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
   background:rgba(237,29,36,0.15);
   border-radius:50%; display:flex; align-items:center; justify-content:center;
 }
+
+/* ── Concentration Risk Panel ── */
+.conc-btn{font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.05em;padding:5px 12px;border-radius:6px;border:1px solid var(--rule);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s}
+.conc-btn:hover{border-color:var(--navy);color:var(--navy)}
+.conc-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.conc-kpi{background:var(--off);border-radius:8px;padding:10px 12px}
+.conc-kpi-lbl{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.conc-kpi-val{font-family:var(--cond);font-size:20px;font-weight:700;color:var(--navy)}
+.conc-kpi-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.conc-acct-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:var(--off)}
+.cw-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#fff7ed}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 </head>
@@ -581,6 +592,41 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
       <div class="filter-count" id="filterCount"></div>
       <div class="period-tag" id="periodTag">—</div>
     </div>
+    <!-- ═══ CONCENTRATION RISK PANEL ═══ -->
+    <div id="concRiskPanel" style="display:none;background:var(--card);border:1px solid var(--rule);border-radius:10px;margin-bottom:12px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--off);border-bottom:1px solid var(--rule);cursor:pointer" onclick="toggleConcPanel()">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--navy)">Revenue Concentration Risk</span>
+          <span style="font-size:10px;background:#fef2f2;color:#991b1b;padding:2px 8px;border-radius:4px;font-weight:600" id="concRiskBadge"></span>
+        </div>
+        <span id="concRiskChevron" style="color:var(--muted);font-size:12px">▼ expand</span>
+      </div>
+      <div id="concRiskBody" style="display:none;padding:16px">
+
+        <!-- Scenario selector -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <div style="font-size:11px;color:var(--muted);align-self:center;margin-right:4px">Stress scenario:</div>
+          <button class="conc-btn active" onclick="setConcScenario('mild',this)">Mild (−20%)</button>
+          <button class="conc-btn" onclick="setConcScenario('moderate',this)">Moderate (−40%)</button>
+          <button class="conc-btn" onclick="setConcScenario('severe',this)">Severe (−60%)</button>
+        </div>
+
+        <!-- KPI row -->
+        <div id="concKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px"></div>
+
+        <!-- Top accounts at risk -->
+        <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Highest Concentration Accounts</div>
+        <div id="concAcctList" style="display:flex;flex-direction:column;gap:4px"></div>
+
+        <!-- Early warning section -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--rule)">
+          <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">⚡ Early Warning — Cadence Shifts Detected</div>
+          <div id="cadenceWarningList" style="display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+
+      </div>
+    </div>
+
     <div class="table-wrap" id="tableWrap">
       <div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No Data Loaded</div><div class="empty-sub">Drop your CSV files into the panel on the left. Data syncs to the cloud and is available on any device.</div></div>
     </div>
@@ -799,6 +845,15 @@ async function init(){
 }
 
 // ═══ CSV PARSING ═══
+
+const DIV_MAP = {
+  HAND:'Warehouse', STOR:'Warehouse',
+  NORM1:'Tailgate', NORM2:'Tailgate', NORM3:'Tailgate', NORM4:'Tailgate', NORM5:'Tailgate',
+  OTHER:'Tailgate', QUOTE:'Tailgate', TAIL1:'Tailgate', STEONE:'Tailgate',
+  SITE1:'Site-to-Site', SITE2:'Site-to-Site', SITE3:'Site-to-Site', SITE4:'Site-to-Site',
+};
+function getDiv(svc){ return DIV_MAP[String(svc||'').trim().toUpperCase()] || 'Tailgate'; }
+
 function parseCSV(text) {
   const lines = text.trim().split('\n').map(l=>l.replace(/\r$/,''));
   if(lines.length<2) return [];
@@ -811,6 +866,7 @@ function parseCSV(text) {
   const idx=n=>hdr.findIndex(h=>h===n);
   const dI=idx('Depot Origin'),acI=idx('Sender Account Number');
   const ntI=idx('Nett Amount'),fuI=idx('Fuel Levy'),rkI=idx('Risk Levy'),dtI=idx('Date Order Completed');
+  const csI=idx('Carrier Service Type');
   // Find charge weight column - try multiple strategies
   let cwI = hdr.findIndex(h => h.toLowerCase().includes('charge') && h.toLowerCase().includes('weight'));
   // Fallback: find by position relative to 'Weight (kg)' column
@@ -855,7 +911,8 @@ function parseCSV(text) {
       }
     }
     if (rows.length === 0) console.log('Row 0 — cwI:', cwI, 'c[cwI]:', c[cwI], 'final cw:', cw, 'total cols:', c.length);
-    rows.push({acct,depot,revenue:(parseFloat(c[ntI])||0)+(parseFloat(c[fuI])||0)+(parseFloat(c[rkI])||0),kg:cw,date:c[dtI]||''});
+    const svc=(csI>=0?(c[csI]||'').replace(/^"|"$/g,'').trim():'');
+    rows.push({acct,depot,revenue:(parseFloat(c[ntI])||0)+(parseFloat(c[fuI])||0)+(parseFloat(c[rkI])||0),kg:cw,date:c[dtI]||'',svc});
   }
   return rows;
 }
@@ -876,6 +933,9 @@ function aggregate(rows){
     byDepot[r.depot][r.acct].revenue+=r.revenue;
     byDepot[r.depot][r.acct].count++;
     byDepot[r.depot][r.acct].kg+=(r.kg||0);
+    const div=getDiv(r.svc);
+    if(!byDepot[r.depot][r.acct].div) byDepot[r.depot][r.acct].div={Warehouse:0,Tailgate:0,'Site-to-Site':0};
+    byDepot[r.depot][r.acct].div[div]=(byDepot[r.depot][r.acct].div[div]||0)+r.revenue;
   });
   return byDepot;
 }
@@ -1059,14 +1119,70 @@ function computeRFM(allDates, fs) {
       ? recent30.reduce((s, d) => s + fs[d][acct].revenue, 0) / recent30.length
       : avgRev;
 
+    // Cadence: avg gap between active days over full history
+    let cadenceBaseline = null, recentCadence = null, cadenceShift = null;
+    let consecutiveDecline = 0;
+    if(activeDays.length >= 2){
+      // Full baseline: avg gap between consecutive active days
+      const gaps = [];
+      for(let gi=1;gi<activeDays.length;gi++){
+        const d1=new Date(activeDays[gi-1]), d2=new Date(activeDays[gi]);
+        gaps.push(Math.round((d2-d1)/86400000));
+      }
+      cadenceBaseline = gaps.reduce((s,v)=>s+v,0)/gaps.length;
+
+      // Recent cadence: last 30 days active day gaps
+      const recent30days = activeDays.filter(d=>d>=allDates[Math.max(0,allDates.length-30)]);
+      if(recent30days.length >= 2){
+        const rGaps=[];
+        for(let gi=1;gi<recent30days.length;gi++){
+          const d1=new Date(recent30days[gi-1]),d2=new Date(recent30days[gi]);
+          rGaps.push(Math.round((d2-d1)/86400000));
+        }
+        recentCadence = rGaps.reduce((s,v)=>s+v,0)/rGaps.length;
+        cadenceShift = cadenceBaseline > 0 ? recentCadence / cadenceBaseline : null;
+      }
+
+      // Consecutive fortnightly decline: split date range into 2-week buckets, count per bucket
+      const bucketSize = 14;
+      const nBuckets = Math.min(6, Math.floor(allDates.length / bucketSize));
+      if(nBuckets >= 3){
+        const bucketCounts = [];
+        for(let b=0;b<nBuckets;b++){
+          const bStart = allDates[allDates.length - (nBuckets-b)*bucketSize];
+          const bEnd   = allDates[Math.min(allDates.length-1, allDates.length - (nBuckets-b-1)*bucketSize)];
+          const cnt = activeDays.filter(d=>d>=bStart&&d<=bEnd).length;
+          bucketCounts.push(cnt);
+        }
+        // Count consecutive declining buckets at the end
+        consecutiveDecline = 0;
+        for(let b=bucketCounts.length-1;b>0;b--){
+          if(bucketCounts[b] < bucketCounts[b-1]) consecutiveDecline++;
+          else break;
+        }
+      }
+    }
+
+    // Division mix from latest store entry
+    const divMix = {};
+    allDates.forEach(d=>{
+      const entry = fs[d]?.[acct];
+      if(entry?.div) Object.entries(entry.div).forEach(([k,v])=>{ divMix[k]=(divMix[k]||0)+v; });
+    });
+
     stats[acct] = {
-      recency: daysSince,           // days since last order
-      frequency: activeDays.length, // total active days
-      monetary: totalRev,           // total revenue
+      recency: daysSince,
+      frequency: activeDays.length,
+      monetary: totalRev,
       avgOrderRev: avgRev,
-      baseline,                     // personal expected daily revenue
+      baseline,
       activeDays: activeDays.length,
       totalDays: allDates.length,
+      cadenceBaseline,
+      recentCadence,
+      cadenceShift,       // >1.3 = booking less often = warning
+      consecutiveDecline, // how many fortnights in a row frequency dropped
+      divMix,             // {Warehouse, Tailgate, Site-to-Site} revenue breakdown
     };
   });
 
@@ -1107,6 +1223,10 @@ function computeRFM(allDates, fs) {
     // Health: weighted — monetary and recency slightly upweighted vs raw frequency
     // because a customer who spends heavily and recently is valuable even if infrequent
     const health = Math.round((R * 0.35 + F * 0.30 + M * 0.35) * 10) / 10; // weighted 1-5
+    // Cadence warning: shift >1.3 = booking 30% less often than baseline
+    const cadenceWarning = s.cadenceShift !== null && s.cadenceShift > 1.3;
+    const strongCadenceWarning = s.cadenceShift !== null && s.cadenceShift > 1.8;
+    const cadenceScore = s.cadenceShift !== null ? Math.round((1 - Math.min(s.cadenceShift-1, 1)) * 100) : null; // 0-100, lower = more concerning
 
     // Segment label
     // Lost threshold: inactive for more than 45 calendar days OR
@@ -1134,7 +1254,10 @@ function computeRFM(allDates, fs) {
       segment = 'needsattention';
     }
 
-    rfm[acct] = { R, F, M, health, segment, ...s };
+    rfm[acct] = { R, F, M, health, segment,
+      cadenceShift:s.cadenceShift, cadenceWarning, strongCadenceWarning, cadenceScore,
+      consecutiveDecline:s.consecutiveDecline, divMix:s.divMix,
+      ...s };
   });
 
   return rfm;
@@ -1291,6 +1414,7 @@ function toggleDateList(){
 function renderTable(){
   const wrap=document.getElementById('tableWrap');
   const a=analyse();
+  window._lastAnalysis = a;
   if(!a||!a.allDates.length){
     wrap.innerHTML=`<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No Data Loaded</div><div class="empty-sub">Drop your CSV files into the panel on the left.</div></div>`;
     document.getElementById('compareSub').textContent='Click any row to see full customer analysis';
@@ -1332,7 +1456,7 @@ function renderTable(){
     <thead><tr>
       <th>Customer</th><th>${ch} Rev</th>
       ${prev.length?`<th>${ph} Rev</th><th>Chg $</th><th>Chg %</th>`:''}
-      <th>Total (All Time)</th><th>Health · Segment</th><th>Last Ship</th><th>Movement</th><th>Trend</th>
+      <th>Total (All Time)</th><th>Health · Segment</th><th>Last Ship</th><th>Cadence</th><th>Division Mix</th><th>Movement</th><th>Trend</th>
     </tr></thead>
     <tbody>${filtered.map(r=>rowHTML(r,maxSpark,prev)).join('')}</tbody>
   </table>`;
@@ -1380,9 +1504,46 @@ function rowHTML(r,maxSpark,prev){
       </div>
     </td>
     <td>${daysSinceChip(r.daysSince)}</td>
+    <td>${cadenceChip(r)}</td>
+    <td>${divMixMini(r)}</td>
     <td>${badges[r.trend]||''}</td>
     <td><div class="spark">${spark}</div></td>
   </tr>`;
+}
+
+// ═══ CADENCE & DIVISION HELPERS ═══
+function cadenceChip(r){
+  const rdata = (window._lastAnalysis?.rfm||{})[r.acct] || {};
+  const shift = rdata.cadenceShift;
+  if(shift === null || shift === undefined) return '<span style="color:var(--muted);font-size:11px">—</span>';
+  const pct = Math.round((shift - 1) * 100);
+  const absShift = Math.abs(pct);
+  const cd = rdata.consecutiveDecline || 0;
+  if(shift <= 1.1){
+    return `<span style="background:#e6f4ed;color:#166534;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600">Normal</span>`;
+  } else if(shift <= 1.3){
+    return `<span style="background:#fff7ed;color:#9a3412;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600" title="${absShift}% slower than baseline${cd>1?' · '+cd+' fortnights declining':''}">↓ ${absShift}%</span>`;
+  } else {
+    const label = cd >= 3 ? `⚠ ${absShift}% · ${cd}wks` : `⚠ ${absShift}%`;
+    return `<span style="background:#fef2f2;color:#991b1b;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600" title="Booking ${absShift}% less frequently than baseline${cd>1?' · '+cd+' consecutive fortnights declining':''}">${label}</span>`;
+  }
+}
+
+function divMixMini(r){
+  const rdata = (window._lastAnalysis?.rfm||{})[r.acct] || {};
+  const div = rdata.divMix;
+  if(!div) return '<span style="color:var(--muted);font-size:11px">—</span>';
+  const total = (div.Tailgate||0) + (div.Warehouse||0) + (div['Site-to-Site']||0);
+  if(total === 0) return '<span style="color:var(--muted);font-size:11px">—</span>';
+  const tw = Math.round((div.Tailgate||0)/total*100);
+  const ww = Math.round((div.Warehouse||0)/total*100);
+  const sw = 100 - tw - ww;
+  // Tiny stacked bar: Tailgate=red, Warehouse=blue, Site-to-Site=green
+  return `<div style="display:flex;gap:1px;align-items:center;width:60px;height:14px;border-radius:3px;overflow:hidden" title="Tailgate ${tw}% · Warehouse ${ww}% · Site-to-Site ${sw}%">
+    ${tw>0?`<div style="width:${tw}%;height:100%;background:#A01419" title="Tailgate ${tw}%"></div>`:''}
+    ${ww>0?`<div style="width:${ww}%;height:100%;background:#1F4E79" title="Warehouse ${ww}%"></div>`:''}
+    ${sw>0?`<div style="width:${sw}%;height:100%;background:#107C41" title="Site-to-Site ${sw}%"></div>`:''}
+  </div>`;
 }
 
 // ═══ McKINSEY DRILL-DOWN ═══
@@ -1494,6 +1655,9 @@ function openModal(acct){
     
     <div class="md-section-lbl">Revenue History</div>
     <div class="md-chart-wrap"><canvas id="drillChart" height="150"></canvas></div>
+
+    <!-- Cadence & Division insight panels -->
+    <div id="cadenceDivPanel"></div>
 
     
     <div class="md-section-lbl">Daily Breakdown</div>
@@ -1875,7 +2039,7 @@ function buildMethodology(pres,a,C,mkSh,bg,hdr,foot,slbl,ac,T,n,depotLabel,dateR
 // REPORT 1: PORTFOLIO HEALTH REVIEW (8 slides)
 // ══════════════════════════════════════════════
 async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sorted,currRev,totalRevAll,activeCount,champCount,riskCount,lostCount,downCount,depotLabel,dateRange,today){
-  const T=8;
+  const T=8; // base slides; methodology uses T+1=9
   // S1 Cover
   buildCover(pres.addSlide(),'Customer\nTrading Report','Portfolio Health Review',depotLabel,dateRange,today,1,T,bgCover,C,foot,4.305);
   await new Promise(r=>setTimeout(r,20));
@@ -2036,7 +2200,50 @@ async function buildPortfolio(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,
     addRFMBars(s7,rdata.R||1,rdata.F||1,rdata.M||1,rdata.health||1,r.segment||'needsattention',x,y,'s7');
   }
   // S8 Methodology
-  buildMethodology(pres,a,C,mkSh,bg,hdr,foot,slbl,ac,T,8,depotLabel,dateRange,today);
+  // S8 — Concentration Risk & Early Warning
+  status.textContent='Building risk analysis…';
+  const s8=pres.addSlide();bg(s8);hdr(s8,'Revenue Concentration Risk','Portfolio Stress-Test · Early Warning Signals');foot(s8,8,T+1);
+  slbl(s8,'Probability-weighted revenue risk and cadence-based early warning accounts',0.4,0.94);
+
+  // KPI strip
+  const cr_rows=[...sorted].filter(r=>r.currRev>0);
+  const cr_total=cr_rows.reduce((s,r)=>s+r.currRev,0);
+  const cr_top5rev=cr_rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
+  const cr_top5pct=cr_total>0?Math.round(cr_top5rev/cr_total*100):0;
+  const cr_top10rev=cr_rows.slice(0,10).reduce((s,r)=>s+r.currRev,0);
+  const cr_top10pct=cr_total>0?Math.round(cr_top10rev/cr_total*100):0;
+  const cr_atRisk=a.rows.filter(r=>r.segment==='atrisk'||r.segment==='lapsing'||(r.trend==='down'&&r.segment!=='champion'&&r.segment!=='loyal'));
+  const cr_stressed=cr_atRisk.reduce((s,r)=>s+r.currRev*0.4,0);
+  const cr_pwRisk=cr_rows.reduce((s,r)=>{const h=(a.rfm?.[r.acct]?.health)||3;return s+r.currRev*0.4*Math.max(0,(5-h)/4);},0);
+
+  const cr_kpis=[
+    {l:'Top 5 Concentration', v:cr_top5pct+'%',        s:'$'+fmtK(cr_top5rev)+' from 5 accts', ac:cr_top5pct>60?C.redD:C.amber},
+    {l:'Top 10 Concentration',v:cr_top10pct+'%',       s:'$'+fmtK(cr_top10rev)+' from 10 accts',ac:C.black},
+    {l:'Moderate Stress Loss', v:'$'+fmtK(cr_stressed),s:'at-risk accts −40%',                   ac:C.redD},
+    {l:'Probability-Wtd Risk', v:'$'+fmtK(cr_pwRisk),  s:'RFM-adjusted exposure',                ac:C.amber},
+  ];
+  const cr_xs=[0.4,3.35,6.3,9.25],cr_w=2.8;
+  cr_kpis.forEach((k,i)=>sc(s8,cr_xs[i],1.0,cr_w,1.15,k.l,k.v,k.s,k.ac));
+
+  // Scenario table
+  ac(s8,0.4,2.32,12.5,0.85,'Stress Scenarios','If at-risk accounts decline as modelled below, the portfolio revenue impact would be:',C.redD);
+  const scen=[{lbl:'Mild stress (−20%)',rev:cr_atRisk.reduce((s,r)=>s+r.currRev*0.2,0)},{lbl:'Moderate stress (−40%)',rev:cr_stressed},{lbl:'Severe stress (−60%)',rev:cr_atRisk.reduce((s,r)=>s+r.currRev*0.6,0)}];
+  const scenHdr=[[{text:'Scenario',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri'}},{text:'Estimated Revenue Loss',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},{text:'Stressed Portfolio',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},{text:'% of Portfolio',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}}]];
+  const scenRows=scen.map((sc2,i)=>{const bg=i%2===0?C.white:C.off;const stressed=Math.max(0,cr_total-sc2.rev);const pct2=cr_total>0?Math.round(sc2.rev/cr_total*100):0;return [{text:sc2.lbl,options:{fontSize:9,fontFace:'Calibri',color:C.black,fill:{color:bg}}},{text:'-$'+fmtK(sc2.rev),options:{fontSize:9,fontFace:'Calibri',color:C.redD,align:'right',fill:{color:bg},bold:true}},{text:'$'+fmtK(stressed),options:{fontSize:9,fontFace:'Calibri',color:C.black,align:'right',fill:{color:bg}}},{text:pct2+'% at risk',options:{fontSize:9,fontFace:'Calibri',color:C.redD,align:'right',fill:{color:bg}}}];});
+  s8.addTable([...scenHdr,...scenRows],{x:0.4,y:3.3,w:12.5,colW:[5.5,2.5,2.5,2.0],rowH:0.35,border:{pt:0.5,color:C.rule}});
+
+  // Early warning cadence table
+  slbl(s8,'Early Warning — Booking Cadence Shifts (ordered by revenue at risk)',0.4,4.56);
+  const cwAccts=a.rows.filter(r=>{const rd=a.rfm?.[r.acct]||{};return rd.cadenceWarning;}).sort((x,y)=>y.totalRev-x.totalRev).slice(0,8);
+  if(cwAccts.length){
+    const cwHdr=[[{text:'Customer',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri'}},{text:'Total Spend',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},{text:'Cadence Shift',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},{text:'Fortnights ↓',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},{text:'Signal',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri'}}]];
+    const cwRows=cwAccts.map((r,i)=>{const rd=a.rfm?.[r.acct]||{};const shift=rd.cadenceShift||1;const pctS=Math.round((shift-1)*100);const cd=rd.consecutiveDecline||0;const strong=rd.strongCadenceWarning;const bg=i%2===0?C.white:C.off;return [{text:(acctName(r.acct)||'Acct #'+r.acct).substring(0,30),options:{fontSize:8.5,fontFace:'Calibri',color:C.black,fill:{color:bg},bold:true}},{text:'$'+fmtK(r.totalRev),options:{fontSize:8.5,fontFace:'Calibri',color:C.black,align:'right',fill:{color:bg}}},{text:'+'+pctS+'% slower',options:{fontSize:8.5,fontFace:'Calibri',color:C.redD,align:'right',fill:{color:bg},bold:true}},{text:cd>=2?String(cd)+' periods':'1 period',options:{fontSize:8.5,fontFace:'Calibri',color:cd>=3?C.redD:C.amber,align:'right',fill:{color:bg}}},{text:strong?'Strong warning':'Monitor',options:{fontSize:8.5,fontFace:'Calibri',color:strong?C.redD:C.amber,fill:{color:bg},bold:strong}}];});
+    s8.addTable([...cwHdr,...cwRows],{x:0.4,y:4.76,w:12.5,colW:[4.0,2.0,2.0,1.8,2.7],rowH:0.3,border:{pt:0.5,color:C.rule}});
+  } else {
+    s8.addText('No significant cadence shifts detected in the current data window.',{x:0.4,y:4.76,w:12.5,h:0.4,fontSize:10,fontFace:'Calibri',color:C.grey2,margin:0});
+  }
+
+  buildMethodology(pres,a,C,mkSh,bg,hdr,foot,slbl,ac,T+1,9,depotLabel,dateRange,today);
 }
 
 // ══════════════════════════════════════════════
@@ -2084,6 +2291,15 @@ async function buildAtRisk(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHdr,sor
     });
   });
   await new Promise(r=>setTimeout(r,20));
+  // Cadence early warning table in S2
+  const ar_cwAccts=a.rows.filter(r=>{const rd=a.rfm?.[r.acct]||{};return rd.cadenceWarning;}).sort((x,y)=>y.totalRev-x.totalRev).slice(0,5);
+  if(ar_cwAccts.length){
+    slbl(s2,'⚡ Early Warning — Cadence Shifts (booking less frequently than their baseline)',0.4,4.72);
+    const ar_cwHdr=[[{text:'Account',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri'}},{text:'Total Spend',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},{text:'Cadence Shift',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},{text:'Fortnights ↓',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri',align:'right'}},{text:'Signal',options:{bold:true,fill:{color:C.off},color:C.grey2,fontSize:8,fontFace:'Calibri'}}]];
+    const ar_cwRows=ar_cwAccts.map((r,i)=>{const rd=a.rfm?.[r.acct]||{};const shift=rd.cadenceShift||1;const pctS=Math.round((shift-1)*100);const cd=rd.consecutiveDecline||0;const strong=rd.strongCadenceWarning;const bg=i%2===0?C.white:C.off;return [{text:(acctName(r.acct)||'Acct #'+r.acct).substring(0,30),options:{fontSize:8.5,fontFace:'Calibri',color:C.black,fill:{color:bg},bold:true}},{text:'$'+fmtK(r.totalRev),options:{fontSize:8.5,fontFace:'Calibri',color:C.black,align:'right',fill:{color:bg}}},{text:'+'+pctS+'% slower',options:{fontSize:8.5,fontFace:'Calibri',color:C.redD,align:'right',fill:{color:bg},bold:true}},{text:cd>=2?String(cd)+' periods':'1',options:{fontSize:8.5,fontFace:'Calibri',color:cd>=3?C.redD:C.amber,align:'right',fill:{color:bg}}},{text:strong?'⚠ Strong':'Monitor',options:{fontSize:8.5,fontFace:'Calibri',color:strong?C.redD:C.amber,fill:{color:bg},bold:strong}}];});
+    s2.addTable([...ar_cwHdr,...ar_cwRows],{x:0.4,y:4.92,w:12.5,colW:[4.2,2.0,2.0,1.8,2.5],rowH:0.3,border:{pt:0.5,color:C.rule}});
+  }
+
   // S3 Account profiles — 9 cards 3x3, EXACT from corrected deck
   status.textContent='Building account profiles\u2026';
   const s3=pres.addSlide();bg(s3);hdr(s3,'Account Profiles \u2014 Priority Watchlist','Ranked by Historical Revenue \u00b7 Top 9');foot(s3,3,T);
@@ -2239,6 +2455,152 @@ async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHd
   });
   s4.addTable([...lbHdr,...lbRows],{x:0.4,y:1.15,w:10.7,colW:[0.4,2.4,1.25,1.15,1.15,0.95,0.5,0.5,0.5,0.75,0.75],rowH:0.3,border:{pt:0.5,color:C.rule}});
   buildMethodology(pres,a,C,mkSh,bg,hdr,foot,slbl,ac,T,5,depotLabel,dateRange,today);
+}
+
+
+
+// ═══ CONCENTRATION RISK PANEL ═══
+let _concScenario = 'mild';
+const SCENARIO_PCT = {mild:0.20, moderate:0.40, severe:0.60};
+
+function toggleConcPanel(){
+  const body = document.getElementById('concRiskBody');
+  const chev = document.getElementById('concRiskChevron');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  chev.textContent = open ? '▼ expand' : '▲ collapse';
+  if(!open) renderConcRisk();
+}
+
+function setConcScenario(scenario, btn){
+  _concScenario = scenario;
+  document.querySelectorAll('.conc-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderConcRisk();
+}
+
+function renderConcRisk(){
+  const a = window._lastAnalysis;
+  if(!a || !a.rows.length) return;
+
+  const pct = SCENARIO_PCT[_concScenario] || 0.20;
+  const rows = [...a.rows].sort((x,y)=>y.currRev-x.currRev).filter(r=>r.currRev>0);
+  const totalCurr = rows.reduce((s,r)=>s+r.currRev,0);
+
+  // Concentration: top N accounts
+  const top5rev  = rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
+  const top10rev = rows.slice(0,10).reduce((s,r)=>s+r.currRev,0);
+  const top5pct  = totalCurr>0 ? Math.round(top5rev/totalCurr*100) : 0;
+  const top10pct = totalCurr>0 ? Math.round(top10rev/totalCurr*100) : 0;
+
+  // Stress test: apply scenario reduction to all at-risk + down-trading accounts
+  // and full loss to lost accounts
+  const atRiskRows   = rows.filter(r=>r.segment==='atrisk'||r.segment==='lapsing'||(r.trend==='down'&&r.segment!=='champion'&&r.segment!=='loyal'));
+  const lostRows     = rows.filter(r=>r.segment==='lost'||r.trend==='lost');
+  const stressedLoss = atRiskRows.reduce((s,r)=>s+r.currRev*pct,0)
+                     + lostRows.reduce((s,r)=>s+r.currRev,0);
+  const stressedRev  = Math.max(0, totalCurr - stressedLoss);
+  const stressedPct  = totalCurr>0 ? Math.round(stressedLoss/totalCurr*100) : 0;
+
+  // Probability-weighted risk: weight by RFM health (lower health = higher risk)
+  const pwRisk = rows.reduce((s,r)=>{
+    const h = (a.rfm?.[r.acct]?.health)||3;
+    const riskFactor = Math.max(0, (5-h)/4); // 0=healthy, 1=very risky
+    return s + r.currRev * pct * riskFactor;
+  }, 0);
+
+  // Update badge
+  const badge = document.getElementById('concRiskBadge');
+  if(badge) badge.textContent = `Top 5 = ${top5pct}% of revenue`;
+
+  // KPI cards
+  const kpiEl = document.getElementById('concKpis');
+  if(kpiEl) kpiEl.innerHTML = [
+    {lbl:'Portfolio Revenue',  val:'$'+fmtK(totalCurr),         sub:'current period',             col:'var(--navy)'},
+    {lbl:'Top 5 Concentration',val:top5pct+'%',                  sub:'$'+fmtK(top5rev)+' from 5 accounts', col:top5pct>60?'#991b1b':top5pct>40?'#9a3412':'#166534'},
+    {lbl:'Top 10 Concentration',val:top10pct+'%',                sub:'$'+fmtK(top10rev)+' from 10 accounts',col:top10pct>75?'#991b1b':'var(--navy)'},
+    {lbl:'Scenario Revenue Loss',val:'$'+fmtK(stressedLoss),    sub:stressedPct+'% of portfolio · '+_concScenario+' stress',col:'#991b1b'},
+    {lbl:'Stressed Portfolio',  val:'$'+fmtK(stressedRev),      sub:'after '+_concScenario+' stress applied', col:'var(--navy)'},
+    {lbl:'Probability-Weighted Risk',val:'$'+fmtK(pwRisk),      sub:'RFM-adjusted exposure estimate', col:'#9a3412'},
+  ].map(k=>`<div class="conc-kpi">
+    <div class="conc-kpi-lbl">${k.lbl}</div>
+    <div class="conc-kpi-val" style="color:${k.col}">${k.val}</div>
+    <div class="conc-kpi-sub">${k.sub}</div>
+  </div>`).join('');
+
+  // Top accounts list
+  const listEl = document.getElementById('concAcctList');
+  if(listEl) listEl.innerHTML = rows.slice(0,8).map((r,i)=>{
+    const share = totalCurr>0 ? (r.currRev/totalCurr*100).toFixed(1) : '0';
+    const h = a.rfm?.[r.acct]?.health||3;
+    const seg = SEGMENT_META[r.segment]||SEGMENT_META.needsattention;
+    const riskFactor = Math.max(0,(5-h)/4);
+    const scenarioImpact = r.currRev * pct * riskFactor;
+    const isAtRisk = r.segment==='atrisk'||r.segment==='lapsing'||r.trend==='down';
+    return `<div class="conc-acct-row" style="${isAtRisk?'background:#fef2f2;':''}" onclick="openModal('${r.acct}')">
+      <div style="font-family:var(--cond);font-size:11px;font-weight:700;color:var(--navy);min-width:18px">#${i+1}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${acctName(r.acct)||'Acct #'+r.acct}</div>
+        <div style="font-size:10px;color:var(--muted)">${seg.label} · Health ${h.toFixed(1)}/5</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:var(--cond);font-size:13px;font-weight:700;color:var(--navy)">$${fmtK(r.currRev)}</div>
+        <div style="font-size:10px;color:var(--muted)">${share}% of total</div>
+      </div>
+      ${isAtRisk?`<div style="font-size:10px;color:#991b1b;font-weight:600;text-align:right;min-width:60px">−$${fmtK(scenarioImpact)}<br><span style="font-weight:400">risk</span></div>`:'<div style="min-width:60px"></div>'}
+    </div>`;
+  }).join('');
+
+  // Early warning: cadence shift accounts
+  const cwEl = document.getElementById('cadenceWarningList');
+  if(cwEl){
+    const warnings = rows
+      .filter(r=>{ const rd=a.rfm?.[r.acct]||{}; return rd.cadenceWarning; })
+      .sort((x,y)=>y.totalRev-x.totalRev)
+      .slice(0,6);
+    if(warnings.length===0){
+      cwEl.innerHTML = '<div style="font-size:11.5px;color:var(--muted);padding:6px 0">No significant cadence shifts detected in current data window.</div>';
+    } else {
+      cwEl.innerHTML = warnings.map(r=>{
+        const rd = a.rfm?.[r.acct]||{};
+        const shift = rd.cadenceShift||1;
+        const pctSlower = Math.round((shift-1)*100);
+        const cd = rd.consecutiveDecline||0;
+        const isStrong = rd.strongCadenceWarning;
+        return `<div class="cw-row" style="${isStrong?'background:#fef2f2;':''}" onclick="openModal('${r.acct}')">
+          <div style="font-size:14px">${isStrong?'🔴':'🟡'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11.5px;font-weight:600;color:var(--ink)">${acctName(r.acct)||'Acct #'+r.acct}</div>
+            <div style="font-size:10px;color:var(--muted)">Booking ${pctSlower}% less often than their baseline${cd>=2?' · '+cd+' fortnights declining':''}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-family:var(--cond);font-size:12px;font-weight:700;color:#9a3412">$${fmtK(r.totalRev)}</div>
+            <div style="font-size:10px;color:var(--muted)">historical spend</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+// Show concentration panel once data loads
+const _origRender = renderTable;
+function renderTable(){
+  _origRender.apply(this, arguments);
+  const a = window._lastAnalysis;
+  const panel = document.getElementById('concRiskPanel');
+  if(panel && a && a.rows.length>0){
+    panel.style.display = 'block';
+    const badge = document.getElementById('concRiskBadge');
+    const rows = [...a.rows].sort((x,y)=>y.currRev-x.currRev).filter(r=>r.currRev>0);
+    const totalCurr = rows.reduce((s,r)=>s+r.currRev,0);
+    const top5rev = rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
+    const top5pct = totalCurr>0?Math.round(top5rev/totalCurr*100):0;
+    if(badge) badge.textContent = `Top 5 = ${top5pct}% of revenue`;
+  } else if(panel){
+    panel.style.display='none';
+  }
 }
 
 

@@ -590,41 +590,12 @@ footer{background:var(--navy);color:rgba(255,255,255,.28);font-size:10.5px;text-
         <option value="name">Alphabetical</option>
       </select>
       <div class="filter-count" id="filterCount"></div>
+      <button id="concRiskBtn" onclick="openConcPanel()" style="display:none;font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.05em;padding:5px 12px;border-radius:6px;border:1px solid var(--rule);background:var(--card);color:var(--navy);cursor:pointer;display:none;align-items:center;gap:6px;white-space:nowrap">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 8h6M7 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Risk Analysis
+        <span id="concRiskBadge" style="background:#fef2f2;color:#991b1b;font-size:10px;padding:1px 6px;border-radius:3px;font-weight:700"></span>
+      </button>
       <div class="period-tag" id="periodTag">—</div>
-    </div>
-    <!-- ═══ CONCENTRATION RISK PANEL ═══ -->
-    <div id="concRiskPanel" style="display:none;background:var(--card);border:1px solid var(--rule);border-radius:10px;margin-bottom:12px;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--off);border-bottom:1px solid var(--rule);cursor:pointer" onclick="toggleConcPanel()">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--navy)">Revenue Concentration Risk</span>
-          <span style="font-size:10px;background:#fef2f2;color:#991b1b;padding:2px 8px;border-radius:4px;font-weight:600" id="concRiskBadge"></span>
-        </div>
-        <span id="concRiskChevron" style="color:var(--muted);font-size:12px">▼ expand</span>
-      </div>
-      <div id="concRiskBody" style="display:none;padding:16px">
-
-        <!-- Scenario selector -->
-        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-          <div style="font-size:11px;color:var(--muted);align-self:center;margin-right:4px">Stress scenario:</div>
-          <button class="conc-btn active" onclick="setConcScenario('mild',this)">Mild (−20%)</button>
-          <button class="conc-btn" onclick="setConcScenario('moderate',this)">Moderate (−40%)</button>
-          <button class="conc-btn" onclick="setConcScenario('severe',this)">Severe (−60%)</button>
-        </div>
-
-        <!-- KPI row -->
-        <div id="concKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px"></div>
-
-        <!-- Top accounts at risk -->
-        <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Highest Concentration Accounts</div>
-        <div id="concAcctList" style="display:flex;flex-direction:column;gap:4px"></div>
-
-        <!-- Early warning section -->
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--rule)">
-          <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">⚡ Early Warning — Cadence Shifts Detected</div>
-          <div id="cadenceWarningList" style="display:flex;flex-direction:column;gap:4px"></div>
-        </div>
-
-      </div>
     </div>
 
     <div class="table-wrap" id="tableWrap">
@@ -1461,19 +1432,19 @@ function renderTable(){
     <tbody>${filtered.map(r=>rowHTML(r,maxSpark,prev)).join('')}</tbody>
   </table>`;
 
-  // Update concentration risk panel (inline — avoids hoisting issues)
-  const _panel = document.getElementById('concRiskPanel');
-  if(_panel){
+  // Show/hide Risk Analysis button
+  const _btn = document.getElementById('concRiskBtn');
+  if(_btn){
     if(a && a.rows.length>0){
-      _panel.style.display='block';
+      _btn.style.display='flex';
       const _rows=[...a.rows].sort((x,y)=>y.currRev-x.currRev).filter(r=>r.currRev>0);
       const _tot=_rows.reduce((s,r)=>s+r.currRev,0);
       const _t5rev=_rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
       const _t5pct=_tot>0?Math.round(_t5rev/_tot*100):0;
       const _badge=document.getElementById('concRiskBadge');
-      if(_badge) _badge.textContent='Top 5 = '+_t5pct+'% of revenue';
+      if(_badge) _badge.textContent='Top 5 = '+_t5pct+'%';
     } else {
-      _panel.style.display='none';
+      _btn.style.display='none';
     }
   }
 }
@@ -2477,6 +2448,28 @@ async function buildTopCustomer(pres,a,C,mkSh,bg,bgCover,hdr,foot,sc,slbl,ac,tHd
 
 // ═══ CONCENTRATION RISK PANEL ═══
 let _concScenario = 'mild';
+
+function openConcPanel(){
+  const overlay = document.getElementById('concOverlay');
+  const panel   = document.getElementById('concPanel');
+  if(!overlay || !panel) return;
+  overlay.style.display = 'block';
+  panel.style.display   = 'flex';
+  panel.style.transform = 'translateY(100%)';
+  requestAnimationFrame(()=>{ panel.style.transform = 'translateY(0)'; });
+  renderConcRisk();
+}
+
+function closeConcPanel(){
+  const overlay = document.getElementById('concOverlay');
+  const panel   = document.getElementById('concPanel');
+  if(!panel) return;
+  panel.style.transform = 'translateY(100%)';
+  setTimeout(()=>{
+    panel.style.display   = 'none';
+    overlay.style.display = 'none';
+  }, 350);
+}
 const SCENARIO_PCT = {mild:0.20, moderate:0.40, severe:0.60};
 
 function toggleConcPanel(){
@@ -2500,61 +2493,108 @@ function renderConcRisk(){
   const a = window._lastAnalysis;
   if(!a || !a.rows.length) return;
 
+  // Filter rows to active depot
+  const depotSel = activeDepot;
+  const depotLabel = depotSel === 'all'
+    ? 'All Depots'
+    : (DEPOT_MAP[depotSel] || 'Depot ' + depotSel);
+
+  // Update subtitle
+  const sub = document.getElementById('concPanelSubtitle');
+  if(sub) sub.textContent = depotLabel + ' · Portfolio stress-test · Early warning signals';
+
+  // Get rows filtered to selected depot
+  let rows;
+  if(depotSel === 'all'){
+    rows = [...a.rows];
+  } else {
+    // Re-derive rows from the depot-filtered store
+    const fs = {};
+    Object.entries(store).forEach(([date, depots])=>{
+      if(depots[depotSel]) fs[date] = depots[depotSel];
+    });
+    const allAccts = new Set(Object.values(fs).flatMap(d=>Object.keys(d)));
+    rows = Array.from(allAccts).map(acct=>{
+      const currRev = a.curr.reduce((s,d)=>s+(fs[d]?.[acct]?.revenue||0),0);
+      const totalRev = Object.values(fs).reduce((s,d)=>s+(d[acct]?.revenue||0),0);
+      const rfmData = a.rfm?.[acct] || {};
+      return { acct, currRev, totalRev, segment: rfmData.segment||'needsattention',
+               trend: a.rows.find(r=>r.acct===acct)?.trend||'stable',
+               rfm: rfmData };
+    }).filter(r=>r.currRev>0);
+  }
+
+  rows.sort((x,y)=>y.currRev-x.currRev);
   const pct = SCENARIO_PCT[_concScenario] || 0.20;
-  const rows = [...a.rows].sort((x,y)=>y.currRev-x.currRev).filter(r=>r.currRev>0);
   const totalCurr = rows.reduce((s,r)=>s+r.currRev,0);
+  if(totalCurr === 0) return;
 
-  // Concentration: top N accounts
-  const top5rev  = rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
-  const top10rev = rows.slice(0,10).reduce((s,r)=>s+r.currRev,0);
-  const top5pct  = totalCurr>0 ? Math.round(top5rev/totalCurr*100) : 0;
-  const top10pct = totalCurr>0 ? Math.round(top10rev/totalCurr*100) : 0;
+  // Concentration
+  const top5rev   = rows.slice(0,5).reduce((s,r)=>s+r.currRev,0);
+  const top10rev  = rows.slice(0,10).reduce((s,r)=>s+r.currRev,0);
+  const top5pct   = Math.round(top5rev/totalCurr*100);
+  const top10pct  = Math.round(top10rev/totalCurr*100);
 
-  // Stress test: apply scenario reduction to all at-risk + down-trading accounts
-  // and full loss to lost accounts
-  const atRiskRows   = rows.filter(r=>r.segment==='atrisk'||r.segment==='lapsing'||(r.trend==='down'&&r.segment!=='champion'&&r.segment!=='loyal'));
-  const lostRows     = rows.filter(r=>r.segment==='lost'||r.trend==='lost');
-  const stressedLoss = atRiskRows.reduce((s,r)=>s+r.currRev*pct,0)
-                     + lostRows.reduce((s,r)=>s+r.currRev,0);
+  // Stress test
+  const atRiskRows  = rows.filter(r=>r.segment==='atrisk'||r.segment==='lapsing'||(r.trend==='down'&&r.segment!=='champion'&&r.segment!=='loyal'));
+  const lostRows    = rows.filter(r=>r.segment==='lost'||r.trend==='lost');
+  const stressedLoss = atRiskRows.reduce((s,r)=>s+r.currRev*pct,0) + lostRows.reduce((s,r)=>s+r.currRev,0);
   const stressedRev  = Math.max(0, totalCurr - stressedLoss);
-  const stressedPct  = totalCurr>0 ? Math.round(stressedLoss/totalCurr*100) : 0;
-
-  // Probability-weighted risk: weight by RFM health (lower health = higher risk)
+  const stressedPct  = Math.round(stressedLoss/totalCurr*100);
   const pwRisk = rows.reduce((s,r)=>{
-    const h = (a.rfm?.[r.acct]?.health)||3;
-    const riskFactor = Math.max(0, (5-h)/4); // 0=healthy, 1=very risky
-    return s + r.currRev * pct * riskFactor;
-  }, 0);
+    const h=(r.rfm?.health)||3;
+    return s+r.currRev*pct*Math.max(0,(5-h)/4);
+  },0);
 
-  // Update badge
+  // Update toolbar badge
   const badge = document.getElementById('concRiskBadge');
-  if(badge) badge.textContent = `Top 5 = ${top5pct}% of revenue`;
+  if(badge) badge.textContent = 'Top 5 = '+top5pct+'%';
 
   // KPI cards
   const kpiEl = document.getElementById('concKpis');
   if(kpiEl) kpiEl.innerHTML = [
-    {lbl:'Portfolio Revenue',  val:'$'+fmtK(totalCurr),         sub:'current period',             col:'var(--navy)'},
-    {lbl:'Top 5 Concentration',val:top5pct+'%',                  sub:'$'+fmtK(top5rev)+' from 5 accounts', col:top5pct>60?'#991b1b':top5pct>40?'#9a3412':'#166534'},
-    {lbl:'Top 10 Concentration',val:top10pct+'%',                sub:'$'+fmtK(top10rev)+' from 10 accounts',col:top10pct>75?'#991b1b':'var(--navy)'},
-    {lbl:'Scenario Revenue Loss',val:'$'+fmtK(stressedLoss),    sub:stressedPct+'% of portfolio · '+_concScenario+' stress',col:'#991b1b'},
-    {lbl:'Stressed Portfolio',  val:'$'+fmtK(stressedRev),      sub:'after '+_concScenario+' stress applied', col:'var(--navy)'},
-    {lbl:'Probability-Weighted Risk',val:'$'+fmtK(pwRisk),      sub:'RFM-adjusted exposure estimate', col:'#9a3412'},
+    {lbl:'Portfolio Revenue',    val:'$'+fmtK(totalCurr),       sub:rows.length+' active accounts',              col:'var(--navy)'},
+    {lbl:'Top 5 Concentration',  val:top5pct+'%',               sub:'$'+fmtK(top5rev)+' from 5 accounts',        col:top5pct>60?'#991b1b':top5pct>40?'#9a3412':'#166534'},
+    {lbl:'Top 10 Concentration', val:top10pct+'%',              sub:'$'+fmtK(top10rev)+' from 10 accounts',      col:top10pct>75?'#991b1b':'var(--navy)'},
+    {lbl:'Prob-Weighted Risk',   val:'$'+fmtK(pwRisk),          sub:'RFM-adjusted exposure estimate',             col:'#9a3412'},
   ].map(k=>`<div class="conc-kpi">
     <div class="conc-kpi-lbl">${k.lbl}</div>
     <div class="conc-kpi-val" style="color:${k.col}">${k.val}</div>
     <div class="conc-kpi-sub">${k.sub}</div>
   </div>`).join('');
 
-  // Top accounts list
+  // Scenario table
+  const scenEl = document.getElementById('concScenTable');
+  if(scenEl){
+    const scens = [
+      {lbl:'Mild (−20%)',     loss:atRiskRows.reduce((s,r)=>s+r.currRev*0.20,0)},
+      {lbl:'Moderate (−40%)', loss:atRiskRows.reduce((s,r)=>s+r.currRev*0.40,0)},
+      {lbl:'Severe (−60%)',   loss:atRiskRows.reduce((s,r)=>s+r.currRev*0.60,0)},
+    ];
+    scenEl.innerHTML = scens.map((sc2,i)=>{
+      const stressed = Math.max(0,totalCurr-sc2.loss);
+      const pctLoss  = Math.round(sc2.loss/totalCurr*100);
+      const isActive = (i===0&&_concScenario==='mild')||(i===1&&_concScenario==='moderate')||(i===2&&_concScenario==='severe');
+      return `<div style="display:flex;gap:8px;padding:8px 10px;border-radius:6px;background:${isActive?'#fef2f2':'var(--off)'};border:1px solid ${isActive?'#fecaca':'transparent'}">
+        <div style="flex:1;font-size:11.5px;font-weight:600;color:var(--ink)">${sc2.lbl}</div>
+        <div style="text-align:right">
+          <div style="font-family:var(--cond);font-size:13px;font-weight:700;color:#991b1b">−$${fmtK(sc2.loss)}</div>
+          <div style="font-size:10px;color:var(--muted)">→ $${fmtK(stressed)} remaining (${pctLoss}% at risk)</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Top accounts
   const listEl = document.getElementById('concAcctList');
   if(listEl) listEl.innerHTML = rows.slice(0,8).map((r,i)=>{
-    const share = totalCurr>0 ? (r.currRev/totalCurr*100).toFixed(1) : '0';
-    const h = a.rfm?.[r.acct]?.health||3;
-    const seg = SEGMENT_META[r.segment]||SEGMENT_META.needsattention;
+    const share = (r.currRev/totalCurr*100).toFixed(1);
+    const h     = r.rfm?.health||3;
+    const seg   = SEGMENT_META[r.segment]||SEGMENT_META.needsattention;
     const riskFactor = Math.max(0,(5-h)/4);
-    const scenarioImpact = r.currRev * pct * riskFactor;
+    const scenarioImpact = r.currRev*pct*riskFactor;
     const isAtRisk = r.segment==='atrisk'||r.segment==='lapsing'||r.trend==='down';
-    return `<div class="conc-acct-row" style="${isAtRisk?'background:#fef2f2;':''}" onclick="openModal('${r.acct}')">
+    return `<div class="conc-acct-row" style="${isAtRisk?'background:#fef2f2;':''}" onclick="closeConcPanel();openModal('${r.acct}')">
       <div style="font-family:var(--cond);font-size:11px;font-weight:700;color:var(--navy);min-width:18px">#${i+1}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${acctName(r.acct)||'Acct #'+r.acct}</div>
@@ -2562,29 +2602,29 @@ function renderConcRisk(){
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-family:var(--cond);font-size:13px;font-weight:700;color:var(--navy)">$${fmtK(r.currRev)}</div>
-        <div style="font-size:10px;color:var(--muted)">${share}% of total</div>
+        <div style="font-size:10px;color:var(--muted)">${share}% of depot</div>
       </div>
       ${isAtRisk?`<div style="font-size:10px;color:#991b1b;font-weight:600;text-align:right;min-width:60px">−$${fmtK(scenarioImpact)}<br><span style="font-weight:400">risk</span></div>`:'<div style="min-width:60px"></div>'}
     </div>`;
   }).join('');
 
-  // Early warning: cadence shift accounts
+  // Early warning: cadence shifts — filtered to same depot
   const cwEl = document.getElementById('cadenceWarningList');
   if(cwEl){
     const warnings = rows
-      .filter(r=>{ const rd=a.rfm?.[r.acct]||{}; return rd.cadenceWarning; })
+      .filter(r=>r.rfm?.cadenceWarning)
       .sort((x,y)=>y.totalRev-x.totalRev)
-      .slice(0,6);
-    if(warnings.length===0){
-      cwEl.innerHTML = '<div style="font-size:11.5px;color:var(--muted);padding:6px 0">No significant cadence shifts detected in current data window.</div>';
+      .slice(0,8);
+    if(!warnings.length){
+      cwEl.innerHTML='<div style="font-size:11.5px;color:var(--muted);padding:6px 0">No significant cadence shifts detected for '+depotLabel+'.</div>';
     } else {
       cwEl.innerHTML = warnings.map(r=>{
-        const rd = a.rfm?.[r.acct]||{};
+        const rd = r.rfm||{};
         const shift = rd.cadenceShift||1;
         const pctSlower = Math.round((shift-1)*100);
         const cd = rd.consecutiveDecline||0;
         const isStrong = rd.strongCadenceWarning;
-        return `<div class="cw-row" style="${isStrong?'background:#fef2f2;':''}" onclick="openModal('${r.acct}')">
+        return `<div class="cw-row" style="cursor:pointer;${isStrong?'background:#fef2f2;':''}" onclick="closeConcPanel();openModal('${r.acct}')">
           <div style="font-size:14px">${isStrong?'🔴':'🟡'}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:11.5px;font-weight:600;color:var(--ink)">${acctName(r.acct)||'Acct #'+r.acct}</div>
@@ -2599,47 +2639,4 @@ function renderConcRisk(){
     }
   }
 }
-
-// ═══ LANDING PAGE ═══
-const LP_PW  = 'CopeSky2026#';
-const LP_KEY = 'cope_report_authed';
-
-function lpCheck(){
-  if(sessionStorage.getItem(LP_KEY)==='1'){
-    document.getElementById('landingPage').style.display='none';
-  } else {
-    document.getElementById('landingPage').style.display='flex';
-    setTimeout(()=>{ const i=document.getElementById('lpInput'); if(i)i.focus(); },100);
-  }
-}
-
-function lpSubmit(){
-  const inp = document.getElementById('lpInput');
-  const err = document.getElementById('lpErr');
-  if(!inp) return;
-  if(inp.value === LP_PW){
-    sessionStorage.setItem(LP_KEY,'1');
-    const lp = document.getElementById('landingPage');
-    lp.style.transition='opacity 0.4s';
-    lp.style.opacity='0';
-    setTimeout(()=>{ lp.style.display='none'; lp.style.opacity=''; },400);
-  } else {
-    inp.value='';
-    inp.classList.add('lp-error');
-    err.textContent='Incorrect password. Please try again.';
-    setTimeout(()=>inp.classList.remove('lp-error'), 500);
-    inp.focus();
-  }
-}
-
-// Allow Enter key to submit
-document.addEventListener('DOMContentLoaded',()=>{
-  lpCheck();
-  init();
-  const inp = document.getElementById('lpInput');
-  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') lpSubmit(); });
-});
-
-</script>
-</body>
-</html>
+>

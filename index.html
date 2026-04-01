@@ -2635,6 +2635,7 @@ function lpSubmit(){
 // Allow Enter key to submit
 document.addEventListener('DOMContentLoaded',()=>{
   lpCheck();
+  init();
   const inp = document.getElementById('lpInput');
   if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') lpSubmit(); });
 });

@@ -1520,16 +1520,12 @@ function openModal(acct){
     if(!ctx)return;
     const labels=daily.map(d=>d.date.slice(5));
     const values=daily.map(d=>d.revenue);
-    const avgLine=new Array(values.length).fill(avgActiveDay);
-    const baselineLine=new Array(values.length).fill(rdata.baseline||0);
     chartInst=new Chart(ctx,{
       type:'bar',
       data:{
         labels,
         datasets:[
-          {type:'bar',data:values,backgroundColor:values.map(v=>v===0?'rgba(226,230,240,0.5)':'rgba(26,39,68,0.8)'),borderRadius:3,borderSkipped:false,label:'Revenue'},
-          {type:'line',data:avgLine,borderColor:'rgba(200,16,46,0.5)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,label:'Avg active day',fill:false},
-          {type:'line',data:baselineLine,borderColor:'rgba(59,130,246,0.6)',borderWidth:1.5,borderDash:[2,2],pointRadius:0,label:'30d baseline',fill:false}
+          {type:'bar',data:values,backgroundColor:values.map(v=>v===0?'rgba(226,230,240,0.5)':'rgba(26,39,68,0.8)'),borderRadius:3,borderSkipped:false,label:'Revenue'}
         ]
       },
       options:{

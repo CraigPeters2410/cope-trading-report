@@ -708,18 +708,6 @@ function lpCheck(){
   }
 }
 
-function _wireLp(){
-  const inp = document.getElementById('lpInput');
-  const btn = document.getElementById('lpBtn');
-  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') lpSubmit(); });
-  if(btn) btn.addEventListener('click', lpSubmit);
-}
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded', _wireLp);
-} else {
-  _wireLp();
-}
-
 function lpSubmit(){
   const inp = document.getElementById('lpInput');
   const err = document.getElementById('lpErr');
@@ -2683,4 +2671,27 @@ function renderConcRisk(){
     }
   }
 }
->
+
+function setConcScenario(scenario, btn){
+  _concScenario = scenario;
+  document.querySelectorAll('.conc-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderConcRisk();
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ closeConcPanel(); }
+});
+
+document.addEventListener('DOMContentLoaded',()=>{
+  lpCheck();
+  init();
+  const lpInp = document.getElementById('lpInput');
+  const lpBt  = document.getElementById('lpBtn');
+  if(lpInp) lpInp.addEventListener('keydown', e=>{ if(e.key==='Enter') lpSubmit(); });
+  if(lpBt)  lpBt.addEventListener('click', lpSubmit);
+});
+
+</script>
+</body>
+</html>

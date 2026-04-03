@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revenue Forecast — COPE Sensitive Freight</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700;800&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a2744;--navy-d:#111b30;--navy-m:#243460;--navy-l:#e8ebf3;
+  --red:#c8102e;--red-d:#a50d25;--red-l:#fdf2f4;--red-b:#f5b8c2;
+  --white:#fff;--off:#f5f6fa;--rule:#e2e6f0;--rule-l:#edf0f7;
+  --ink:#1a2744;--ink-2:#2d3d6b;--muted:#7b88a8;--subtle:#aab3cb;
+  --green:#0e7a47;--green-l:#edf7f2;--green-b:#9fd9bd;
+  --amber:#b45309;--amber-l:#fffbeb;--amber-b:#fde68a;
+  --blue:#1d6fcc;--blue-l:#eff6ff;
+  --sans:'Barlow',system-ui,sans-serif;
+  --cond:'Barlow Condensed',system-ui,sans-serif;
+  --serif:'EB Garamond',Georgia,serif;
+  --r:8px;
+  --sh:0 1px 4px rgba(26,39,68,.07),0 2px 12px rgba(26,39,68,.06);
+  --sh-lg:0 8px 40px rgba(26,39,68,.18),0 2px 8px rgba(26,39,68,.08);
+}
+html{font-size:14px}
+body{font-family:var(--sans);background:var(--off);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── HEADER ── */
+header{background:var(--navy);padding:0 36px;display:flex;align-items:center;justify-content:space-between;height:70px;position:sticky;top:0;z-index:300;box-shadow:0 2px 16px rgba(0,0,0,.3)}
+.hd-l{display:flex;align-items:center;gap:20px}
+.hd-div{width:1px;height:36px;background:rgba(255,255,255,.18)}
+.hd-name{font-family:var(--cond);font-size:15px;font-weight:700;color:var(--white);letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.hd-sub{font-size:10.5px;color:rgba(255,255,255,.45);margin-top:3px;letter-spacing:.03em}
+.hd-r{display:flex;align-items:center;gap:10px}
+.hd-badge{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--red);background:rgba(200,16,46,.15);border:1px solid rgba(200,16,46,.3);padding:3px 8px;border-radius:4px}
+.red-bar{height:3px;background:var(--red)}
+.btn-hd{font-family:var(--cond);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.btn-hd-ghost{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.8)}
+.btn-hd-ghost:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.5);color:#fff}
+.btn-hd-primary{background:var(--red);border:none;color:#fff}
+.btn-hd-primary:hover{background:var(--red-d)}
+
+/* ── PAGE ── */
+.page{max-width:1400px;margin:0 auto;padding:24px 36px 80px}
+
+/* ── CONTROLS BAR ── */
+.controls-bar{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;margin-bottom:20px}
+.ctrl-group{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.ctrl-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);white-space:nowrap}
+.ctrl-select{font-family:var(--cond);font-size:13px;font-weight:600;background:#fff;border:1.5px solid var(--rule);border-radius:6px;color:var(--ink);padding:7px 30px 7px 11px;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237b88a8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;box-shadow:var(--sh);transition:border-color .15s}
+.ctrl-select:focus{outline:none;border-color:var(--navy)}
+.period-bar{display:flex;background:#fff;border:1.5px solid var(--rule);border-radius:6px;overflow:hidden;box-shadow:var(--sh)}
+.period-btn{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:7px 16px;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all .15s;border-right:1px solid var(--rule)}
+.period-btn:last-child{border-right:none}
+.period-btn:hover{color:var(--navy);background:var(--rule-l)}
+.period-btn.active{background:var(--navy);color:#fff}
+
+/* ── KPIs ── */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;margin-bottom:24px;box-shadow:var(--sh)}
+.kpi{background:#fff;padding:16px 18px;position:relative}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--rule-l)}
+.kpi.k-navy::before{background:var(--navy)}.kpi.k-red::before{background:var(--red)}.kpi.k-green::before{background:var(--green)}.kpi.k-amber::before{background:var(--amber)}.kpi.k-blue::before{background:var(--blue)}
+.kpi-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:7px}
+.kpi-val{font-family:var(--cond);font-size:26px;font-weight:700;color:var(--ink);line-height:1;letter-spacing:-.01em}
+.kpi-val.navy{color:var(--navy)}.kpi-val.red{color:var(--red)}.kpi-val.green{color:var(--green)}.kpi-val.amber{color:var(--amber)}.kpi-val.blue{color:var(--blue)}
+.kpi-sub{font-size:10px;color:var(--subtle);margin-top:4px;line-height:1.4}
+.kpi-delta{font-size:11px;font-weight:600;margin-top:4px}
+.kpi-delta.pos{color:var(--green)}.kpi-delta.neg{color:var(--red)}.kpi-delta.neu{color:var(--muted)}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:20px}
+.card-hd{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rule-l);background:var(--off)}
+.card-hd-l{display:flex;align-items:center;gap:10px}
+.card-title{font-family:var(--cond);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.card-title-main{font-family:var(--cond);font-size:14px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em}
+.card-body{padding:20px}
+
+/* ── CHART CONTAINER ── */
+.chart-wrap{position:relative;height:360px;padding:4px 0}
+.chart-wrap.tall{height:440px}
+
+/* ── LAYOUT GRIDS ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:1100px){.two-col,.three-col{grid-template-columns:1fr}}
+
+/* ── SERVICE BREAKDOWN TABLE ── */
+.svc-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.svc-table th{font-family:var(--cond);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:2px solid var(--rule);background:var(--off)}
+.svc-table th.right{text-align:right}
+.svc-table td{padding:10px 12px;border-bottom:1px solid var(--rule-l);vertical-align:middle}
+.svc-table td.right{text-align:right;font-family:var(--cond);font-weight:600;font-size:13px}
+.svc-table tr:last-child td{border-bottom:none}
+.svc-table tr.total-row td{background:var(--navy-l);font-weight:700;border-top:2px solid var(--rule)}
+.svc-table tr:hover td{background:var(--off)}
+.svc-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:7px;flex-shrink:0}
+.svc-name{display:flex;align-items:center}
+
+/* ── SIGNAL CARDS ── */
+.signal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.signal-card{background:#fff;border:1px solid var(--rule);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.signal-card::after{content:'';position:absolute;top:0;left:0;bottom:0;width:3px}
+.signal-card.green::after{background:var(--green)}
+.signal-card.red::after{background:var(--red)}
+.signal-card.amber::after{background:var(--amber)}
+.signal-card.blue::after{background:var(--blue)}
+.signal-card.muted::after{background:var(--muted)}
+.signal-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.signal-title{font-family:var(--cond);font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.signal-value{font-family:var(--cond);font-size:22px;font-weight:700;line-height:1}
+.signal-sub{font-size:10px;color:var(--subtle);margin-top:3px}
+
+/* ── METHODOLOGY ── */
+.method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.method-block{background:var(--off);border:1px solid var(--rule);border-radius:var(--r);padding:16px}
+.method-icon{font-size:20px;margin-bottom:8px}
+.method-title{font-family:var(--cond);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--navy);margin-bottom:6px}
+.method-body{font-size:11.5px;color:var(--muted);line-height:1.6}
+.method-tag{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:2px 7px;border-radius:3px;margin-bottom:8px}
+.method-tag.layer1{background:rgba(26,39,68,.1);color:var(--navy)}
+.method-tag.layer2{background:rgba(200,16,46,.1);color:var(--red)}
+.method-tag.layer3{background:rgba(14,122,71,.1);color:var(--green)}
+
+/* ── CONFIDENCE BAND LEGEND ── */
+.legend-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:10px;padding:10px 16px;background:var(--off);border-radius:6px;border:1px solid var(--rule)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.legend-line{height:3px;width:22px;border-radius:2px}
+.legend-band{height:10px;width:22px;border-radius:2px;opacity:.35}
+
+/* ── DEPOT PILLS ── */
+.depot-pills{display:flex;flex-wrap:wrap;gap:6px;padding:12px 0 4px}
+.dpill{font-family:var(--cond);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer;border:1.5px solid var(--rule);background:#fff;color:var(--muted);transition:all .15s}
+.dpill.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.dpill:hover:not(.active){border-color:var(--navy);color:var(--navy)}
+
+/* ── VARIANCE BAR ── */
+.var-bar-wrap{display:flex;align-items:center;gap:8px}
+.var-bar-track{flex:1;height:6px;background:var(--rule-l);border-radius:3px;overflow:hidden}
+.var-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.var-bar-fill.pos{background:var(--green)}
+.var-bar-fill.neg{background:var(--red)}
+.var-label{font-family:var(--cond);font-size:12px;font-weight:700;min-width:52px;text-align:right}
+
+/* ── LOADING ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px;display:none}
+.loading-spinner{width:36px;height:36px;border:3px solid var(--rule);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:var(--cond);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+/* ── SIGNAL INPUT SLIDERS ── */
+.signal-inputs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.slider-row{display:flex;flex-direction:column;gap:6px}
+.slider-row label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.slider-wrap{display:flex;align-items:center;gap:10px}
+input[type=range]{flex:1;accent-color:var(--navy);height:4px;cursor:pointer}
+.slider-val{font-family:var(--cond);font-size:14px;font-weight:700;min-width:40px;text-align:right;color:var(--navy)}
+
+/* ── PILL TOGGLE ── */
+.pill-toggle{display:flex;gap:0;background:var(--off);border:1.5px solid var(--rule);border-radius:6px;overflow:hidden}
+.ptbtn{font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all .15s;border-right:1px solid var(--rule)}
+.ptbtn:last-child{border-right:none}
+.ptbtn.active{background:var(--navy);color:#fff}
+
+/* ── TOOLTIPS ── */
+.info-tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--rule);color:var(--muted);font-size:9px;font-weight:700;cursor:help;margin-left:4px}
+
+/* ── SECTION HEADER ── */
+.sec-hd{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.sec-title{font-family:var(--cond);font-size:18px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em}
+.sec-sub{font-size:11.5px;color:var(--muted)}
+
+/* ── ACCURACY TAG ── */
+.accuracy-tag{display:inline-flex;align-items:center;gap:5px;font-family:var(--cond);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:3px 9px;border-radius:4px;background:rgba(14,122,71,.1);color:var(--green);border:1px solid rgba(14,122,71,.2)}
+
+/* ── ANIMATE IN ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .3s ease both}
+
+/* ── BACK LINK ── */
+.back-link{display:inline-flex;align-items:center;gap:6px;font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .15s;margin-bottom:18px}
+.back-link:hover{color:var(--navy)}
+.back-link svg{transition:transform .15s}
+.back-link:hover svg{transform:translateX(-2px)}
+
+/* ── PRINT / EXPORT ── */
+@media print{header{position:static}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-l">
+    <div class="hd-titles">
+      <div class="hd-name">Revenue Forecast Engine</div>
+      <div class="hd-sub">COPE Sensitive Freight — All Depots</div>
+    </div>
+  </div>
+  <div class="hd-r">
+    <span class="hd-badge">Live Signals Active</span>
+    <div class="hd-div"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="ctrl-label">Depot</span>
+      <select class="ctrl-select" id="globalDepot" onchange="rebuild()" style="min-width:150px">
+        <option value="all">All Depots</option>
+      </select>
+    </div>
+    <div class="hd-div"></div>
+    <div class="period-bar">
+      <button class="period-btn" onclick="setHorizon(3)" id="h3">3 Months</button>
+      <button class="period-btn active" onclick="setHorizon(6)" id="h6">6 Months</button>
+      <button class="period-btn" onclick="setHorizon(12)" id="h12">12 Months</button>
+    </div>
+    <div class="hd-div"></div>
+    <button class="btn-hd btn-hd-ghost" onclick="window.open('index.html')">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1v-3M9 7l5-5M14 7V2H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Trading Report
+    </button>
+  </div>
+</header>
+<div class="red-bar"></div>
+
+<div class="page">
+
+  <!-- KPI Strip -->
+  <div class="kpis" style="grid-template-columns:repeat(6,1fr);margin-top:6px" id="kpiStrip">
+    <div class="kpi k-navy"><div class="kpi-lbl">Forecast Period</div><div class="kpi-val navy" id="kfPeriod">—</div><div class="kpi-sub" id="kfPeriodSub">—</div></div>
+    <div class="kpi k-navy"><div class="kpi-lbl">Total Forecast Revenue</div><div class="kpi-val navy" id="kfTotal">—</div><div class="kpi-sub" id="kfTotalSub">core 3 services</div></div>
+    <div class="kpi k-red"><div class="kpi-lbl">vs Budget</div><div class="kpi-val" id="kfVsBudget">—</div><div class="kpi-sub" id="kfVsBudgetSub">forecast vs FY26 budget</div></div>
+    <div class="kpi k-amber"><div class="kpi-lbl">vs Prior Year</div><div class="kpi-val" id="kfVsPY">—</div><div class="kpi-sub" id="kfVsPYSub">same period FY25</div></div>
+    <div class="kpi k-green"><div class="kpi-lbl">Signal Adjustment</div><div class="kpi-val green" id="kfSignal">—</div><div class="kpi-sub">customer data modifier</div></div>
+    <div class="kpi k-blue"><div class="kpi-lbl">Forecast Confidence</div><div class="kpi-val blue" id="kfConf">—</div><div class="kpi-sub" id="kfConfSub">based on data depth</div></div>
+  </div>
+
+  <!-- Main Chart -->
+  <div class="card fade-up">
+    <div class="card-hd">
+      <div class="card-hd-l">
+        <div class="card-title-main">Revenue Forecast</div>
+        <span class="accuracy-tag" id="accuracyTag">⬤ Seasonal + Trend + Signal</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="pill-toggle" id="viewToggle">
+          <button class="ptbtn active" onclick="setView('combined')" id="vtCombined">Combined</button>
+          <button class="ptbtn" onclick="setView('service')" id="vtService">By Service</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap tall"><canvas id="mainChart"></canvas></div>
+      <div class="legend-row" id="chartLegend">
+        <div class="legend-item"><div class="legend-line" style="background:var(--navy)"></div>Actuals</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--red);border-top:2px dashed var(--red);height:0"></div>Forecast</div>
+        <div class="legend-item"><div class="legend-band" style="background:var(--red)"></div>Confidence Band (±1σ)</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--amber)"></div>Budget</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Breakdown + Signal Inputs -->
+  <div class="two-col">
+    <!-- Service Breakdown -->
+    <div class="card fade-up">
+      <div class="card-hd">
+        <div class="card-title-main">Service Breakdown</div>
+        <span style="font-size:10px;color:var(--muted);font-style:italic">Forecast period totals</span>
+      </div>
+      <div class="card-body" style="padding:0">
+        <table class="svc-table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th class="right">Forecast</th>
+              <th class="right">Budget</th>
+              <th class="right">Δ Budget</th>
+              <th class="right">Trend</th>
+            </tr>
+          </thead>
+          <tbody id="svcTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Signal Adjustment Panel -->
+    <div class="card fade-up">
+      <div class="card-hd">
+        <div class="card-hd-l">
+          <div class="card-title-main">Signal Adjustment</div>
+          <span class="info-tip" title="Customer-level signals from the Trading Report adjust the P&L baseline. Reflects real-time portfolio health.">?</span>
+        </div>
+        <button onclick="resetSignals()" style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:none;border:1px solid var(--rule);border-radius:4px;color:var(--muted);padding:3px 9px;cursor:pointer">Reset</button>
+      </div>
+      <div class="card-body">
+        <p style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.6">Adjust based on live signals from your customer portfolio. The forecast engine applies these with a professional dampening factor — a 10% portfolio deterioration moves the forecast by ~5–6%, consistent with sell-side financial modelling standards.</p>
+        <div class="signal-inputs" id="signalInputs">
+          <div class="slider-row">
+            <label>Portfolio Health <span class="info-tip" title="Overall RFM health of active customer base. Decline in Champions/Loyal counts = negative signal.">?</span></label>
+            <div class="slider-wrap">
+              <input type="range" min="-20" max="20" value="0" id="sigHealth" oninput="onSignal('health',this.value)">
+              <span class="slider-val" id="sigHealthVal">0%</span>
+            </div>
+          </div>
+          <div class="slider-row">
+            <label>New vs Lost Velocity <span class="info-tip" title="Net new customer acquisition vs churn. Positive = more wins than losses.">?</span></label>
+            <div class="slider-wrap">
+              <input type="range" min="-20" max="20" value="0" id="sigNetCust" oninput="onSignal('netCust',this.value)">
+              <span class="slider-val" id="sigNetCustVal">0%</span>
+            </div>
+          </div>
+          <div class="slider-row">
+            <label>Cadence Trend <span class="info-tip" title="Customer shipping frequency vs baseline. Rising cadence = positive signal.">?</span></label>
+            <div class="slider-wrap">
+              <input type="range" min="-20" max="20" value="0" id="sigCadence" oninput="onSignal('cadence',this.value)">
+              <span class="slider-val" id="sigCadenceVal">0%</span>
+            </div>
+          </div>
+          <div class="slider-row">
+            <label>Service Mix Drift <span class="info-tip" title="Shift from high-margin Site to lower-margin Tailgate depresses revenue quality.">?</span></label>
+            <div class="slider-wrap">
+              <input type="range" min="-20" max="20" value="0" id="sigMix" oninput="onSignal('mix',this.value)">
+              <span class="slider-val" id="sigMixVal">0%</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--rule-l)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Net Signal Modifier</span>
+            <span class="kpi-val" id="netSignalDisplay" style="font-size:20px">0.0%</span>
+          </div>
+          <div class="var-bar-wrap" style="margin-top:8px">
+            <div class="var-bar-track" style="background:var(--rule)">
+              <div class="var-bar-fill" id="netSignalBar" style="width:50%;background:var(--muted)"></div>
+            </div>
+          </div>
+          <p style="font-size:10px;color:var(--subtle);margin-top:6px">Composite of 4 signals with Kalman-style weighting. Revenue lines (1505/1507/1510) only. Adjustments/sundry unaffected.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Detail + Adjustments/Sundry -->
+  <div class="two-col">
+    <!-- Monthly Forecast Table -->
+    <div class="card fade-up">
+      <div class="card-hd">
+        <div class="card-title-main">Monthly Detail</div>
+        <div class="pill-toggle">
+          <button class="ptbtn active" onclick="setTableMode('revenue')" id="tmRev">Revenue</button>
+          <button class="ptbtn" onclick="setTableMode('all')" id="tmAll">All Lines</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;overflow-x:auto">
+        <table class="svc-table" id="monthlyTable">
+          <thead id="monthlyHead"></thead>
+          <tbody id="monthlyBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Adjustments & Sundry + Methodology -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div class="card fade-up">
+        <div class="card-hd">
+          <div class="card-title-main">Adjustments & Sundry</div>
+          <span style="font-size:10px;color:var(--muted);font-style:italic">P&L baseline only — no signal adj.</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table class="svc-table" id="adjTable">
+            <thead>
+              <tr>
+                <th>Line</th>
+                <th class="right">Monthly Avg</th>
+                <th class="right">Forecast Total</th>
+                <th class="right">5yr Avg</th>
+              </tr>
+            </thead>
+            <tbody id="adjTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card fade-up">
+        <div class="card-hd">
+          <div class="card-title-main">Forecast Methodology</div>
+        </div>
+        <div class="card-body">
+          <div class="method-grid">
+            <div class="method-block">
+              <div class="method-icon">📐</div>
+              <div class="method-tag layer1">Layer 1</div>
+              <div class="method-title">Seasonal Baseline</div>
+              <div class="method-body">Multiplicative seasonal decomposition from FY20–FY24. Monthly indices applied to trend-projected annual estimate. Captures Dec/Jan troughs, Nov/Mar peaks.</div>
+            </div>
+            <div class="method-block">
+              <div class="method-icon">📈</div>
+              <div class="method-tag layer1" style="background:rgba(26,39,68,.08)">Layer 1</div>
+              <div class="method-title">Exponential Trend</div>
+              <div class="method-body">Exponentially weighted YoY growth rates (FY20–FY24), recent years weighted 1.5× prior. Capped at –15%/+20% to prevent extrapolation beyond plausible bounds.</div>
+            </div>
+            <div class="method-block">
+              <div class="method-icon">🎯</div>
+              <div class="method-tag layer2">Layer 2</div>
+              <div class="method-title">Customer Signal</div>
+              <div class="method-body">4 live signals from your Trading Report (portfolio health, net acquisition, cadence, service mix) combined with Kalman-style dampening: 50% of raw signal applied to revenue lines. Sundry/adjustments unaffected.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historical Context -->
+  <div class="card fade-up">
+    <div class="card-hd">
+      <div class="card-title-main">Historical Revenue Context</div>
+      <span style="font-size:10px;color:var(--muted);font-style:italic">FY20–FY25 actuals vs forecast projection</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap"><canvas id="histChart"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// EMBEDDED P&L DATA (FY20–FY25, pre-aggregated)
+// ═══════════════════════════════════════════════════════════════
+</script>
+<script id="plDataScript">
+const PL_DATA = {"meta":{"depots":{"81":"Adelaide","82":"Brisbane","83":"Canberra","84":"Darwin","85":"COPE Plus","86":"Melbourne","88":"Newcastle","89":"Perth","90":"Sydney","91":"Hobart","92":"Albury","93":"Townsville","94":"Cairns"},"gl_labels":{"1505":"Tailgate Revenue","1507":"Site Revenue","1510":"Warehouse Revenue","1710":"Sundry / Commission","3395":"Freight Write-offs","3405":"Insurance Claims"},"gl_types":{"1505":"revenue","1507":"revenue","1510":"revenue","1710":"sundry","3395":"adjustments","3405":"adjustments"},"baseline_sheets":["FY20","FY21","FY22","FY23","FY24"],"generated":"2026-04-03T04:22:30.401841"},"seasonal":{"81":{"1505":{"1":0.990797,"2":1.030121,"3":1.07543,"4":1.033316,"5":1.041807,"6":0.926574,"7":0.866159,"8":1.034553,"9":1.25836,"10":0.84975,"11":0.946043,"12":0.947091},"1507":{"1":0.89761,"2":0.883802,"3":0.817209,"4":0.984783,"5":1.095685,"6":1.071612,"7":0.866928,"8":1.051334,"9":1.196217,"10":0.753865,"11":1.068184,"12":1.312771},"1510":{"1":0.887877,"2":0.959637,"3":0.912698,"4":0.974687,"5":1.073936,"6":0.965415,"7":1.039956,"8":1.034793,"9":1.082438,"10":1.01125,"11":1.104573,"12":0.95274},"1710":{"1":1.255162,"2":1.095422,"3":0.752754,"4":1.190521,"5":0.93597,"6":1.024988,"7":0.917887,"8":0.940791,"9":0.908932,"10":0.970552,"11":0.982142,"12":1.02488},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"82":{"1505":{"1":0.965705,"2":1.05107,"3":1.165972,"4":1.093006,"5":1.168859,"6":0.976563,"7":0.987369,"8":0.935994,"9":1.14524,"10":0.806816,"11":0.849657,"12":0.853749},"1507":{"1":1.013204,"2":1.027866,"3":1.111761,"4":1.011899,"5":1.047526,"6":0.958623,"7":0.714967,"8":0.932009,"9":1.213858,"10":0.787289,"11":1.006916,"12":1.174082},"1510":{"1":0.926856,"2":0.956899,"3":0.906323,"4":0.976911,"5":0.992159,"6":1.025236,"7":0.958568,"8":1.017319,"9":1.143262,"10":0.974855,"11":1.089044,"12":1.032566},"1710":{"1":1.161377,"2":0.938355,"3":1.104738,"4":1.032095,"5":1.074538,"6":0.959244,"7":0.832512,"8":1.003592,"9":1.004148,"10":1.039404,"11":0.995665,"12":0.854332},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"83":{"1505":{"1":1.008389,"2":1.133687,"3":1.001327,"4":0.868224,"5":0.974095,"6":0.777126,"7":0.83158,"8":1.02772,"9":1.068423,"10":1.053518,"11":1.091921,"12":1.16399},"1507":{"1":0.940572,"2":1.036534,"3":1.04628,"4":0.955324,"5":0.912757,"6":0.806199,"7":0.87532,"8":0.980851,"9":1.069886,"10":1.14716,"11":1.129539,"12":1.099577},"1510":{"1":1.263853,"2":1.117955,"3":0.958849,"4":1.047115,"5":0.989275,"6":1.141388,"7":0.9382,"8":0.822256,"9":1.005439,"10":0.830679,"11":0.795469,"12":1.089521},"1710":{"1":1.030043,"2":1.169507,"3":1.408261,"4":1.247932,"5":1.061242,"6":0.814718,"7":0.78456,"8":1.001109,"9":0.850683,"10":0.812307,"11":0.949765,"12":0.869873},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"84":{"1505":{"1":0.679088,"2":0.984853,"3":1.17633,"4":0.957135,"5":0.838852,"6":1.369514,"7":0.843733,"8":0.906247,"9":1.311642,"10":0.873764,"11":0.992191,"12":1.066651},"1507":{"1":0.913097,"2":1.337472,"3":1.062795,"4":0.750026,"5":1.152229,"6":0.814843,"7":0.521067,"8":0.965469,"9":1.509363,"10":0.647813,"11":1.112835,"12":1.21299},"1510":{"1":0.868848,"2":1.105017,"3":1.038345,"4":0.956135,"5":0.95038,"6":0.965294,"7":1.25117,"8":0.972085,"9":1.033449,"10":1.038969,"11":0.904777,"12":0.915532},"1710":{"1":1.469696,"2":2.105429,"3":0.964107,"4":1.603103,"5":0.632415,"6":0.786096,"7":0.02039,"8":0.817862,"9":1.555537,"10":0.805391,"11":0.497452,"12":0.742521},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"85":{"1505":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"1507":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"1510":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"1710":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"86":{"1505":{"1":1.037807,"2":1.025419,"3":1.03074,"4":1.068646,"5":1.095429,"6":0.909234,"7":0.896144,"8":0.946652,"9":1.114859,"10":0.898056,"11":1.035605,"12":0.941409},"1507":{"1":0.924874,"2":0.975636,"3":0.984703,"4":0.968892,"5":1.03996,"6":1.013746,"7":0.688282,"8":0.956056,"9":1.219482,"10":0.869228,"11":1.127796,"12":1.231347},"1510":{"1":0.919582,"2":0.958267,"3":1.008337,"4":0.999839,"5":1.094815,"6":1.011303,"7":0.970377,"8":1.027479,"9":1.109265,"10":0.966502,"11":0.982008,"12":0.952226},"1710":{"1":1.177621,"2":0.990831,"3":0.92723,"4":1.104561,"5":1.040528,"6":0.887291,"7":0.846254,"8":1.007124,"9":1.026294,"10":0.979966,"11":0.939914,"12":1.072387},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":-0.154217,"2":-0.731889,"3":11.938687,"4":-1.043872,"5":-1.600598,"6":-0.487956,"7":12.273736,"8":-0.201747,"9":-3.473259,"10":-0.441238,"11":-0.565437,"12":-3.512211}},"88":{"1505":{"1":0.941414,"2":1.016059,"3":1.03617,"4":0.976852,"5":1.147648,"6":1.195209,"7":0.8269,"8":0.889976,"9":1.03811,"10":0.973286,"11":0.947249,"12":1.011127},"1507":{"1":0.926954,"2":0.76725,"3":1.139751,"4":1.163739,"5":1.102175,"6":1.115139,"7":0.611152,"8":0.927224,"9":1.080858,"10":0.933409,"11":0.963864,"12":1.268485},"1510":{"1":0.560902,"2":2.62408,"3":0.440862,"4":0.560891,"5":0.795529,"6":0.966211,"7":0.988563,"8":0.745396,"9":1.243916,"10":1.155444,"11":0.973604,"12":0.944602},"1710":{"1":1.244956,"2":0.991352,"3":1.029495,"4":1.071196,"5":0.958758,"6":0.941359,"7":0.796144,"8":0.965577,"9":0.950205,"10":0.888296,"11":1.003224,"12":1.159439},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"89":{"1505":{"1":0.857969,"2":0.959232,"3":1.052794,"4":1.04801,"5":0.997498,"6":1.076909,"7":0.993647,"8":1.00607,"9":1.323251,"10":0.900071,"11":0.905316,"12":0.879234},"1507":{"1":0.959065,"2":1.047613,"3":0.971558,"4":1.04738,"5":0.994817,"6":0.935977,"7":0.61313,"8":1.063937,"9":1.196068,"10":0.880805,"11":1.060379,"12":1.229272},"1510":{"1":0.950288,"2":0.92259,"3":0.97207,"4":1.029834,"5":1.088679,"6":1.045552,"7":1.005887,"8":1.001233,"9":1.053879,"10":0.956274,"11":0.940014,"12":1.033698},"1710":{"1":1.013361,"2":0.936369,"3":0.781149,"4":0.774203,"5":1.15657,"6":0.767341,"7":0.951498,"8":0.842133,"9":1.014334,"10":1.199129,"11":1.259524,"12":1.30439},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"90":{"1505":{"1":0.974873,"2":1.027438,"3":1.029598,"4":1.069092,"5":1.088485,"6":0.973047,"7":0.918598,"8":0.949245,"9":1.08609,"10":0.857105,"11":0.997884,"12":1.028545},"1507":{"1":0.848332,"2":1.001326,"3":1.066643,"4":1.029326,"5":1.091221,"6":1.08055,"7":0.70092,"8":0.928085,"9":1.188516,"10":0.848547,"11":1.023821,"12":1.192713},"1510":{"1":1.052371,"2":1.040249,"3":0.991047,"4":0.981039,"5":1.072585,"6":0.953569,"7":0.877737,"8":0.982461,"9":1.035108,"10":0.913626,"11":1.007807,"12":1.0924},"1710":{"1":1.210072,"2":1.134755,"3":0.593802,"4":1.133386,"5":0.982746,"6":1.101625,"7":0.97626,"8":0.940345,"9":0.867763,"10":0.946911,"11":0.985687,"12":1.126648},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"91":{"1505":{"1":0.889467,"2":0.950253,"3":0.858088,"4":0.945853,"5":1.024597,"6":0.944448,"7":0.917265,"8":1.057857,"9":1.242678,"10":0.885613,"11":1.127086,"12":1.156794},"1507":{"1":1.092683,"2":1.402467,"3":1.08526,"4":0.940328,"5":1.08328,"6":1.185594,"7":0.743937,"8":0.77997,"9":1.006254,"10":0.688743,"11":0.844738,"12":1.146747},"1510":{"1":1.029439,"2":0.990765,"3":0.934777,"4":1.090128,"5":1.171375,"6":1.039717,"7":1.084285,"8":1.04676,"9":1.099023,"10":0.832428,"11":0.859182,"12":0.82212},"1710":{"1":1.139823,"2":0.848502,"3":0.866912,"4":1.110432,"5":0.991921,"6":0.76001,"7":0.878247,"8":1.036829,"9":0.870335,"10":1.227304,"11":1.238639,"12":1.031047},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"92":{"1505":{"1":1.452631,"2":1.510056,"3":1.215645,"4":0.89772,"5":0.879355,"6":0.824423,"7":0.596461,"8":0.884549,"9":0.965931,"10":0.766611,"11":1.095647,"12":0.91097},"1507":{"1":0.881836,"2":0.926062,"3":0.961981,"4":1.050234,"5":1.047985,"6":1.227592,"7":0.546313,"8":0.903465,"9":1.193343,"10":1.00123,"11":1.094212,"12":1.165747},"1510":{"1":1.071861,"2":0.459419,"3":2.288528,"4":0.967307,"5":0.54189,"6":0.137218,"7":0.322902,"8":0.04492,"9":0.041629,"10":0.227573,"11":0.333461,"12":5.563291},"1710":{"1":1.519517,"2":1.496727,"3":1.297403,"4":0.805856,"5":1.092095,"6":0.461401,"7":0.793991,"8":1.106337,"9":0.896974,"10":1.122482,"11":0.649386,"12":0.757831},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"93":{"1505":{"1":0.620847,"2":0.981919,"3":0.997252,"4":0.886154,"5":1.420895,"6":1.384401,"7":1.205077,"8":1.123492,"9":1.595618,"10":0.58008,"11":0.60616,"12":0.598104},"1507":{"1":0.843298,"2":0.966561,"3":1.171539,"4":0.919035,"5":1.125942,"6":1.004732,"7":0.861055,"8":0.887154,"9":1.389319,"10":0.653396,"11":0.725485,"12":1.452485},"1510":{"1":0.796397,"2":0.887996,"3":1.104026,"4":1.058793,"5":1.25375,"6":0.968491,"7":1.175351,"8":1.188545,"9":1.065619,"10":0.760868,"11":1.01291,"12":0.727255},"1710":{"1":0.820798,"2":0.759885,"3":0.892259,"4":1.031204,"5":0.847672,"6":0.84368,"7":1.193061,"8":1.012922,"9":1.210224,"10":1.44232,"11":0.932255,"12":1.013719},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}},"94":{"1505":{"1":0.958601,"2":1.094968,"3":1.017686,"4":0.667165,"5":1.178026,"6":0.895988,"7":1.026832,"8":1.101736,"9":1.069459,"10":0.925428,"11":1.144806,"12":0.919305},"1507":{"1":0.89362,"2":1.299858,"3":1.315449,"4":0.923063,"5":1.189019,"6":0.917846,"7":1.143704,"8":0.735226,"9":0.964527,"10":0.426436,"11":1.003922,"12":1.187331},"1510":{"1":0.777321,"2":1.319559,"3":0.84213,"4":0.516613,"5":0.272581,"6":1.634098,"7":1.464012,"8":0.732195,"9":1.487943,"10":1.662606,"11":0.8442,"12":0.446742},"1710":{"1":1.917899,"2":0.841548,"3":1.185512,"4":0.877324,"5":0.499808,"6":0.691841,"7":0.5765,"8":1.59725,"9":1.262205,"10":0.606005,"11":0.855764,"12":1.088345},"3395":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0},"3405":{"1":1.0,"2":1.0,"3":1.0,"4":1.0,"5":1.0,"6":1.0,"7":1.0,"8":1.0,"9":1.0,"10":1.0,"11":1.0,"12":1.0}}},"trend":{"81":{"1505":-0.032087,"1507":0.036929,"1510":0.047329,"1710":-0.15,"3395":0.0,"3405":0.0},"82":{"1505":-0.113502,"1507":0.095446,"1510":-0.003541,"1710":-0.090091,"3395":0.0,"3405":0.0},"83":{"1505":0.031536,"1507":0.099598,"1510":0.086388,"1710":-0.029781,"3395":0.0,"3405":0.0},"84":{"1505":0.084313,"1507":0.2,"1510":0.042286,"1710":0.019449,"3395":0.0,"3405":0.0},"85":{"1505":0.0,"1507":0.0,"1510":0.0,"1710":0.0,"3395":0.0,"3405":0.0},"86":{"1505":-0.018817,"1507":0.107668,"1510":0.088266,"1710":-0.013649,"3395":0.0,"3405":0.045901},"88":{"1505":0.047139,"1507":0.079639,"1510":0.052201,"1710":-0.076479,"3395":0.0,"3405":0.0},"89":{"1505":0.024496,"1507":0.168964,"1510":0.121251,"1710":-0.133544,"3395":0.0,"3405":0.0},"90":{"1505":0.025677,"1507":0.057113,"1510":0.173295,"1710":-0.044001,"3395":0.0,"3405":0.0},"91":{"1505":0.085735,"1507":0.008623,"1510":0.073113,"1710":0.010534,"3395":0.0,"3405":0.0},"92":{"1505":-0.015298,"1507":0.147993,"1510":0.2,"1710":-0.15,"3395":0.0,"3405":0.0},"93":{"1505":-0.110693,"1507":0.118092,"1510":0.082792,"1710":-0.064925,"3395":0.0,"3405":0.0},"94":{"1505":0.091032,"1507":0.2,"1510":0.2,"1710":0.068278,"3395":0.0,"3405":0.0}},"annual":{"81":{"1507":{"FY20":4886216.899999999,"FY21":4103519.1,"FY22":4100462.62,"FY23":5390061.119999998,"FY24":4996746.399999999,"FY25":4834023.180000001},"1505":{"FY20":4296980.0600000005,"FY21":4395849.04,"FY22":5276958.019999999,"FY23":5481112.800000001,"FY24":4390700.239999999,"FY25":4171294.9000000004},"1510":{"FY20":1399322.38,"FY21":1419279.14,"FY22":1752901.92,"FY23":1847248.9,"FY24":1790647.3000000003,"FY25":2485227.04},"1710":{"FY20":54692.76,"FY21":45126.17999999999,"FY22":41298.530000000006,"FY23":42180.78,"FY24":29992.0,"FY25":31539.779999999995},"3395":{"FY20":-92224.9,"FY21":-144118.0,"FY22":-74184.56,"FY23":-123983.07999999997,"FY24":-64659.42,"FY25":-73375.7},"3405":{"FY20":-11735.86,"FY21":-2251.7800000000007,"FY22":0.0,"FY23":-4787.4400000000005,"FY24":0.0,"FY25":-4000.0}},"82":{"1507":{"FY20":12937161.94,"FY21":11354839.179999998,"FY22":12400898.32,"FY23":14784200.1,"FY24":16217496.48,"FY25":14821740.280000001},"1505":{"FY20":14677440.120000001,"FY21":17450314.199999996,"FY22":13951349.57,"FY23":13031430.579999998,"FY24":10475344.139999999,"FY25":7888475.5},"1510":{"FY20":3570089.2199999997,"FY21":3397724.3000000007,"FY22":3966504.5300000007,"FY23":4327959.499999999,"FY24":3768049.68,"FY25":3978554.4799999995},"1710":{"FY20":62554.16,"FY21":59345.59999999999,"FY22":61723.48999999999,"FY23":54219.67999999999,"FY24":46713.04000000001,"FY25":73025.34},"3395":{"FY20":-234725.85999999996,"FY21":-155521.53999999998,"FY22":-162533.75999999998,"FY23":-288896.11999999994,"FY24":-169205.12000000002,"FY25":-214181.37999999998},"3405":{"FY20":-42224.86,"FY21":-55138.200000000004,"FY22":-2113.6199999999994,"FY23":-23536.06,"FY24":-10157.82,"FY25":-8000.0}},"83":{"1507":{"FY20":4927549.44,"FY21":4633184.860000001,"FY22":5404716.42,"FY23":5216245.980000001,"FY24":6294503.059999999,"FY25":3558078.04},"1505":{"FY20":1163509.08,"FY21":1330699.5399999996,"FY22":1677331.0399999996,"FY23":1730627.0199999998,"FY24":1551315.4799999997,"FY25":1361266.3199999998},"1510":{"FY20":359941.97999999986,"FY21":269996.13999999996,"FY22":513532.73000000004,"FY23":699601.3399999999,"FY24":447443.7199999999,"FY25":138337.80000000002},"1710":{"FY20":19173.48,"FY21":27640.460000000003,"FY22":29916.579999999998,"FY23":17245.84,"FY24":17991.2,"FY25":12834.14},"3395":{"FY20":-16188.160000000002,"FY21":-12910.139999999996,"FY22":-48230.420000000006,"FY23":910.0999999999992,"FY24":-35454.1,"FY25":-18894.039999999994},"3405":{"FY20":0.0,"FY21":-8046.719999999999,"FY22":0.0,"FY23":0.0,"FY24":0.0,"FY25":-9176.36}},"84":{"1507":{"FY20":713869.24,"FY21":755751.0599999999,"FY22":687267.9999999999,"FY23":824837.8799999999,"FY24":1361638.28,"FY25":1082682.6799999997},"1505":{"FY20":565492.0,"FY21":484586.54,"FY22":672232.4100000001,"FY23":662870.5799999998,"FY24":717590.1,"FY25":527670.8},"1510":{"FY20":296219.86,"FY21":231319.69999999998,"FY22":322001.39999999997,"FY23":291794.66000000003,"FY24":307850.84,"FY25":368707.27999999997},"1710":{"FY20":4461.48,"FY21":4621.34,"FY22":3273.7200000000003,"FY23":1458.5200000000004,"FY24":2239.5,"FY25":22590.039999999997},"3395":{"FY20":-26857.239999999998,"FY21":-7449.52,"FY22":-63797.62000000001,"FY23":-18499.859999999997,"FY24":-24349.820000000003,"FY25":-29773.500000000007},"3405":{"FY20":-1477.54,"FY21":-6902.28,"FY22":0.0,"FY23":0.0,"FY24":-1879.3,"FY25":-9725.8}},"85":{},"86":{"1507":{"FY20":24437816.939999998,"FY21":24018962.92,"FY22":27510361.239999995,"FY23":32515893.36,"FY24":35064283.32,"FY25":28017791.499999993},"1505":{"FY20":37697649.82,"FY21":41716815.32000001,"FY22":40679979.85999999,"FY23":40991407.74,"FY24":38083204.48,"FY25":38399946.85999999},"1510":{"FY20":5932979.42,"FY21":6028991.479999999,"FY22":6356228.310000001,"FY23":7667484.959999999,"FY24":8020521.16,"FY25":8298322.54},"1710":{"FY20":130636.45999999998,"FY21":145335.14,"FY22":152924.13,"FY23":141327.28000000003,"FY24":135836.98,"FY25":152262.04},"3395":{"FY20":-514819.77999999997,"FY21":-270525.80000000005,"FY22":-371986.00000000006,"FY23":-748107.4999999999,"FY24":-503366.48,"FY25":-360144.93},"3405":{"FY20":13473.740000000003,"FY21":-90873.79,"FY22":14092.199999999999,"FY23":-56274.92,"FY24":-102971.36,"FY25":-8656.619999999999}},"88":{"1507":{"FY20":1561350.48,"FY21":1887704.88,"FY22":2317816.08,"FY23":2315251.4000000004,"FY24":2383003.04,"FY25":2806653.12},"1505":{"FY20":1251641.08,"FY21":1355613.7000000002,"FY22":1541351.86,"FY23":1699760.4000000004,"FY24":1630850.3199999998,"FY25":1578939.1599999997},"1510":{"FY20":15812.36,"FY21":20274.6,"FY22":34527.62,"FY23":43470.34000000001,"FY24":24210.5,"FY25":21820.539999999997},"1710":{"FY20":23839.48,"FY21":21420.440000000002,"FY22":19743.66,"FY23":17741.84,"FY24":16825.18,"FY25":22024.180000000004},"3395":{"FY20":-18230.52,"FY21":-25899.179999999997,"FY22":-10812.469999999996,"FY23":-51021.64000000001,"FY24":-25044.539999999997,"FY25":-16786.54},"3405":{"FY20":-836.36,"FY21":0.0,"FY22":0.0,"FY23":-5099.52,"FY24":-4000.0,"FY25":0.0}},"89":{"1507":{"FY20":4363870.22,"FY21":4898517.600000001,"FY22":5604875.640000001,"FY23":8262885.919999998,"FY24":8182093.320000001,"FY25":6696314.380000001},"1505":{"FY20":3676299.6,"FY21":4320434.659999999,"FY22":4054230.91,"FY23":4294623.3,"FY24":4272768.640000001,"FY25":4349033.16},"1510":{"FY20":2189146.9400000004,"FY21":2336851.12,"FY22":2400447.2,"FY23":2842931.1599999997,"FY24":3232195.5,"FY25":3746526.44},"1710":{"FY20":404819.5800000001,"FY21":234136.56000000006,"FY22":203725.71000000002,"FY23":300259.42,"FY24":163720.36000000002,"FY25":245198.75999999998},"3395":{"FY20":-56588.060000000005,"FY21":-282167.36,"FY22":-49346.05000000001,"FY23":-84867.14000000003,"FY24":-124904.73999999999,"FY25":-130922.66},"3405":{"FY20":-9397.580000000002,"FY21":-4007.16,"FY22":-6429.91,"FY23":-14581.099999999999,"FY24":-400.0,"FY25":0.0}},"90":{"1507":{"FY20":46397521.07999999,"FY21":42776905.02,"FY22":51138430.38,"FY23":58838388.059999995,"FY24":57270965.78,"FY25":55541666.36},"1505":{"FY20":45343450.64000001,"FY21":46407880.1,"FY22":50387939.309999995,"FY23":54291895.19999999,"FY24":52396549.49999999,"FY25":49888961.28},"1510":{"FY20":7061990.86,"FY21":6326186.6,"FY22":7452304.619999999,"FY23":9288996.76,"FY24":11189914.700000003,"FY25":9777265.839999998},"1710":{"FY20":279414.26000000007,"FY21":250795.3,"FY22":281224.26,"FY23":350588.19999999995,"FY24":247537.1,"FY25":324487.61999999994},"3395":{"FY20":-1016325.5799999998,"FY21":-651043.9600000001,"FY22":-610148.9500000001,"FY23":-763951.5199999999,"FY24":-473056.42,"FY25":-982886.1000000001},"3405":{"FY20":-156512.84,"FY21":-132847.22000000003,"FY22":25127.200000000004,"FY23":-92619.2,"FY24":-12915.36,"FY25":-94300.04000000001}},"91":{"1507":{"FY20":1613536.2199999997,"FY21":1524284.4199999995,"FY22":2032336.2400000005,"FY23":2047793.46,"FY24":1810133.2799999998,"FY25":1554554.06},"1505":{"FY20":1007551.4000000001,"FY21":1147083.2,"FY22":1385094.7600000005,"FY23":1716593.9800000002,"FY24":1568264.4400000002,"FY25":1385440.7399999998},"1510":{"FY20":371972.86,"FY21":477376.97999999986,"FY22":605949.81,"FY23":498716.83999999997,"FY24":543764.34,"FY25":820754.2799999999},"1710":{"FY20":20821.1,"FY21":27453.2,"FY22":23473.18,"FY23":26690.36,"FY24":24129.239999999998,"FY25":21089.340000000004},"3395":{"FY20":-34147.72,"FY21":-20128.920000000002,"FY22":-31500.979999999996,"FY23":-28958.740000000013,"FY24":-60994.61999999999,"FY25":-52006.560000000005},"3405":{"FY20":-1379.62,"FY21":-5222.62,"FY22":0.0,"FY23":-1543.64,"FY24":-4121.62,"FY25":-1690.86}},"92":{"1507":{"FY20":588610.2000000001,"FY21":697073.5,"FY22":763713.7600000002,"FY23":1079420.7399999998,"FY24":1061720.3400000003,"FY25":917043.9600000001},"1505":{"FY20":389795.62,"FY21":228394.53999999998,"FY22":244264.82999999996,"FY23":252046.48000000004,"FY24":260549.69999999998,"FY25":149981.96},"1510":{"FY20":0.0,"FY21":0.0,"FY22":163.95999999999998,"FY23":23449.1,"FY24":28491.38,"FY25":10077.080000000002},"1710":{"FY20":3045.3,"FY21":1829.18,"FY22":2675.0499999999997,"FY23":2009.94,"FY24":816.5599999999998,"FY25":1048.0},"3395":{"FY20":-9572.899999999998,"FY21":-8937.4,"FY22":-5100.08,"FY23":-6877.100000000001,"FY24":-6874.42,"FY25":-6677.379999999999},"3405":{"FY20":0.0,"FY21":-1545.46,"FY22":0.0,"FY23":-7121.4,"FY24":0.0,"FY25":0.0}},"93":{"1507":{"FY20":1147913.1,"FY21":852540.76,"FY22":1177068.86,"FY23":1452993.2799999998,"FY24":1503960.7799999998,"FY25":1720825.28},"1505":{"FY20":1027130.4600000002,"FY21":1271931.64,"FY22":1020645.2599999999,"FY23":1116555.4799999997,"FY24":768254.6599999998,"FY25":587104.98},"1510":{"FY20":308275.62,"FY21":411245.6599999999,"FY22":434374.34,"FY23":662538.64,"FY24":480451.6000000001,"FY25":634823.14},"1710":{"FY20":65365.72,"FY21":2787.0,"FY22":3241.0,"FY23":4228.0,"FY24":3602.0,"FY25":3531.0},"3395":{"FY20":-52788.36000000001,"FY21":-13583.38,"FY22":-16343.169999999998,"FY23":-5254.28,"FY24":-17607.800000000003,"FY25":-15149.300000000001},"3405":{"FY20":-267.3,"FY21":-12422.08,"FY22":0.0,"FY23":-460.2,"FY24":0.0,"FY25":0.0}},"94":{"1507":{"FY20":537729.84,"FY21":463982.00000000006,"FY22":621324.2199999999,"FY23":759585.2,"FY24":973785.5399999998,"FY25":811365.82},"1505":{"FY20":203386.86000000002,"FY21":222680.40000000002,"FY22":206605.21,"FY23":281752.8799999999,"FY24":276299.12,"FY25":101234.23999999999},"1510":{"FY20":27098.88,"FY21":22019.22,"FY22":30827.149999999998,"FY23":5801.999999999999,"FY24":22928.320000000003,"FY25":29825.520000000004},"1710":{"FY20":879.0,"FY21":1083.0,"FY22":1483.0,"FY23":1079.0,"FY24":1201.0,"FY25":561.0},"3395":{"FY20":-23054.719999999998,"FY21":-4304.099999999999,"FY22":-3355.0299999999997,"FY23":-6339.28,"FY24":-2195.1,"FY25":-7197.66},"3405":{"FY20":0.0,"FY21":-662.6,"FY22":0.0,"FY23":0.0,"FY24":0.0,"FY25":0.0}}},"hist":{"81":{"1505":{"2022-07":545107.78,"2022-08":604383.68,"2022-09":498676.84,"2022-10":539619.32,"2022-11":513784.2,"2022-12":361743.64,"2023-01":335659.04,"2023-02":394336.32,"2023-03":594626.22,"2023-04":350931.72,"2023-05":350120.08,"2023-06":392123.96,"2023-07":323802.82,"2023-08":338251.26,"2023-09":398410.96,"2023-10":369817.92,"2023-11":411884.26,"2023-12":316525.0,"2024-01":327252.34,"2024-02":355683.26,"2024-03":409083.86,"2024-04":357872.6,"2024-05":436678.8,"2024-06":345437.16,"2025-07":375318.7,"2025-08":390024.98,"2025-09":400749.94,"2025-10":362369.26,"2025-11":424436.8,"2025-12":320356.28,"2026-01":326980.76,"2026-02":316322.32,"2026-03":346365.2,"2026-04":248838.06,"2026-05":320913.9,"2026-06":338618.7},"1507":{"2022-07":445796.64,"2022-08":361326.98,"2022-09":449575.22,"2022-10":416298.3,"2022-11":456275.9,"2022-12":427368.96,"2023-01":288235.24,"2023-02":455567.58,"2023-03":438802.4,"2023-04":359194.34,"2023-05":471641.62,"2023-06":819977.94,"2023-07":282884.14,"2023-08":560442.1,"2023-09":410567.0,"2023-10":464945.32,"2023-11":454697.48,"2023-12":516385.02,"2024-01":378870.26,"2024-02":437467.2,"2024-03":396151.98,"2024-04":334487.18,"2024-05":407949.24,"2024-06":351899.48,"2025-07":547665.06,"2025-08":393014.36,"2025-09":463578.8,"2025-10":787974.24,"2025-11":473331.44,"2025-12":331951.22,"2026-01":239284.5,"2026-02":295112.24,"2026-03":343140.12,"2026-04":270603.5,"2026-05":396745.88,"2026-06":291621.82},"1510":{"2022-07":127064.32,"2022-08":109327.68,"2022-09":148683.84,"2022-10":146677.72,"2022-11":138186.98,"2022-12":183209.74,"2023-01":167019.48,"2023-02":176797.5,"2023-03":151679.22,"2023-04":208303.94,"2023-05":123388.46,"2023-06":166910.02,"2023-07":150173.5,"2023-08":129126.34,"2023-09":113520.66,"2023-10":128212.02,"2023-11":122110.42,"2023-12":153798.16,"2024-01":135896.18,"2024-02":137362.24,"2024-03":165248.24,"2024-04":133712.72,"2024-05":247439.86,"2024-06":174046.96,"2025-07":165816.88,"2025-08":194726.86,"2025-09":226778.0,"2025-10":200925.44,"2025-11":234047.06,"2025-12":234879.46,"2026-01":242356.0,"2026-02":184573.22,"2026-03":199622.38,"2026-04":197802.04,"2026-05":206122.76,"2026-06":197576.94},"1710":{"2022-07":4415.24,"2022-08":3600.5,"2022-09":3800.46,"2022-10":3496.04,"2022-11":3288.18,"2022-12":3104.0,"2023-01":2501.24,"2023-02":3241.0,"2023-03":3188.2,"2023-04":3964.66,"2023-05":3263.0,"2023-06":4318.26,"2023-07":3662.14,"2023-08":3244.52,"2023-09":-772.32,"2023-10":3387.46,"2023-11":2646.52,"2023-12":3030.5,"2024-01":2163.12,"2024-02":2372.64,"2024-03":2889.84,"2024-04":2250.0,"2024-05":2462.86,"2024-06":2654.72,"2025-07":2161.88,"2025-08":2332.06,"2025-09":3198.64,"2025-10":2559.46,"2025-11":2496.72,"2025-12":3736.2,"2026-01":2664.82,"2026-02":2090.2,"2026-03":2746.9,"2026-04":2208.66,"2026-05":3069.24,"2026-06":2275.0},"3395":{"2022-07":-7378.960000000001,"2022-08":-2961.52,"2022-09":-7744.539999999999,"2022-10":-1097.76,"2022-11":-8541.1,"2022-12":-5286.62,"2023-01":-46586.899999999994,"2023-02":-5901.18,"2023-03":-8042.34,"2023-04":-3017.9799999999996,"2023-05":-21440.48,"2023-06":-5983.7,"2023-07":-1576.2599999999998,"2023-08":-17531.96,"2023-09":-1744.84,"2023-10":-1647.2800000000002,"2023-11":-1953.44,"2023-12":-4657.06,"2024-01":-7633.0599999999995,"2024-02":-0.02,"2024-03":-5695.08,"2024-04":-10459.02,"2024-05":-1213.52,"2024-06":-10547.88,"2025-07":-2149.22,"2025-08":-4271.38,"2025-09":-189.48000000000002,"2025-10":-15076.76,"2025-11":-12962.32,"2025-12":-16975.12,"2026-01":-789.9200000000001,"2026-02":-8845.26,"2026-03":-4899.84,"2026-04":-2932.74,"2026-05":-2828.74,"2026-06":-1454.92},"3405":{"2022-07":0.0,"2022-08":0.0,"2022-09":0.0,"2022-10":0.0,"2022-11":0.0,"2022-12":0.0,"2023-01":-3000.0,"2023-02":0.0,"2023-03":-1787.44,"2023-04":0.0,"2023-05":0.0,"2023-06":0.0,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":0.0,"2024-05":0.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":-4000.0,"2026-06":0.0}},"82":{"1505":{"2022-07":1261110.18,"2022-08":1325398.84,"2022-09":1137991.66,"2022-10":1362894.4,"2022-11":1480351.54,"2022-12":1020396.24,"2023-01":965896.9,"2023-02":930123.9,"2023-03":1196526.26,"2023-04":749762.02,"2023-05":806748.26,"2023-06":794230.38,"2023-07":717534.92,"2023-08":815115.7,"2023-09":1089928.92,"2023-10":968360.6,"2023-11":1202093.52,"2023-12":686793.94,"2024-01":941166.1,"2024-02":771467.7,"2024-03":1087049.66,"2024-04":760109.56,"2024-05":772911.48,"2024-06":662812.04,"2025-07":827329.18,"2025-08":620151.16,"2025-09":707169.36,"2025-10":674491.66,"2025-11":744445.68,"2025-12":514232.92,"2026-01":713908.64,"2026-02":645278.32,"2026-03":658640.78,"2026-04":566386.92,"2026-05":577016.7,"2026-06":639424.18},"1507":{"2022-07":1017892.14,"2022-08":1397896.22,"2022-09":1320402.2,"2022-10":1083730.52,"2022-11":1353500.6,"2022-12":1002025.2,"2023-01":991947.6,"2023-02":805532.64,"2023-03":1668854.62,"2023-04":1022468.96,"2023-05":1414682.36,"2023-06":1705267.04,"2023-07":1273185.86,"2023-08":1610027.6,"2023-09":1263691.56,"2023-10":1245128.22,"2023-11":1491310.0,"2023-12":1174598.28,"2024-01":863096.66,"2024-02":1675721.16,"2024-03":1582545.36,"2024-04":1257409.02,"2024-05":1445884.76,"2024-06":1334898.0,"2025-07":1526448.74,"2025-08":1298007.06,"2025-09":1398391.98,"2025-10":1317487.5,"2025-11":1347978.34,"2025-12":844037.0,"2026-01":766338.98,"2026-02":850305.42,"2026-03":1520779.0,"2026-04":1230774.6,"2026-05":1254400.34,"2026-06":1466791.32},"1510":{"2022-07":321070.26,"2022-08":237233.46,"2022-09":344563.88,"2022-10":352478.82,"2022-11":309419.22,"2022-12":430908.64,"2023-01":357812.28,"2023-02":433916.6,"2023-03":408340.78,"2023-04":404552.5,"2023-05":322717.88,"2023-06":404945.18,"2023-07":363165.58,"2023-08":320618.04,"2023-09":283387.8,"2023-10":333552.44,"2023-11":255307.76,"2023-12":354005.5,"2024-01":219276.06,"2024-02":225297.86,"2024-03":331672.52,"2024-04":222302.4,"2024-05":483985.76,"2024-06":375477.96,"2025-07":321996.66,"2025-08":330570.88,"2025-09":315549.6,"2025-10":360013.22,"2025-11":380078.06,"2025-12":344516.9,"2026-01":393708.4,"2026-02":314901.22,"2026-03":312783.08,"2026-04":302117.42,"2026-05":304299.28,"2026-06":298019.76},"1710":{"2022-07":4588.36,"2022-08":4922.94,"2022-09":4931.32,"2022-10":4837.78,"2022-11":5190.72,"2022-12":3919.3,"2023-01":3799.0,"2023-02":3594.36,"2023-03":4597.48,"2023-04":4406.0,"2023-05":5034.0,"2023-06":4398.42,"2023-07":4663.82,"2023-08":4099.02,"2023-09":3993.52,"2023-10":4499.68,"2023-11":4604.6,"2023-12":2751.6,"2024-01":3274.7,"2024-02":3236.3,"2024-03":3976.76,"2024-04":4825.0,"2024-05":3075.22,"2024-06":3712.82,"2025-07":4831.9,"2025-08":2989.32,"2025-09":26833.16,"2025-10":12421.44,"2025-11":5560.48,"2025-12":3285.4,"2026-01":1636.0,"2026-02":2267.04,"2026-03":3225.2,"2026-04":2870.62,"2026-05":3558.78,"2026-06":3546.0},"3395":{"2022-07":-16567.52,"2022-08":-6215.06,"2022-09":-4250.0,"2022-10":-22236.3,"2022-11":-49908.479999999996,"2022-12":-14812.900000000001,"2023-01":-17137.4,"2023-02":-23857.92,"2023-03":-6710.06,"2023-04":-73025.9,"2023-05":-22622.82,"2023-06":-31551.760000000002,"2023-07":-12318.88,"2023-08":-7468.64,"2023-09":-9217.42,"2023-10":-5336.74,"2023-11":-5335.54,"2023-12":-13970.48,"2024-01":-24820.18,"2024-02":-9383.82,"2024-03":-4969.62,"2024-04":-37627.42,"2024-05":-17954.6,"2024-06":-20801.78,"2025-07":-41447.32,"2025-08":-32715.18,"2025-09":-6664.9,"2025-10":-11986.68,"2025-11":-6963.300000000001,"2025-12":-12634.86,"2026-01":-24362.76,"2026-02":-12539.36,"2026-03":-12440.620000000003,"2026-04":-9228.1,"2026-05":-19202.46,"2026-06":-23995.84},"3405":{"2022-07":-1200.0,"2022-08":-8000.0,"2022-09":-1753.22,"2022-10":-3333.44,"2022-11":-736.04,"2022-12":-2943.64,"2023-01":0.0,"2023-02":0.0,"2023-03":-2588.72,"2023-04":-2981.0,"2023-05":0.0,"2023-06":0.0,"2023-07":-900.0,"2023-08":-1895.28,"2023-09":-870.0,"2023-10":-1034.0,"2023-11":0.0,"2023-12":0.0,"2024-01":-764.0,"2024-02":0.0,"2024-03":0.0,"2024-04":-4694.54,"2024-05":0.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":-4000.0,"2026-05":-4000.0,"2026-06":0.0}},"83":{"1505":{"2022-07":161499.2,"2022-08":214602.84,"2022-09":177381.74,"2022-10":139631.88,"2022-11":123329.76,"2022-12":106431.82,"2023-01":135299.44,"2023-02":130072.96,"2023-03":121644.06,"2023-04":78307.58,"2023-05":160939.22,"2023-06":181486.52,"2023-07":83788.84,"2023-08":150971.16,"2023-09":152562.66,"2023-10":104401.68,"2023-11":195053.0,"2023-12":109016.96,"2024-01":85872.98,"2024-02":162634.32,"2024-03":138759.04,"2024-04":107287.28,"2024-05":122268.78,"2024-06":138698.78,"2025-07":104977.06,"2025-08":119182.96,"2025-09":99614.68,"2025-10":102873.18,"2025-11":136307.46,"2025-12":66143.16,"2026-01":82887.66,"2026-02":117082.72,"2026-03":124182.0,"2026-04":72569.04,"2026-05":112162.6,"2026-06":223283.8},"1507":{"2022-07":426534.1,"2022-08":460883.98,"2022-09":558591.86,"2022-10":510791.52,"2022-11":547895.34,"2022-12":538519.46,"2023-01":268668.36,"2023-02":407995.34,"2023-03":384509.46,"2023-04":302532.3,"2023-05":411835.86,"2023-06":397488.4,"2023-07":407297.48,"2023-08":542059.26,"2023-09":486261.44,"2023-10":476598.58,"2023-11":540511.62,"2023-12":390054.04,"2024-01":428236.42,"2024-02":644105.58,"2024-03":451211.54,"2024-04":642512.64,"2024-05":570248.44,"2024-06":715406.02,"2025-07":650680.9,"2025-08":390197.58,"2025-09":283761.4,"2025-10":307488.16,"2025-11":246002.54,"2025-12":218036.52,"2026-01":192561.04,"2026-02":172516.44,"2026-03":379531.74,"2026-04":186371.56,"2026-05":319307.12,"2026-06":211623.04},"1510":{"2022-07":74196.38,"2022-08":59835.24,"2022-09":70873.24,"2022-10":56843.24,"2022-11":62387.0,"2022-12":70984.04,"2023-01":51429.7,"2023-02":49251.24,"2023-03":54780.94,"2023-04":38678.88,"2023-05":39343.88,"2023-06":70997.56,"2023-07":54989.72,"2023-08":66766.5,"2023-09":38754.56,"2023-10":57230.72,"2023-11":37901.9,"2023-12":46643.48,"2024-01":34544.34,"2024-02":33574.82,"2024-03":36432.78,"2024-04":17034.44,"2024-05":12260.58,"2024-06":11309.88,"2025-07":8137.06,"2025-08":13133.46,"2025-09":8090.3,"2025-10":10437.22,"2025-11":10765.96,"2025-12":9592.76,"2026-01":12189.24,"2026-02":13940.6,"2026-03":10208.54,"2026-04":12341.1,"2026-05":15783.66,"2026-06":13717.9},"1710":{"2022-07":1772.16,"2022-08":1549.34,"2022-09":1437.98,"2022-10":1217.68,"2022-11":1221.8,"2022-12":1551.32,"2023-01":1238.82,"2023-02":1472.34,"2023-03":1304.46,"2023-04":1459.76,"2023-05":1388.0,"2023-06":1632.18,"2023-07":1443.1,"2023-08":1341.36,"2023-09":1090.6,"2023-10":1792.32,"2023-11":2949.02,"2023-12":1176.02,"2024-01":1134.08,"2024-02":1607.1,"2024-03":1476.56,"2024-04":1230.0,"2024-05":1314.9,"2024-06":1436.14,"2025-07":1099.58,"2025-08":1116.04,"2025-09":1402.96,"2025-10":1492.64,"2025-11":1043.82,"2025-12":979.76,"2026-01":757.0,"2026-02":778.06,"2026-03":1344.96,"2026-04":910.24,"2026-05":1101.08,"2026-06":808.0},"3395":{"2022-07":-2390.74,"2022-08":-884.4200000000001,"2022-09":-989.36,"2022-10":4.1,"2022-11":-3867.74,"2022-12":3798.7799999999997,"2023-01":-1156.04,"2023-02":15794.240000000002,"2023-03":-2327.44,"2023-04":-1650.84,"2023-05":-4970.54,"2023-06":-449.9,"2023-07":-1640.0,"2023-08":-3199.32,"2023-09":-4687.64,"2023-10":-1316.0,"2023-11":-433.28,"2023-12":-626.28,"2024-01":-1083.36,"2024-02":-12145.32,"2024-03":-837.22,"2024-04":-1053.78,"2024-05":-7710.02,"2024-06":-721.88,"2025-07":-1516.32,"2025-08":-6138.54,"2025-09":-3054.36,"2025-10":-2022.42,"2025-11":-3559.92,"2025-12":-804.56,"2026-01":-234.92000000000002,"2026-02":-490.91999999999996,"2026-03":-54.760000000000005,"2026-04":-501.02,"2026-05":-516.3,"2026-06":0.0},"3405":{"2022-07":0.0,"2022-08":0.0,"2022-09":0.0,"2022-10":0.0,"2022-11":0.0,"2022-12":0.0,"2023-01":0.0,"2023-02":0.0,"2023-03":0.0,"2023-04":0.0,"2023-05":0.0,"2023-06":0.0,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":0.0,"2024-05":0.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":-9176.36,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"84":{"1505":{"2022-07":38569.66,"2022-08":65183.46,"2022-09":42409.16,"2022-10":63132.3,"2022-11":57926.0,"2022-12":77189.48,"2023-01":39900.92,"2023-02":27057.7,"2023-03":69508.62,"2023-04":22186.44,"2023-05":72919.14,"2023-06":86887.7,"2023-07":53746.3,"2023-08":76023.44,"2023-09":55555.32,"2023-10":55605.36,"2023-11":66383.38,"2023-12":71794.42,"2024-01":48926.26,"2024-02":48364.08,"2024-03":57490.24,"2024-04":51664.2,"2024-05":47760.9,"2024-06":84276.2,"2025-07":34883.8,"2025-08":69347.66,"2025-09":48061.1,"2025-10":50082.24,"2025-11":56478.56,"2025-12":33764.84,"2026-01":41533.92,"2026-02":31259.68,"2026-03":45279.44,"2026-04":34123.06,"2026-05":39167.76,"2026-06":43688.74},"1507":{"2022-07":52716.76,"2022-08":98066.74,"2022-09":66246.22,"2022-10":42568.18,"2022-11":99870.26,"2022-12":44029.58,"2023-01":22259.44,"2023-02":55906.78,"2023-03":117572.36,"2023-04":40513.72,"2023-05":47774.22,"2023-06":137313.62,"2023-07":129607.62,"2023-08":107512.58,"2023-09":91316.68,"2023-10":116756.08,"2023-11":122977.5,"2023-12":121084.22,"2024-01":70075.96,"2024-02":83553.16,"2024-03":87959.78,"2024-04":122988.2,"2024-05":185808.46,"2024-06":121998.04,"2025-07":71557.12,"2025-08":59888.78,"2025-09":110849.62,"2025-10":107469.94,"2025-11":98575.94,"2025-12":180517.72,"2026-01":33265.18,"2026-02":62664.74,"2026-03":89057.04,"2026-04":73103.44,"2026-05":110055.12,"2026-06":85678.04},"1510":{"2022-07":23901.16,"2022-08":19086.5,"2022-09":24869.72,"2022-10":23448.92,"2022-11":16349.9,"2022-12":37285.5,"2023-01":21632.44,"2023-02":24929.58,"2023-03":27369.64,"2023-04":27241.12,"2023-05":17933.7,"2023-06":27746.48,"2023-07":24951.88,"2023-08":30169.5,"2023-09":23720.94,"2023-10":22872.88,"2023-11":17493.64,"2023-12":26187.02,"2024-01":55959.46,"2024-02":16782.22,"2024-03":21721.0,"2024-04":15357.56,"2024-05":26869.5,"2024-06":25765.24,"2025-07":21685.86,"2025-08":23014.08,"2025-09":28904.02,"2025-10":29478.84,"2025-11":38752.46,"2025-12":29027.88,"2026-01":47771.32,"2026-02":28209.94,"2026-03":35004.4,"2026-04":29569.4,"2026-05":29636.36,"2026-06":27652.72},"1710":{"2022-07":262.48,"2022-08":333.04,"2022-09":237.94,"2022-10":384.02,"2022-11":-18.6,"2022-12":44.98,"2023-01":-190.54,"2023-02":-41.02,"2023-03":80.42,"2023-04":182.28,"2023-05":50.0,"2023-06":133.52,"2023-07":317.28,"2023-08":328.08,"2023-09":34.78,"2023-10":337.9,"2023-11":280.04,"2023-12":220.04,"2024-01":9.24,"2024-02":-13.72,"2024-03":379.68,"2024-04":361.0,"2024-05":-165.28,"2024-06":150.46,"2025-07":225.74,"2025-08":119.12,"2025-09":18201.68,"2025-10":185.9,"2025-11":83.46,"2025-12":785.74,"2026-01":1112.5,"2026-02":298.6,"2026-03":813.84,"2026-04":157.86,"2026-05":288.6,"2026-06":317.0},"3395":{"2022-07":0.0,"2022-08":-384.52,"2022-09":-2260.56,"2022-10":-2008.3600000000001,"2022-11":0.0,"2022-12":-825.4399999999999,"2023-01":0.0,"2023-02":0.0,"2023-03":0.0,"2023-04":-11040.0,"2023-05":-1980.92,"2023-06":-0.06,"2023-07":-880.96,"2023-08":-1194.5,"2023-09":-4059.24,"2023-10":-67.12,"2023-11":-7520.26,"2023-12":0.0,"2024-01":0.0,"2024-02":-7737.46,"2024-03":0.0,"2024-04":-2674.2,"2024-05":-216.08,"2024-06":0.0,"2025-07":-808.52,"2025-08":-1887.36,"2025-09":-3019.84,"2025-10":-9893.04,"2025-11":-4527.9,"2025-12":-1648.6399999999999,"2026-01":0.0,"2026-02":-28.06,"2026-03":0.0,"2026-04":-3306.3599999999997,"2026-05":0.0,"2026-06":-4653.78},"3405":{"2022-07":0.0,"2022-08":0.0,"2022-09":0.0,"2022-10":0.0,"2022-11":0.0,"2022-12":0.0,"2023-01":0.0,"2023-02":0.0,"2023-03":0.0,"2023-04":0.0,"2023-05":0.0,"2023-06":0.0,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":-1879.3,"2024-05":0.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":-9725.8,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"85":{"1505":{},"1507":{},"1510":{},"1710":{},"3395":{},"3405":{}},"86":{"1505":{"2022-07":3721132.74,"2022-08":4167632.26,"2022-09":3571100.9,"2022-10":3611831.64,"2022-11":4051807.08,"2022-12":2874661.04,"2023-01":2951470.78,"2023-02":3149093.36,"2023-03":3740116.82,"2023-04":2568575.9,"2023-05":3538128.0,"2023-06":3045857.22,"2023-07":3063259.1,"2023-08":3124303.68,"2023-09":3155516.96,"2023-10":3598461.98,"2023-11":4056898.84,"2023-12":2994133.98,"2024-01":2927594.9,"2024-02":3172764.4,"2024-03":3128457.56,"2024-04":3042951.48,"2024-05":3235857.92,"2024-06":2583003.68,"2025-07":3108627.44,"2025-08":2858804.94,"2025-09":3201005.74,"2025-10":3363807.94,"2025-11":3777252.66,"2025-12":3060248.94,"2026-01":2780719.24,"2026-02":2955517.18,"2026-03":3130526.62,"2026-04":2877411.42,"2026-05":3491120.26,"2026-06":3794904.48},"1507":{"2022-07":2316630.12,"2022-08":2828375.56,"2022-09":2463741.96,"2022-10":2214604.76,"2022-11":2638631.28,"2022-12":2555835.78,"2023-01":1422221.12,"2023-02":2290740.46,"2023-03":3391305.92,"2023-04":2724285.46,"2023-05":3748484.18,"2023-06":3921036.76,"2023-07":2421422.06,"2023-08":2729582.86,"2023-09":3027413.8,"2023-10":3158825.12,"2023-11":3314123.78,"2023-12":3132933.96,"2024-01":2214040.8,"2024-02":3183806.96,"2024-03":3324443.76,"2024-04":2590513.42,"2024-05":2960061.38,"2024-06":3007115.42,"2025-07":2215957.84,"2025-08":2287882.58,"2025-09":2436993.36,"2025-10":2550161.98,"2025-11":2349762.62,"2025-12":2505034.76,"2026-01":1767587.6,"2026-02":2380058.94,"2026-03":2484903.82,"2026-04":1910286.9,"2026-05":2627475.04,"2026-06":2501686.06},"1510":{"2022-07":478196.32,"2022-08":442333.56,"2022-09":686260.52,"2022-10":606166.36,"2022-11":558477.16,"2022-12":657907.6,"2023-01":582416.06,"2023-02":727688.52,"2023-03":842639.64,"2023-04":814360.94,"2023-05":629869.16,"2023-06":641169.12,"2023-07":680171.38,"2023-08":697662.64,"2023-09":711923.94,"2023-10":606295.7,"2023-11":671761.76,"2023-12":699854.92,"2024-01":591815.9,"2024-02":561357.34,"2024-03":632443.72,"2024-04":537847.94,"2024-05":916212.98,"2024-06":713172.94,"2025-07":621378.1,"2025-08":866355.56,"2025-09":738453.72,"2025-10":726025.36,"2025-11":790681.4,"2025-12":648846.52,"2026-01":760019.84,"2026-02":623797.42,"2026-03":623801.08,"2026-04":635378.46,"2026-05":663279.36,"2026-06":600305.72},"1710":{"2022-07":14252.76,"2022-08":13991.78,"2022-09":14262.76,"2022-10":12172.52,"2022-11":11776.7,"2022-12":12612.6,"2023-01":8063.08,"2023-02":10782.7,"2023-03":7620.14,"2023-04":12308.4,"2023-05":11966.0,"2023-06":11517.84,"2023-07":13133.06,"2023-08":11829.92,"2023-09":10589.5,"2023-10":14149.46,"2023-11":12044.14,"2023-12":11800.14,"2024-01":8377.86,"2024-02":10465.06,"2024-03":12256.16,"2024-04":11217.0,"2024-05":9111.0,"2024-06":10863.68,"2025-07":9498.4,"2025-08":9491.42,"2025-09":13144.56,"2025-10":12022.0,"2025-11":10976.28,"2025-12":11861.28,"2026-01":9831.0,"2026-02":13168.0,"2026-03":22710.08,"2026-04":12186.14,"2026-05":15071.88,"2026-06":12301.0},"3395":{"2022-07":-14052.2,"2022-08":-33863.3,"2022-09":-33930.1,"2022-10":-21086.12,"2022-11":-28836.12,"2022-12":-26325.96,"2023-01":-100306.94,"2023-02":-29657.72,"2023-03":-28358.28,"2023-04":-8571.74,"2023-05":-165644.4,"2023-06":-257474.62,"2023-07":-98241.12,"2023-08":-12927.24,"2023-09":-14332.099999999999,"2023-10":-22857.34,"2023-11":-147014.08000000002,"2023-12":-13037.72,"2024-01":-47371.92,"2024-02":-33094.98,"2024-03":-20654.42,"2024-04":-22749.38,"2024-05":-44211.4,"2024-06":-26874.78,"2025-07":-32473.46,"2025-08":-30934.74,"2025-09":-26139.72,"2025-10":-28573.62,"2025-11":-41611.02,"2025-12":-26700.16,"2026-01":-26789.66,"2026-02":-18031.58,"2026-03":-14477.49,"2026-04":-26566.18,"2026-05":-22359.28,"2026-06":-65488.02},"3405":{"2022-07":0.0,"2022-08":-2426.66,"2022-09":0.0,"2022-10":-5728.54,"2022-11":-2433.12,"2022-12":-1252.6,"2023-01":-8545.46,"2023-02":-4150.52,"2023-03":-8000.0,"2023-04":-1301.56,"2023-05":0.0,"2023-06":-22436.46,"2023-07":-27809.4,"2023-08":0.0,"2023-09":0.0,"2023-10":-32402.519999999997,"2023-11":0.0,"2023-12":0.0,"2024-01":-36907.479999999996,"2024-02":0.0,"2024-03":-840.0,"2024-04":-4000.0,"2024-05":-1011.96,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":-885.54,"2026-02":-6000.0,"2026-03":0.0,"2026-04":-1771.08,"2026-05":0.0,"2026-06":0.0}},"88":{"1505":{"2022-07":104657.12,"2022-08":196794.52,"2022-09":155143.48,"2022-10":128839.7,"2022-11":211316.4,"2022-12":160482.46,"2023-01":127316.6,"2023-02":136427.66,"2023-03":131316.52,"2023-04":91814.96,"2023-05":129692.24,"2023-06":125958.74,"2023-07":116881.62,"2023-08":119898.4,"2023-09":118166.64,"2023-10":149783.3,"2023-11":154483.24,"2023-12":196137.92,"2024-01":112887.88,"2024-02":120718.76,"2024-03":136103.14,"2024-04":143980.0,"2024-05":143129.18,"2024-06":118680.24,"2025-07":163780.8,"2025-08":109937.3,"2025-09":112847.4,"2025-10":144579.1,"2025-11":158998.94,"2025-12":157224.34,"2026-01":116325.26,"2026-02":114928.48,"2026-03":142403.94,"2026-04":61883.42,"2026-05":165657.48,"2026-06":130372.7},"1507":{"2022-07":196941.34,"2022-08":158482.28,"2022-09":257418.68,"2022-10":238777.72,"2022-11":248191.68,"2022-12":181171.98,"2023-01":88888.18,"2023-02":165652.54,"2023-03":226042.84,"2023-04":124047.76,"2023-05":200238.98,"2023-06":229397.42,"2023-07":138252.58,"2023-08":154910.52,"2023-09":187433.08,"2023-10":186512.24,"2023-11":227741.1,"2023-12":233932.4,"2024-01":93610.38,"2024-02":183054.14,"2024-03":213495.56,"2024-04":287790.66,"2024-05":227710.76,"2024-06":248559.62,"2025-07":201143.7,"2025-08":166824.74,"2025-09":160492.7,"2025-10":164617.5,"2025-11":218004.22,"2025-12":175279.48,"2026-01":128628.46,"2026-02":234892.66,"2026-03":297536.5,"2026-04":296353.88,"2026-05":322779.32,"2026-06":440099.96},"1510":{"2022-07":1056.22,"2022-08":4296.48,"2022-09":982.22,"2022-10":1278.26,"2022-11":6595.08,"2022-12":3389.26,"2023-01":3904.5,"2023-02":991.2,"2023-03":4492.56,"2023-04":8237.6,"2023-05":4446.68,"2023-06":3800.28,"2023-07":2471.28,"2023-08":2050.16,"2023-09":1696.78,"2023-10":1638.84,"2023-11":1039.88,"2023-12":1260.28,"2024-01":1184.0,"2024-02":1196.4,"2024-03":5625.3,"2024-04":1751.26,"2024-05":2472.86,"2024-06":1823.46,"2025-07":1077.9,"2025-08":1636.76,"2025-09":919.94,"2025-10":979.1,"2025-11":1344.34,"2025-12":1254.28,"2026-01":1786.58,"2026-02":1521.14,"2026-03":6639.82,"2026-04":1000.3,"2026-05":1637.06,"2026-06":2023.32},"1710":{"2022-07":2028.16,"2022-08":1689.34,"2022-09":1509.98,"2022-10":1217.68,"2022-11":1471.8,"2022-12":1309.32,"2023-01":1190.82,"2023-02":1479.32,"2023-03":1465.46,"2023-04":1395.78,"2023-05":1586.0,"2023-06":1398.18,"2023-07":1558.1,"2023-08":1214.36,"2023-09":1309.6,"2023-10":1477.28,"2023-11":1190.02,"2023-12":1104.0,"2024-01":894.1,"2024-02":1328.1,"2024-03":1541.56,"2024-04":1661.0,"2024-05":1904.9,"2024-06":1642.16,"2025-07":1874.58,"2025-08":1600.04,"2025-09":1740.96,"2025-10":1579.64,"2025-11":2045.8,"2025-12":1834.76,"2026-01":1388.0,"2026-02":1821.08,"2026-03":2124.98,"2026-04":1732.26,"2026-05":2400.08,"2026-06":1882.0},"3395":{"2022-07":-6978.74,"2022-08":-2243.52,"2022-09":-23684.18,"2022-10":-2685.82,"2022-11":-1816.94,"2022-12":-1217.02,"2023-01":-1630.3400000000001,"2023-02":-7114.98,"2023-03":-600.7,"2023-04":0.0,"2023-05":-599.0799999999999,"2023-06":-2450.32,"2023-07":-973.46,"2023-08":-1906.64,"2023-09":-1088.44,"2023-10":-991.26,"2023-11":-400.76,"2023-12":-4062.5999999999995,"2024-01":-1524.26,"2024-02":-657.5,"2024-03":-3402.0600000000004,"2024-04":-138.14,"2024-05":-1191.74,"2024-06":-8707.68,"2025-07":-524.0799999999999,"2025-08":-4578.58,"2025-09":-119.86,"2025-10":-4433.82,"2025-11":-187.72,"2025-12":-594.3199999999999,"2026-01":-1119.22,"2026-02":-3039.94,"2026-03":-78.74,"2026-04":-86.62,"2026-05":-1182.58,"2026-06":-841.06},"3405":{"2022-07":0.0,"2022-08":0.0,"2022-09":0.0,"2022-10":0.0,"2022-11":-1099.52,"2022-12":0.0,"2023-01":0.0,"2023-02":-4000.0,"2023-03":0.0,"2023-04":0.0,"2023-05":0.0,"2023-06":0.0,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":0.0,"2024-05":-4000.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"89":{"1505":{"2022-07":310012.68,"2022-08":403600.24,"2022-09":293641.08,"2022-10":388195.38,"2022-11":417883.14,"2022-12":400166.2,"2023-01":361129.62,"2023-02":347864.74,"2023-03":496794.74,"2023-04":296191.72,"2023-05":303245.56,"2023-06":275898.2,"2023-07":291829.48,"2023-08":293864.98,"2023-09":350022.68,"2023-10":436026.9,"2023-11":383632.9,"2023-12":293811.74,"2024-01":339135.5,"2024-02":396931.54,"2024-03":407610.76,"2024-04":337298.54,"2024-05":410965.9,"2024-06":331637.72,"2025-07":352648.0,"2025-08":351998.52,"2025-09":348577.58,"2025-10":418550.04,"2025-11":530318.32,"2025-12":456433.38,"2026-01":340846.22,"2026-02":362342.16,"2026-03":391716.96,"2026-04":287934.7,"2026-05":262615.6,"2026-06":245051.68},"1507":{"2022-07":409820.96,"2022-08":706844.54,"2022-09":640657.48,"2022-10":366821.78,"2022-11":533891.42,"2022-12":863758.58,"2023-01":305520.4,"2023-02":904995.52,"2023-03":976230.6,"2023-04":716467.7,"2023-05":833903.18,"2023-06":1003973.76,"2023-07":688474.44,"2023-08":745924.26,"2023-09":498267.72,"2023-10":737529.18,"2023-11":855446.14,"2023-12":620765.36,"2024-01":491772.8,"2024-02":866870.3,"2024-03":553886.8,"2024-04":554932.42,"2024-05":855400.22,"2024-06":712823.68,"2025-07":494421.96,"2025-08":736840.82,"2025-09":512695.48,"2025-10":505791.64,"2025-11":515901.24,"2025-12":613311.16,"2026-01":382513.54,"2026-02":482221.48,"2026-03":658425.5,"2026-04":692540.42,"2026-05":581904.88,"2026-06":519746.26},"1510":{"2022-07":198606.38,"2022-08":146625.84,"2022-09":209446.34,"2022-10":240630.64,"2022-11":234217.7,"2022-12":343381.34,"2023-01":260132.18,"2023-02":233212.96,"2023-03":253004.12,"2023-04":254282.06,"2023-05":191922.26,"2023-06":277469.34,"2023-07":254747.56,"2023-08":227842.78,"2023-09":231471.16,"2023-10":284793.92,"2023-11":295348.48,"2023-12":278459.46,"2024-01":245986.36,"2024-02":287655.12,"2024-03":312276.56,"2024-04":205653.46,"2024-05":274020.08,"2024-06":333940.56,"2025-07":268203.72,"2025-08":281001.28,"2025-09":313099.64,"2025-10":281854.14,"2025-11":394945.36,"2025-12":339799.94,"2026-01":429003.12,"2026-02":274131.54,"2026-03":289260.46,"2026-04":315207.02,"2026-05":284126.64,"2026-06":275893.58},"1710":{"2022-07":30116.22,"2022-08":21586.18,"2022-09":27708.44,"2022-10":27597.02,"2022-11":29558.16,"2022-12":24956.98,"2023-01":24891.22,"2023-02":25162.2,"2023-03":25064.18,"2023-04":25187.62,"2023-05":25264.98,"2023-06":13166.22,"2023-07":1577.14,"2023-08":1132.52,"2023-09":965.38,"2023-10":1667.5,"2023-11":56953.42,"2023-12":12362.5,"2024-01":12081.1,"2024-02":12171.6,"2024-03":12487.82,"2024-04":12314.98,"2024-05":12211.84,"2024-06":27794.56,"2025-07":20302.52,"2025-08":20275.72,"2025-09":21544.38,"2025-10":22443.56,"2025-11":20117.4,"2025-12":21266.98,"2026-01":19973.66,"2026-02":19001.98,"2026-03":20130.1,"2026-04":19935.52,"2026-05":19997.28,"2026-06":20209.66},"3395":{"2022-07":-2368.04,"2022-08":-2324.92,"2022-09":-16148.32,"2022-10":-3485.08,"2022-11":-2164.76,"2022-12":-1883.86,"2023-01":-13078.32,"2023-02":-4208.32,"2023-03":-11264.12,"2023-04":-4392.219999999999,"2023-05":-9426.36,"2023-06":-14122.82,"2023-07":-1609.12,"2023-08":-10099.86,"2023-09":-3616.48,"2023-10":-16873.56,"2023-11":-1323.52,"2023-12":-57166.68,"2024-01":-6188.26,"2024-02":-4637.36,"2024-03":-12738.7,"2024-04":-233.77999999999997,"2024-05":-584.2,"2024-06":-9833.22,"2025-07":-5909.96,"2025-08":-8924.94,"2025-09":-4827.54,"2025-10":-25581.799999999996,"2025-11":-1013.3799999999999,"2025-12":-9115.12,"2026-01":-6018.88,"2026-02":-1684.2799999999997,"2026-03":-61046.28,"2026-04":-170.82,"2026-05":-2959.56,"2026-06":-3670.1},"3405":{"2022-07":0.0,"2022-08":-672.42,"2022-09":-3290.0,"2022-10":-6875.38,"2022-11":-1044.1,"2022-12":0.0,"2023-01":0.0,"2023-02":0.0,"2023-03":0.0,"2023-04":-216.58,"2023-05":-999.82,"2023-06":-1482.8,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":-400.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":0.0,"2024-05":0.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"90":{"1505":{"2022-07":4482754.06,"2022-08":5057133.02,"2022-09":4449553.22,"2022-10":4619232.74,"2022-11":5594669.56,"2022-12":4604926.56,"2023-01":4190124.1,"2023-02":4165320.5,"2023-03":5043117.1,"2023-04":3296361.16,"2023-05":4422897.36,"2023-06":4365805.82,"2023-07":3857469.48,"2023-08":4588801.1,"2023-09":4469667.46,"2023-10":4734209.28,"2023-11":5260402.38,"2023-12":4075223.68,"2024-01":4154124.16,"2024-02":4435855.22,"2024-03":4417176.92,"2024-04":3880302.24,"2024-05":4572362.12,"2024-06":3950955.46,"2025-07":4438887.24,"2025-08":3972897.26,"2025-09":4245471.84,"2025-10":4541348.38,"2025-11":4866186.86,"2025-12":3722146.1,"2026-01":3873026.36,"2026-02":3802707.56,"2026-03":4224571.42,"2026-04":3626886.72,"2026-05":4362031.72,"2026-06":4212799.82},"1507":{"2022-07":4200482.34,"2022-08":5498957.72,"2022-09":5355109.2,"2022-10":4813250.5,"2022-11":5544266.7,"2022-12":5506334.38,"2023-01":2728353.26,"2023-02":4548566.14,"2023-03":5504681.66,"2023-04":3849676.52,"2023-05":5615302.06,"2023-06":5673407.58,"2023-07":4091928.08,"2023-08":5295713.08,"2023-09":5066801.44,"2023-10":4954803.94,"2023-11":5321484.58,"2023-12":4941870.34,"2024-01":3082531.86,"2024-02":3917429.92,"2024-03":5663787.92,"2024-04":4863940.24,"2024-05":4770389.32,"2024-06":5300285.06,"2025-07":4077404.56,"2025-08":5799468.18,"2025-09":4599768.98,"2025-10":4250293.56,"2025-11":5247406.9,"2025-12":4575788.18,"2026-01":2762591.34,"2026-02":3718275.82,"2026-03":5509063.08,"2026-04":3741569.42,"2026-05":5047557.3,"2026-06":6212479.04},"1510":{"2022-07":628506.8,"2022-08":693895.64,"2022-09":867826.76,"2022-10":780972.02,"2022-11":736758.04,"2022-12":734948.94,"2023-01":662868.16,"2023-02":777054.08,"2023-03":751760.56,"2023-04":800267.34,"2023-05":821932.66,"2023-06":1032205.76,"2023-07":1118149.76,"2023-08":1021386.02,"2023-09":943882.74,"2023-10":973233.4,"2023-11":1027304.8,"2023-12":1041043.32,"2024-01":723466.0,"2024-02":864797.44,"2024-03":956869.76,"2024-04":723503.4,"2024-05":879611.8,"2024-06":916666.26,"2025-07":917232.56,"2025-08":818993.36,"2025-09":738974.1,"2025-10":805986.2,"2025-11":807694.44,"2025-12":820742.7,"2026-01":827920.52,"2026-02":813795.76,"2026-03":802925.78,"2026-04":791084.54,"2026-05":813222.54,"2026-06":818693.34},"1710":{"2022-07":29062.96,"2022-08":25563.36,"2022-09":26483.1,"2022-10":27979.62,"2022-11":39382.66,"2022-12":34714.58,"2023-01":28614.24,"2023-02":28705.72,"2023-03":25425.2,"2023-04":23616.64,"2023-05":28678.0,"2023-06":32362.12,"2023-07":34480.78,"2023-08":35081.58,"2023-09":-21541.22,"2023-10":28739.76,"2023-11":13925.76,"2023-12":24599.72,"2024-01":20346.46,"2024-02":16202.32,"2024-03":26110.36,"2024-04":22358.52,"2024-05":18444.64,"2024-06":28788.42,"2025-07":23109.74,"2025-08":23837.72,"2025-09":29778.76,"2025-10":24309.26,"2025-11":24158.18,"2025-12":27807.6,"2026-01":24061.0,"2026-02":27516.04,"2026-03":30468.84,"2026-04":26746.1,"2026-05":31599.38,"2026-06":31095.0},"3395":{"2022-07":-44600.0,"2022-08":-32472.42,"2022-09":-82293.32,"2022-10":-50500.98,"2022-11":-54534.399999999994,"2022-12":-30737.86,"2023-01":-28226.64,"2023-02":-48479.28,"2023-03":-51352.380000000005,"2023-04":-37712.34,"2023-05":-76321.06,"2023-06":-226720.84,"2023-07":27463.260000000002,"2023-08":-33921.16,"2023-09":-39608.26,"2023-10":-58582.37999999999,"2023-11":-124994.36,"2023-12":-1186.46,"2024-01":-41692.96,"2024-02":-56010.46000000001,"2024-03":-36521.06,"2024-04":-56036.37999999999,"2024-05":10743.92,"2024-06":-62710.119999999995,"2025-07":-30456.02,"2025-08":-96594.92,"2025-09":-19780.78,"2025-10":-65775.62,"2025-11":-98802.44,"2025-12":-170885.82,"2026-01":-103955.01999999999,"2026-02":-66025.96,"2026-03":33617.12,"2026-04":-143124.34,"2026-05":-78300.64,"2026-06":-142801.66},"3405":{"2022-07":0.0,"2022-08":-1412.84,"2022-09":-5474.48,"2022-10":-1366.22,"2022-11":-1271.9,"2022-12":-4059.86,"2023-01":0.0,"2023-02":-5483.68,"2023-03":-1617.56,"2023-04":-16931.66,"2023-05":-2691.0,"2023-06":-52310.0,"2023-07":-686.36,"2023-08":-4000.0,"2023-09":-47000.02,"2023-10":-3132.4,"2023-11":0.0,"2023-12":0.0,"2024-01":-1250.0,"2024-02":0.0,"2024-03":44453.42,"2024-04":-1300.0,"2024-05":0.0,"2024-06":0.0,"2025-07":-7579.58,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":-15928.58,"2026-02":0.0,"2026-03":-31190.68,"2026-04":0.0,"2026-05":-31101.2,"2026-06":-8500.0}},"91":{"1505":{"2022-07":135055.86,"2022-08":143234.82,"2022-09":108913.14,"2022-10":135195.54,"2022-11":160578.74,"2022-12":148978.38,"2023-01":139456.6,"2023-02":134206.16,"2023-03":186242.96,"2023-04":126978.22,"2023-05":173714.08,"2023-06":124039.48,"2023-07":118933.6,"2023-08":153167.84,"2023-09":112264.62,"2023-10":180687.36,"2023-11":175038.52,"2023-12":89667.7,"2024-01":122632.24,"2024-02":163208.24,"2024-03":149546.78,"2024-04":99707.12,"2024-05":110971.44,"2024-06":92438.98,"2025-07":126985.4,"2025-08":121962.42,"2025-09":141504.26,"2025-10":129948.44,"2025-11":93716.96,"2025-12":71408.94,"2026-01":108557.32,"2026-02":95864.3,"2026-03":177311.12,"2026-04":82772.14,"2026-05":118193.66,"2026-06":117215.78},"1507":{"2022-07":203428.26,"2022-08":212350.82,"2022-09":168274.16,"2022-10":170240.88,"2022-11":196539.08,"2022-12":195043.48,"2023-01":135414.68,"2023-02":122905.14,"2023-03":128490.64,"2023-04":115944.84,"2023-05":140000.3,"2023-06":259161.18,"2023-07":148975.22,"2023-08":192420.04,"2023-09":139269.26,"2023-10":107932.06,"2023-11":146704.36,"2023-12":268060.4,"2024-01":112721.34,"2024-02":84020.8,"2024-03":186007.64,"2024-04":98114.1,"2024-05":139167.02,"2024-06":186741.04,"2025-07":126227.24,"2025-08":125550.56,"2025-09":213833.22,"2025-10":139111.38,"2025-11":221632.64,"2025-12":57616.44,"2026-01":91614.06,"2026-02":151227.88,"2026-03":156524.96,"2026-04":75155.94,"2026-05":121394.0,"2026-06":74665.74},"1510":{"2022-07":53783.22,"2022-08":45654.22,"2022-09":42519.58,"2022-10":49702.34,"2022-11":39781.28,"2022-12":40503.76,"2023-01":43367.42,"2023-02":35726.66,"2023-03":38584.86,"2023-04":37896.46,"2023-05":29196.08,"2023-06":42000.96,"2023-07":39536.96,"2023-08":32244.24,"2023-09":34861.64,"2023-10":46050.9,"2023-11":35497.48,"2023-12":44289.76,"2024-01":35559.82,"2024-02":57940.86,"2024-03":69815.26,"2024-04":41193.2,"2024-05":55416.88,"2024-06":51357.34,"2025-07":65277.28,"2025-08":68711.48,"2025-09":70277.86,"2025-10":39737.62,"2025-11":71136.18,"2025-12":16874.72,"2026-01":111482.34,"2026-02":72541.36,"2026-03":76310.42,"2026-04":71994.88,"2026-05":73453.92,"2026-06":82956.22},"1710":{"2022-07":2043.56,"2022-08":1931.2,"2022-09":1682.42,"2022-10":2142.38,"2022-11":2179.76,"2022-12":2133.62,"2023-01":2082.88,"2023-02":2144.66,"2023-03":2878.16,"2023-04":2535.14,"2023-05":2784.0,"2023-06":2152.58,"2023-07":2212.32,"2023-08":2215.26,"2023-09":1556.58,"2023-10":2371.1,"2023-11":1619.54,"2023-12":2329.56,"2024-01":1841.28,"2024-02":1835.84,"2024-03":2413.0,"2024-04":1709.0,"2024-05":1085.72,"2024-06":2940.04,"2025-07":1840.02,"2025-08":1280.14,"2025-09":1634.36,"2025-10":1439.72,"2025-11":1316.38,"2025-12":1108.66,"2026-01":1273.0,"2026-02":1639.0,"2026-03":2762.34,"2026-04":1412.38,"2026-05":1389.8,"2026-06":3993.54},"3395":{"2022-07":-4261.38,"2022-08":-3382.3,"2022-09":0.02,"2022-10":-267.64,"2022-11":-2725.6000000000004,"2022-12":-3330.12,"2023-01":-4083.74,"2023-02":-8780.54,"2023-03":-319.08,"2023-04":0.0,"2023-05":-726.58,"2023-06":-1081.78,"2023-07":-943.76,"2023-08":-4234.08,"2023-09":-7406.0,"2023-10":-3465.58,"2023-11":-2076.26,"2023-12":-634.74,"2024-01":-28044.38,"2024-02":-2624.76,"2024-03":-3445.64,"2024-04":-809.02,"2024-05":-4412.64,"2024-06":-2897.76,"2025-07":-2104.82,"2025-08":-6334.32,"2025-09":-19265.9,"2025-10":-1331.04,"2025-11":-2824.56,"2025-12":-1155.74,"2026-01":-6105.48,"2026-02":-2186.62,"2026-03":-1917.44,"2026-04":-1092.96,"2026-05":-1161.58,"2026-06":-6526.1},"3405":{"2022-07":-294.54,"2022-08":0.0,"2022-09":0.0,"2022-10":0.0,"2022-11":-929.1,"2022-12":0.0,"2023-01":-320.0,"2023-02":0.0,"2023-03":0.0,"2023-04":0.0,"2023-05":0.0,"2023-06":0.0,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":-3055.0,"2024-03":0.0,"2024-04":0.0,"2024-05":-1066.62,"2024-06":0.0,"2025-07":0.0,"2025-08":-1690.86,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"92":{"1505":{"2022-07":26745.58,"2022-08":28524.58,"2022-09":36013.14,"2022-10":12771.6,"2022-11":16174.34,"2022-12":25243.76,"2023-01":10817.08,"2023-02":17910.14,"2023-03":19654.7,"2023-04":11670.48,"2023-05":28929.14,"2023-06":17591.94,"2023-07":22972.54,"2023-08":30949.84,"2023-09":22316.62,"2023-10":18285.92,"2023-11":32751.44,"2023-12":7785.8,"2024-01":14901.86,"2024-02":29608.52,"2024-03":13785.72,"2024-04":23811.84,"2024-05":20716.18,"2024-06":22663.42,"2025-07":13119.62,"2025-08":8059.2,"2025-09":13249.38,"2025-10":12753.22,"2025-11":13186.36,"2025-12":12315.1,"2026-01":9363.96,"2026-02":10468.76,"2026-03":12993.84,"2026-04":13817.1,"2026-05":20487.68,"2026-06":10167.74},"1507":{"2022-07":65862.06,"2022-08":59498.48,"2022-09":106522.12,"2022-10":66722.68,"2022-11":118145.48,"2022-12":123151.44,"2023-01":20286.42,"2023-02":72574.7,"2023-03":90741.16,"2023-04":115363.9,"2023-05":129328.5,"2023-06":111223.8,"2023-07":88718.24,"2023-08":66915.7,"2023-09":95337.36,"2023-10":105884.76,"2023-11":100314.84,"2023-12":132383.8,"2024-01":50488.3,"2024-02":63461.86,"2024-03":98275.34,"2024-04":68004.66,"2024-05":70095.04,"2024-06":121840.44,"2025-07":94315.44,"2025-08":67363.1,"2025-09":88514.14,"2025-10":101615.7,"2025-11":49796.84,"2025-12":72227.36,"2026-01":95356.12,"2026-02":94464.58,"2026-03":68565.52,"2026-04":54650.88,"2026-05":74574.86,"2026-06":55599.42},"1510":{"2022-07":0.0,"2022-08":0.0,"2022-09":0.0,"2022-10":0.0,"2022-11":16.0,"2022-12":5.9,"2023-01":0.0,"2023-02":59.92,"2023-03":0.0,"2023-04":768.46,"2023-05":1090.46,"2023-06":21508.36,"2023-07":5089.8,"2023-08":2181.58,"2023-09":10867.22,"2023-10":4593.32,"2023-11":2553.76,"2023-12":644.42,"2024-01":1533.32,"2024-02":140.5,"2024-03":197.68,"2024-04":146.94,"2024-05":258.52,"2024-06":284.32,"2025-07":118.56,"2025-08":634.2,"2025-09":518.48,"2025-10":340.12,"2025-11":251.38,"2025-12":226.92,"2026-01":644.96,"2026-02":1392.84,"2026-03":1482.74,"2026-04":1414.26,"2026-05":1549.08,"2026-06":1503.54},"1710":{"2022-07":282.08,"2022-08":141.18,"2022-09":329.5,"2022-10":84.32,"2022-11":298.4,"2022-12":136.68,"2023-01":83.42,"2023-02":111.68,"2023-03":140.72,"2023-04":181.9,"2023-05":125.0,"2023-06":95.06,"2023-07":34.06,"2023-08":44.18,"2023-09":24.8,"2023-10":232.16,"2023-11":200.5,"2023-12":-9.5,"2024-01":10.04,"2024-02":94.54,"2024-03":62.28,"2024-04":62.0,"2024-05":-78.06,"2024-06":139.56,"2025-07":59.3,"2025-08":12.02,"2025-09":149.48,"2025-10":83.8,"2025-11":105.9,"2025-12":37.36,"2026-01":88.0,"2026-02":63.5,"2026-03":196.5,"2026-04":123.6,"2026-05":72.54,"2026-06":56.0},"3395":{"2022-07":-5950.08,"2022-08":0.0,"2022-09":-70.94,"2022-10":-1257.28,"2022-11":-163.86,"2022-12":-564.24,"2023-01":0.0,"2023-02":-40.1,"2023-03":0.0,"2023-04":1933.02,"2023-05":-763.62,"2023-06":0.0,"2023-07":0.0,"2023-08":-469.15999999999997,"2023-09":0.0,"2023-10":-121.56,"2023-11":0.0,"2023-12":-129.22,"2024-01":-78.04,"2024-02":-92.38,"2024-03":0.0,"2024-04":-453.84,"2024-05":-2976.22,"2024-06":-2554.0,"2025-07":0.0,"2025-08":-1172.3600000000001,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":-61.34,"2026-02":0.0,"2026-03":-673.64,"2026-04":-352.7,"2026-05":-4417.34,"2026-06":0.0},"3405":{"2022-07":0.0,"2022-08":0.0,"2022-09":0.0,"2022-10":0.0,"2022-11":0.0,"2022-12":-7121.4,"2023-01":0.0,"2023-02":0.0,"2023-03":0.0,"2023-04":0.0,"2023-05":0.0,"2023-06":0.0,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":0.0,"2024-05":0.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"93":{"1505":{"2022-07":60282.24,"2022-08":72137.08,"2022-09":68092.98,"2022-10":95220.18,"2022-11":114858.1,"2022-12":207299.98,"2023-01":89625.58,"2023-02":76561.16,"2023-03":108710.12,"2023-04":58427.14,"2023-05":90082.02,"2023-06":75258.9,"2023-07":30814.24,"2023-08":80139.28,"2023-09":39602.86,"2023-10":63717.34,"2023-11":117202.02,"2023-12":83403.42,"2024-01":79546.2,"2024-02":107236.66,"2024-03":68990.14,"2024-04":36800.46,"2024-05":29649.78,"2024-06":31152.26,"2025-07":46742.46,"2025-08":51484.84,"2025-09":31623.8,"2025-10":33230.1,"2025-11":69748.86,"2025-12":72784.78,"2026-01":49369.86,"2026-02":38480.14,"2026-03":56350.78,"2026-04":64841.36,"2026-05":40679.0,"2026-06":31769.0},"1507":{"2022-07":84368.52,"2022-08":133232.36,"2022-09":246309.36,"2022-10":81321.46,"2022-11":136360.36,"2022-12":118942.84,"2023-01":73111.54,"2023-02":56244.72,"2023-03":237796.72,"2023-04":54579.92,"2023-05":70467.98,"2023-06":160257.5,"2023-07":87901.74,"2023-08":131904.54,"2023-09":130290.34,"2023-10":95955.16,"2023-11":134896.76,"2023-12":98284.3,"2024-01":127564.4,"2024-02":146428.54,"2024-03":197777.3,"2024-04":93510.34,"2024-05":96411.52,"2024-06":163035.84,"2025-07":264995.46,"2025-08":197882.88,"2025-09":161627.54,"2025-10":136800.74,"2025-11":148399.54,"2025-12":96885.76,"2026-01":107277.02,"2026-02":126961.28,"2026-03":130529.26,"2026-04":72609.84,"2026-05":128892.24,"2026-06":147963.72},"1510":{"2022-07":35827.16,"2022-08":36589.48,"2022-09":42298.0,"2022-10":54219.84,"2022-11":36106.2,"2022-12":64803.3,"2023-01":59071.14,"2023-02":83814.76,"2023-03":54737.46,"2023-04":66279.28,"2023-05":72303.5,"2023-06":56488.52,"2023-07":51133.24,"2023-08":44362.52,"2023-09":59414.3,"2023-10":39910.68,"2023-11":56609.62,"2023-12":27365.8,"2024-01":22253.04,"2024-02":34096.16,"2024-03":27351.92,"2024-04":20927.62,"2024-05":67825.88,"2024-06":29200.82,"2025-07":41127.54,"2025-08":41350.14,"2025-09":66406.56,"2025-10":52562.26,"2025-11":59246.66,"2025-12":64156.44,"2026-01":69198.24,"2026-02":65853.24,"2026-03":49597.54,"2026-04":47928.56,"2026-05":41344.76,"2026-06":36051.2},"1710":{"2022-07":330.0,"2022-08":224.0,"2022-09":319.0,"2022-10":226.0,"2022-11":231.0,"2022-12":443.0,"2023-01":245.0,"2023-02":306.0,"2023-03":422.0,"2023-04":437.0,"2023-05":520.0,"2023-06":525.0,"2023-07":344.0,"2023-08":585.0,"2023-09":508.0,"2023-10":220.0,"2023-11":189.0,"2023-12":271.0,"2024-01":68.0,"2024-02":287.0,"2024-03":208.0,"2024-04":246.0,"2024-05":304.0,"2024-06":372.0,"2025-07":430.0,"2025-08":157.0,"2025-09":276.0,"2025-10":224.0,"2025-11":174.0,"2025-12":301.0,"2026-01":291.0,"2026-02":303.0,"2026-03":434.0,"2026-04":306.0,"2026-05":323.0,"2026-06":312.0},"3395":{"2022-07":-1267.74,"2022-08":0.0,"2022-09":-864.56,"2022-10":8348.84,"2022-11":-3693.36,"2022-12":0.0,"2023-01":-55.82,"2023-02":-1145.6,"2023-03":-1629.28,"2023-04":-466.46,"2023-05":-1754.28,"2023-06":-2726.02,"2023-07":0.0,"2023-08":-365.66,"2023-09":-279.94,"2023-10":-3080.24,"2023-11":-1577.48,"2023-12":0.0,"2024-01":-155.16,"2024-02":-5358.56,"2024-03":-2525.74,"2024-04":-1097.84,"2024-05":-1494.46,"2024-06":-1672.72,"2025-07":-220.78,"2025-08":-1633.16,"2025-09":-4402.28,"2025-10":-0.68,"2025-11":0.0,"2025-12":-1643.98,"2026-01":-432.72,"2026-02":-4185.38,"2026-03":0.0,"2026-04":-994.72,"2026-05":-670.62,"2026-06":-964.98},"3405":{"2022-07":0.0,"2022-08":0.0,"2022-09":-460.2,"2022-10":0.0,"2022-11":0.0,"2022-12":0.0,"2023-01":0.0,"2023-02":0.0,"2023-03":0.0,"2023-04":0.0,"2023-05":0.0,"2023-06":0.0,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":0.0,"2024-05":0.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"94":{"1505":{"2022-07":16176.1,"2022-08":39107.78,"2022-09":26802.32,"2022-10":16474.38,"2022-11":24166.38,"2022-12":27958.16,"2023-01":11509.08,"2023-02":31055.74,"2023-03":24291.86,"2023-04":22558.98,"2023-05":27961.38,"2023-06":13690.72,"2023-07":26552.36,"2023-08":10641.9,"2023-09":21871.44,"2023-10":8063.76,"2023-11":37756.2,"2023-12":8581.42,"2024-01":32234.9,"2024-02":39013.16,"2024-03":16608.94,"2024-04":23435.68,"2024-05":36380.12,"2024-06":15159.24,"2025-07":10468.0,"2025-08":8274.64,"2025-09":9627.18,"2025-10":7612.84,"2025-11":12138.24,"2025-12":4982.8,"2026-01":6695.96,"2026-02":4303.44,"2026-03":6361.94,"2026-04":7144.16,"2026-05":14319.7,"2026-06":9305.34},"1507":{"2022-07":45575.24,"2022-08":136541.84,"2022-09":119776.18,"2022-10":47355.64,"2022-11":108176.58,"2022-12":73854.84,"2023-01":32393.74,"2023-02":22208.66,"2023-03":37435.56,"2023-04":24837.32,"2023-05":51464.2,"2023-06":59965.4,"2023-07":66738.52,"2023-08":136145.76,"2023-09":115640.52,"2023-10":47317.76,"2023-11":65283.88,"2023-12":73861.16,"2024-01":96616.72,"2024-02":72995.2,"2024-03":35982.34,"2024-04":29148.98,"2024-05":136438.3,"2024-06":97616.4,"2025-07":100954.1,"2025-08":58235.34,"2025-09":83166.78,"2025-10":69670.8,"2025-11":54937.3,"2025-12":70968.56,"2026-01":23984.88,"2026-02":33904.16,"2026-03":64185.18,"2026-04":61512.16,"2026-05":60918.48,"2026-06":128928.08},"1510":{"2022-07":386.52,"2022-08":793.06,"2022-09":0.0,"2022-10":20.0,"2022-11":0.0,"2022-12":1425.66,"2023-01":187.58,"2023-02":181.12,"2023-03":248.1,"2023-04":2107.12,"2023-05":206.88,"2023-06":245.96,"2023-07":3792.72,"2023-08":1195.54,"2023-09":1014.56,"2023-10":1545.04,"2023-11":1154.86,"2023-12":1325.56,"2024-01":1130.22,"2024-02":2447.48,"2024-03":3837.0,"2024-04":2223.18,"2024-05":1903.12,"2024-06":1359.04,"2025-07":14581.66,"2025-08":2245.06,"2025-09":1408.08,"2025-10":519.8,"2025-11":1012.58,"2025-12":1125.92,"2026-01":1551.28,"2026-02":1204.82,"2026-03":1218.12,"2026-04":1676.38,"2026-05":2021.36,"2026-06":1260.46},"1710":{"2022-07":100.0,"2022-08":153.0,"2022-09":227.0,"2022-10":113.0,"2022-11":97.0,"2022-12":17.0,"2023-01":34.0,"2023-02":19.0,"2023-03":53.0,"2023-04":53.0,"2023-05":133.0,"2023-06":80.0,"2023-07":277.0,"2023-08":115.0,"2023-09":81.0,"2023-10":76.0,"2023-11":47.0,"2023-12":0.0,"2024-01":17.0,"2024-02":195.0,"2024-03":51.0,"2024-04":80.0,"2024-05":147.0,"2024-06":115.0,"2025-07":30.0,"2025-08":17.0,"2025-09":68.0,"2025-10":34.0,"2025-11":17.0,"2025-12":34.0,"2026-01":57.0,"2026-02":13.0,"2026-03":13.0,"2026-04":49.0,"2026-05":104.0,"2026-06":125.0},"3395":{"2022-07":0.0,"2022-08":0.0,"2022-09":-309.64,"2022-10":-2383.36,"2022-11":0.0,"2022-12":0.0,"2023-01":0.0,"2023-02":-937.14,"2023-03":0.0,"2023-04":0.0,"2023-05":-471.02,"2023-06":-2238.12,"2023-07":0.0,"2023-08":0.0,"2023-09":-72.16,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":0.0,"2024-05":-2122.94,"2024-06":0.0,"2025-07":0.0,"2025-08":-544.36,"2025-09":-5766.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":-250.9,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":-636.4,"2026-06":0.0},"3405":{"2022-07":0.0,"2022-08":0.0,"2022-09":0.0,"2022-10":0.0,"2022-11":0.0,"2022-12":0.0,"2023-01":0.0,"2023-02":0.0,"2023-03":0.0,"2023-04":0.0,"2023-05":0.0,"2023-06":0.0,"2023-07":0.0,"2023-08":0.0,"2023-09":0.0,"2023-10":0.0,"2023-11":0.0,"2023-12":0.0,"2024-01":0.0,"2024-02":0.0,"2024-03":0.0,"2024-04":0.0,"2024-05":0.0,"2024-06":0.0,"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}}},"fy25":{"81":{"1505":{"2025-07":375318.7,"2025-08":390024.98,"2025-09":400749.94,"2025-10":362369.26,"2025-11":424436.8,"2025-12":320356.28,"2026-01":326980.76,"2026-02":316322.32,"2026-03":346365.2,"2026-04":248838.06,"2026-05":320913.9,"2026-06":338618.7},"1507":{"2025-07":547665.06,"2025-08":393014.36,"2025-09":463578.8,"2025-10":787974.24,"2025-11":473331.44,"2025-12":331951.22,"2026-01":239284.5,"2026-02":295112.24,"2026-03":343140.12,"2026-04":270603.5,"2026-05":396745.88,"2026-06":291621.82},"1510":{"2025-07":165816.88,"2025-08":194726.86,"2025-09":226778.0,"2025-10":200925.44,"2025-11":234047.06,"2025-12":234879.46,"2026-01":242356.0,"2026-02":184573.22,"2026-03":199622.38,"2026-04":197802.04,"2026-05":206122.76,"2026-06":197576.94},"1710":{"2025-07":2161.88,"2025-08":2332.06,"2025-09":3198.64,"2025-10":2559.46,"2025-11":2496.72,"2025-12":3736.2,"2026-01":2664.82,"2026-02":2090.2,"2026-03":2746.9,"2026-04":2208.66,"2026-05":3069.24,"2026-06":2275.0},"3395":{"2025-07":-2149.22,"2025-08":-4271.38,"2025-09":-189.48000000000002,"2025-10":-15076.76,"2025-11":-12962.32,"2025-12":-16975.12,"2026-01":-789.9200000000001,"2026-02":-8845.26,"2026-03":-4899.84,"2026-04":-2932.74,"2026-05":-2828.74,"2026-06":-1454.92},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":-4000.0,"2026-06":0.0}},"82":{"1505":{"2025-07":827329.18,"2025-08":620151.16,"2025-09":707169.36,"2025-10":674491.66,"2025-11":744445.68,"2025-12":514232.92,"2026-01":713908.64,"2026-02":645278.32,"2026-03":658640.78,"2026-04":566386.92,"2026-05":577016.7,"2026-06":639424.18},"1507":{"2025-07":1526448.74,"2025-08":1298007.06,"2025-09":1398391.98,"2025-10":1317487.5,"2025-11":1347978.34,"2025-12":844037.0,"2026-01":766338.98,"2026-02":850305.42,"2026-03":1520779.0,"2026-04":1230774.6,"2026-05":1254400.34,"2026-06":1466791.32},"1510":{"2025-07":321996.66,"2025-08":330570.88,"2025-09":315549.6,"2025-10":360013.22,"2025-11":380078.06,"2025-12":344516.9,"2026-01":393708.4,"2026-02":314901.22,"2026-03":312783.08,"2026-04":302117.42,"2026-05":304299.28,"2026-06":298019.76},"1710":{"2025-07":4831.9,"2025-08":2989.32,"2025-09":26833.16,"2025-10":12421.44,"2025-11":5560.48,"2025-12":3285.4,"2026-01":1636.0,"2026-02":2267.04,"2026-03":3225.2,"2026-04":2870.62,"2026-05":3558.78,"2026-06":3546.0},"3395":{"2025-07":-41447.32,"2025-08":-32715.18,"2025-09":-6664.9,"2025-10":-11986.68,"2025-11":-6963.300000000001,"2025-12":-12634.86,"2026-01":-24362.76,"2026-02":-12539.36,"2026-03":-12440.620000000003,"2026-04":-9228.1,"2026-05":-19202.46,"2026-06":-23995.84},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":-4000.0,"2026-05":-4000.0,"2026-06":0.0}},"83":{"1505":{"2025-07":104977.06,"2025-08":119182.96,"2025-09":99614.68,"2025-10":102873.18,"2025-11":136307.46,"2025-12":66143.16,"2026-01":82887.66,"2026-02":117082.72,"2026-03":124182.0,"2026-04":72569.04,"2026-05":112162.6,"2026-06":223283.8},"1507":{"2025-07":650680.9,"2025-08":390197.58,"2025-09":283761.4,"2025-10":307488.16,"2025-11":246002.54,"2025-12":218036.52,"2026-01":192561.04,"2026-02":172516.44,"2026-03":379531.74,"2026-04":186371.56,"2026-05":319307.12,"2026-06":211623.04},"1510":{"2025-07":8137.06,"2025-08":13133.46,"2025-09":8090.3,"2025-10":10437.22,"2025-11":10765.96,"2025-12":9592.76,"2026-01":12189.24,"2026-02":13940.6,"2026-03":10208.54,"2026-04":12341.1,"2026-05":15783.66,"2026-06":13717.9},"1710":{"2025-07":1099.58,"2025-08":1116.04,"2025-09":1402.96,"2025-10":1492.64,"2025-11":1043.82,"2025-12":979.76,"2026-01":757.0,"2026-02":778.06,"2026-03":1344.96,"2026-04":910.24,"2026-05":1101.08,"2026-06":808.0},"3395":{"2025-07":-1516.32,"2025-08":-6138.54,"2025-09":-3054.36,"2025-10":-2022.42,"2025-11":-3559.92,"2025-12":-804.56,"2026-01":-234.92000000000002,"2026-02":-490.91999999999996,"2026-03":-54.760000000000005,"2026-04":-501.02,"2026-05":-516.3,"2026-06":0.0},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":-9176.36,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"84":{"1505":{"2025-07":34883.8,"2025-08":69347.66,"2025-09":48061.1,"2025-10":50082.24,"2025-11":56478.56,"2025-12":33764.84,"2026-01":41533.92,"2026-02":31259.68,"2026-03":45279.44,"2026-04":34123.06,"2026-05":39167.76,"2026-06":43688.74},"1507":{"2025-07":71557.12,"2025-08":59888.78,"2025-09":110849.62,"2025-10":107469.94,"2025-11":98575.94,"2025-12":180517.72,"2026-01":33265.18,"2026-02":62664.74,"2026-03":89057.04,"2026-04":73103.44,"2026-05":110055.12,"2026-06":85678.04},"1510":{"2025-07":21685.86,"2025-08":23014.08,"2025-09":28904.02,"2025-10":29478.84,"2025-11":38752.46,"2025-12":29027.88,"2026-01":47771.32,"2026-02":28209.94,"2026-03":35004.4,"2026-04":29569.4,"2026-05":29636.36,"2026-06":27652.72},"1710":{"2025-07":225.74,"2025-08":119.12,"2025-09":18201.68,"2025-10":185.9,"2025-11":83.46,"2025-12":785.74,"2026-01":1112.5,"2026-02":298.6,"2026-03":813.84,"2026-04":157.86,"2026-05":288.6,"2026-06":317.0},"3395":{"2025-07":-808.52,"2025-08":-1887.36,"2025-09":-3019.84,"2025-10":-9893.04,"2025-11":-4527.9,"2025-12":-1648.6399999999999,"2026-01":0.0,"2026-02":-28.06,"2026-03":0.0,"2026-04":-3306.3599999999997,"2026-05":0.0,"2026-06":-4653.78},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":-9725.8,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"85":{"1505":{},"1507":{},"1510":{},"1710":{},"3395":{},"3405":{}},"86":{"1505":{"2025-07":3108627.44,"2025-08":2858804.94,"2025-09":3201005.74,"2025-10":3363807.94,"2025-11":3777252.66,"2025-12":3060248.94,"2026-01":2780719.24,"2026-02":2955517.18,"2026-03":3130526.62,"2026-04":2877411.42,"2026-05":3491120.26,"2026-06":3794904.48},"1507":{"2025-07":2215957.84,"2025-08":2287882.58,"2025-09":2436993.36,"2025-10":2550161.98,"2025-11":2349762.62,"2025-12":2505034.76,"2026-01":1767587.6,"2026-02":2380058.94,"2026-03":2484903.82,"2026-04":1910286.9,"2026-05":2627475.04,"2026-06":2501686.06},"1510":{"2025-07":621378.1,"2025-08":866355.56,"2025-09":738453.72,"2025-10":726025.36,"2025-11":790681.4,"2025-12":648846.52,"2026-01":760019.84,"2026-02":623797.42,"2026-03":623801.08,"2026-04":635378.46,"2026-05":663279.36,"2026-06":600305.72},"1710":{"2025-07":9498.4,"2025-08":9491.42,"2025-09":13144.56,"2025-10":12022.0,"2025-11":10976.28,"2025-12":11861.28,"2026-01":9831.0,"2026-02":13168.0,"2026-03":22710.08,"2026-04":12186.14,"2026-05":15071.88,"2026-06":12301.0},"3395":{"2025-07":-32473.46,"2025-08":-30934.74,"2025-09":-26139.72,"2025-10":-28573.62,"2025-11":-41611.02,"2025-12":-26700.16,"2026-01":-26789.66,"2026-02":-18031.58,"2026-03":-14477.49,"2026-04":-26566.18,"2026-05":-22359.28,"2026-06":-65488.02},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":-885.54,"2026-02":-6000.0,"2026-03":0.0,"2026-04":-1771.08,"2026-05":0.0,"2026-06":0.0}},"88":{"1505":{"2025-07":163780.8,"2025-08":109937.3,"2025-09":112847.4,"2025-10":144579.1,"2025-11":158998.94,"2025-12":157224.34,"2026-01":116325.26,"2026-02":114928.48,"2026-03":142403.94,"2026-04":61883.42,"2026-05":165657.48,"2026-06":130372.7},"1507":{"2025-07":201143.7,"2025-08":166824.74,"2025-09":160492.7,"2025-10":164617.5,"2025-11":218004.22,"2025-12":175279.48,"2026-01":128628.46,"2026-02":234892.66,"2026-03":297536.5,"2026-04":296353.88,"2026-05":322779.32,"2026-06":440099.96},"1510":{"2025-07":1077.9,"2025-08":1636.76,"2025-09":919.94,"2025-10":979.1,"2025-11":1344.34,"2025-12":1254.28,"2026-01":1786.58,"2026-02":1521.14,"2026-03":6639.82,"2026-04":1000.3,"2026-05":1637.06,"2026-06":2023.32},"1710":{"2025-07":1874.58,"2025-08":1600.04,"2025-09":1740.96,"2025-10":1579.64,"2025-11":2045.8,"2025-12":1834.76,"2026-01":1388.0,"2026-02":1821.08,"2026-03":2124.98,"2026-04":1732.26,"2026-05":2400.08,"2026-06":1882.0},"3395":{"2025-07":-524.0799999999999,"2025-08":-4578.58,"2025-09":-119.86,"2025-10":-4433.82,"2025-11":-187.72,"2025-12":-594.3199999999999,"2026-01":-1119.22,"2026-02":-3039.94,"2026-03":-78.74,"2026-04":-86.62,"2026-05":-1182.58,"2026-06":-841.06},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"89":{"1505":{"2025-07":352648.0,"2025-08":351998.52,"2025-09":348577.58,"2025-10":418550.04,"2025-11":530318.32,"2025-12":456433.38,"2026-01":340846.22,"2026-02":362342.16,"2026-03":391716.96,"2026-04":287934.7,"2026-05":262615.6,"2026-06":245051.68},"1507":{"2025-07":494421.96,"2025-08":736840.82,"2025-09":512695.48,"2025-10":505791.64,"2025-11":515901.24,"2025-12":613311.16,"2026-01":382513.54,"2026-02":482221.48,"2026-03":658425.5,"2026-04":692540.42,"2026-05":581904.88,"2026-06":519746.26},"1510":{"2025-07":268203.72,"2025-08":281001.28,"2025-09":313099.64,"2025-10":281854.14,"2025-11":394945.36,"2025-12":339799.94,"2026-01":429003.12,"2026-02":274131.54,"2026-03":289260.46,"2026-04":315207.02,"2026-05":284126.64,"2026-06":275893.58},"1710":{"2025-07":20302.52,"2025-08":20275.72,"2025-09":21544.38,"2025-10":22443.56,"2025-11":20117.4,"2025-12":21266.98,"2026-01":19973.66,"2026-02":19001.98,"2026-03":20130.1,"2026-04":19935.52,"2026-05":19997.28,"2026-06":20209.66},"3395":{"2025-07":-5909.96,"2025-08":-8924.94,"2025-09":-4827.54,"2025-10":-25581.799999999996,"2025-11":-1013.3799999999999,"2025-12":-9115.12,"2026-01":-6018.88,"2026-02":-1684.2799999999997,"2026-03":-61046.28,"2026-04":-170.82,"2026-05":-2959.56,"2026-06":-3670.1},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"90":{"1505":{"2025-07":4438887.24,"2025-08":3972897.26,"2025-09":4245471.84,"2025-10":4541348.38,"2025-11":4866186.86,"2025-12":3722146.1,"2026-01":3873026.36,"2026-02":3802707.56,"2026-03":4224571.42,"2026-04":3626886.72,"2026-05":4362031.72,"2026-06":4212799.82},"1507":{"2025-07":4077404.56,"2025-08":5799468.18,"2025-09":4599768.98,"2025-10":4250293.56,"2025-11":5247406.9,"2025-12":4575788.18,"2026-01":2762591.34,"2026-02":3718275.82,"2026-03":5509063.08,"2026-04":3741569.42,"2026-05":5047557.3,"2026-06":6212479.04},"1510":{"2025-07":917232.56,"2025-08":818993.36,"2025-09":738974.1,"2025-10":805986.2,"2025-11":807694.44,"2025-12":820742.7,"2026-01":827920.52,"2026-02":813795.76,"2026-03":802925.78,"2026-04":791084.54,"2026-05":813222.54,"2026-06":818693.34},"1710":{"2025-07":23109.74,"2025-08":23837.72,"2025-09":29778.76,"2025-10":24309.26,"2025-11":24158.18,"2025-12":27807.6,"2026-01":24061.0,"2026-02":27516.04,"2026-03":30468.84,"2026-04":26746.1,"2026-05":31599.38,"2026-06":31095.0},"3395":{"2025-07":-30456.02,"2025-08":-96594.92,"2025-09":-19780.78,"2025-10":-65775.62,"2025-11":-98802.44,"2025-12":-170885.82,"2026-01":-103955.01999999999,"2026-02":-66025.96,"2026-03":33617.12,"2026-04":-143124.34,"2026-05":-78300.64,"2026-06":-142801.66},"3405":{"2025-07":-7579.58,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":-15928.58,"2026-02":0.0,"2026-03":-31190.68,"2026-04":0.0,"2026-05":-31101.2,"2026-06":-8500.0}},"91":{"1505":{"2025-07":126985.4,"2025-08":121962.42,"2025-09":141504.26,"2025-10":129948.44,"2025-11":93716.96,"2025-12":71408.94,"2026-01":108557.32,"2026-02":95864.3,"2026-03":177311.12,"2026-04":82772.14,"2026-05":118193.66,"2026-06":117215.78},"1507":{"2025-07":126227.24,"2025-08":125550.56,"2025-09":213833.22,"2025-10":139111.38,"2025-11":221632.64,"2025-12":57616.44,"2026-01":91614.06,"2026-02":151227.88,"2026-03":156524.96,"2026-04":75155.94,"2026-05":121394.0,"2026-06":74665.74},"1510":{"2025-07":65277.28,"2025-08":68711.48,"2025-09":70277.86,"2025-10":39737.62,"2025-11":71136.18,"2025-12":16874.72,"2026-01":111482.34,"2026-02":72541.36,"2026-03":76310.42,"2026-04":71994.88,"2026-05":73453.92,"2026-06":82956.22},"1710":{"2025-07":1840.02,"2025-08":1280.14,"2025-09":1634.36,"2025-10":1439.72,"2025-11":1316.38,"2025-12":1108.66,"2026-01":1273.0,"2026-02":1639.0,"2026-03":2762.34,"2026-04":1412.38,"2026-05":1389.8,"2026-06":3993.54},"3395":{"2025-07":-2104.82,"2025-08":-6334.32,"2025-09":-19265.9,"2025-10":-1331.04,"2025-11":-2824.56,"2025-12":-1155.74,"2026-01":-6105.48,"2026-02":-2186.62,"2026-03":-1917.44,"2026-04":-1092.96,"2026-05":-1161.58,"2026-06":-6526.1},"3405":{"2025-07":0.0,"2025-08":-1690.86,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"92":{"1505":{"2025-07":13119.62,"2025-08":8059.2,"2025-09":13249.38,"2025-10":12753.22,"2025-11":13186.36,"2025-12":12315.1,"2026-01":9363.96,"2026-02":10468.76,"2026-03":12993.84,"2026-04":13817.1,"2026-05":20487.68,"2026-06":10167.74},"1507":{"2025-07":94315.44,"2025-08":67363.1,"2025-09":88514.14,"2025-10":101615.7,"2025-11":49796.84,"2025-12":72227.36,"2026-01":95356.12,"2026-02":94464.58,"2026-03":68565.52,"2026-04":54650.88,"2026-05":74574.86,"2026-06":55599.42},"1510":{"2025-07":118.56,"2025-08":634.2,"2025-09":518.48,"2025-10":340.12,"2025-11":251.38,"2025-12":226.92,"2026-01":644.96,"2026-02":1392.84,"2026-03":1482.74,"2026-04":1414.26,"2026-05":1549.08,"2026-06":1503.54},"1710":{"2025-07":59.3,"2025-08":12.02,"2025-09":149.48,"2025-10":83.8,"2025-11":105.9,"2025-12":37.36,"2026-01":88.0,"2026-02":63.5,"2026-03":196.5,"2026-04":123.6,"2026-05":72.54,"2026-06":56.0},"3395":{"2025-07":0.0,"2025-08":-1172.3600000000001,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":-61.34,"2026-02":0.0,"2026-03":-673.64,"2026-04":-352.7,"2026-05":-4417.34,"2026-06":0.0},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"93":{"1505":{"2025-07":46742.46,"2025-08":51484.84,"2025-09":31623.8,"2025-10":33230.1,"2025-11":69748.86,"2025-12":72784.78,"2026-01":49369.86,"2026-02":38480.14,"2026-03":56350.78,"2026-04":64841.36,"2026-05":40679.0,"2026-06":31769.0},"1507":{"2025-07":264995.46,"2025-08":197882.88,"2025-09":161627.54,"2025-10":136800.74,"2025-11":148399.54,"2025-12":96885.76,"2026-01":107277.02,"2026-02":126961.28,"2026-03":130529.26,"2026-04":72609.84,"2026-05":128892.24,"2026-06":147963.72},"1510":{"2025-07":41127.54,"2025-08":41350.14,"2025-09":66406.56,"2025-10":52562.26,"2025-11":59246.66,"2025-12":64156.44,"2026-01":69198.24,"2026-02":65853.24,"2026-03":49597.54,"2026-04":47928.56,"2026-05":41344.76,"2026-06":36051.2},"1710":{"2025-07":430.0,"2025-08":157.0,"2025-09":276.0,"2025-10":224.0,"2025-11":174.0,"2025-12":301.0,"2026-01":291.0,"2026-02":303.0,"2026-03":434.0,"2026-04":306.0,"2026-05":323.0,"2026-06":312.0},"3395":{"2025-07":-220.78,"2025-08":-1633.16,"2025-09":-4402.28,"2025-10":-0.68,"2025-11":0.0,"2025-12":-1643.98,"2026-01":-432.72,"2026-02":-4185.38,"2026-03":0.0,"2026-04":-994.72,"2026-05":-670.62,"2026-06":-964.98},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"94":{"1505":{"2025-07":10468.0,"2025-08":8274.64,"2025-09":9627.18,"2025-10":7612.84,"2025-11":12138.24,"2025-12":4982.8,"2026-01":6695.96,"2026-02":4303.44,"2026-03":6361.94,"2026-04":7144.16,"2026-05":14319.7,"2026-06":9305.34},"1507":{"2025-07":100954.1,"2025-08":58235.34,"2025-09":83166.78,"2025-10":69670.8,"2025-11":54937.3,"2025-12":70968.56,"2026-01":23984.88,"2026-02":33904.16,"2026-03":64185.18,"2026-04":61512.16,"2026-05":60918.48,"2026-06":128928.08},"1510":{"2025-07":14581.66,"2025-08":2245.06,"2025-09":1408.08,"2025-10":519.8,"2025-11":1012.58,"2025-12":1125.92,"2026-01":1551.28,"2026-02":1204.82,"2026-03":1218.12,"2026-04":1676.38,"2026-05":2021.36,"2026-06":1260.46},"1710":{"2025-07":30.0,"2025-08":17.0,"2025-09":68.0,"2025-10":34.0,"2025-11":17.0,"2025-12":34.0,"2026-01":57.0,"2026-02":13.0,"2026-03":13.0,"2026-04":49.0,"2026-05":104.0,"2026-06":125.0},"3395":{"2025-07":0.0,"2025-08":-544.36,"2025-09":-5766.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":-250.9,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":-636.4,"2026-06":0.0},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}}},"budget":{"81":{"1507":{"2025-07":214082.37,"2025-08":216928.66,"2025-09":197612.0,"2025-10":315476.1,"2025-11":207490.31,"2025-12":163620.58,"2026-01":126785.11,"2026-02":130700.23,"2026-03":154158.49,"2026-04":163417.51,"2026-05":192665.19,"2026-06":167554.14},"1505":{"2025-07":194966.64,"2025-08":204613.94,"2025-09":211697.29,"2025-10":201911.94,"2025-11":243543.38,"2025-12":191744.03,"2026-01":215537.69,"2026-02":213477.89,"2026-03":244024.89,"2026-04":246513.79,"2026-05":302267.19,"2026-06":278217.01},"1510":{"2025-07":75390.53,"2025-08":76066.96,"2025-09":109602.97,"2025-10":88518.31,"2025-11":96536.94,"2025-12":127875.59,"2026-01":108108.1,"2026-02":97306.24,"2026-03":119170.25,"2026-04":80571.23,"2026-05":128026.26,"2026-06":122144.31},"1710":{"2025-07":1478.24,"2025-08":1349.69,"2025-09":1413.96,"2025-10":1413.96,"2025-11":1285.42,"2025-12":1349.69,"2026-01":1285.42,"2026-02":1285.42,"2026-03":1349.69,"2026-04":1285.42,"2026-05":1349.69,"2026-06":1349.69},"3395":{"2025-07":-3568.12,"2025-08":-3257.85,"2025-09":-3412.98,"2025-10":-3412.98,"2025-11":-3102.71,"2025-12":-3257.85,"2026-01":-3102.71,"2026-02":-3102.71,"2026-03":-3257.85,"2026-04":-3102.71,"2026-05":-3257.85,"2026-06":-3257.85},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"82":{"1507":{"2025-07":590940.0,"2025-08":559846.0,"2025-09":615598.0,"2025-10":574395.0,"2025-11":583475.0,"2025-12":378413.0,"2026-01":335118.0,"2026-02":371860.0,"2026-03":691470.0,"2026-04":512979.0,"2026-05":545265.0,"2026-06":542919.0},"1505":{"2025-07":396255.0,"2025-08":401109.0,"2025-09":370001.0,"2025-10":382446.0,"2025-11":456240.0,"2025-12":371197.0,"2026-01":505820.0,"2026-02":517519.0,"2026-03":562375.0,"2026-04":529841.0,"2026-05":655658.0,"2026-06":645680.0},"1510":{"2025-07":155988.0,"2025-08":136694.0,"2025-09":171619.0,"2025-10":166714.0,"2025-11":160411.0,"2025-12":186271.0,"2026-01":166414.0,"2026-02":162401.0,"2026-03":187016.0,"2026-04":122908.0,"2026-05":232962.0,"2026-06":219839.0},"1710":{"2025-07":3400.0,"2025-08":3104.0,"2025-09":3252.0,"2025-10":3252.0,"2025-11":2956.0,"2025-12":3104.0,"2026-01":2956.0,"2026-02":2956.0,"2026-03":3252.0,"2026-04":2956.0,"2026-05":2956.0,"2026-06":3252.0},"3395":{"2025-07":-8769.0,"2025-08":-8006.0,"2025-09":-8387.0,"2025-10":-8387.0,"2025-11":-7625.0,"2025-12":-8006.0,"2026-01":-7625.0,"2026-02":-7625.0,"2026-03":-8387.0,"2026-04":-7625.0,"2026-05":-7625.0,"2026-06":-8387.0},"3405":{"2025-07":-182.0,"2025-08":-166.0,"2025-09":-174.0,"2025-10":-174.0,"2025-11":-158.0,"2025-12":-166.0,"2026-01":-158.0,"2026-02":-158.0,"2026-03":-174.0,"2026-04":-158.0,"2026-05":-158.0,"2026-06":-174.0}},"83":{"1507":{"2025-07":176803.95,"2025-08":180424.08,"2025-09":130703.74,"2025-10":151909.34,"2025-11":123346.11,"2025-12":107565.85,"2026-01":87199.03,"2026-02":74896.4,"2026-03":153178.2,"2026-04":240456.44,"2026-05":161940.86,"2026-06":190953.55},"1505":{"2025-07":47253.56,"2025-08":52938.71,"2025-09":44964.7,"2025-10":47764.56,"2025-11":61626.08,"2025-12":29822.87,"2026-01":38577.95,"2026-02":49810.72,"2026-03":55544.37,"2026-04":49911.87,"2026-05":50444.85,"2026-06":62303.89},"1510":{"2025-07":3854.18,"2025-08":5813.25,"2025-09":3932.1,"2025-10":5068.9,"2025-11":5158.02,"2025-12":4715.8,"2026-01":6018.33,"2026-02":6980.58,"2026-03":5039.68,"2026-04":6493.12,"2026-05":5788.41,"2026-06":5892.89},"1710":{"2025-07":663.97,"2025-08":606.23,"2025-09":635.1,"2025-10":663.97,"2025-11":577.36,"2025-12":606.23,"2026-01":577.36,"2026-02":577.36,"2026-03":606.23,"2026-04":577.36,"2026-05":606.23,"2026-06":577.36},"3395":{"2025-07":-920.64,"2025-08":-840.58,"2025-09":-880.61,"2025-10":-920.64,"2025-11":-800.55,"2025-12":-840.58,"2026-01":-800.55,"2026-02":-800.55,"2026-03":-840.58,"2026-04":-800.55,"2026-05":-840.58,"2026-06":-800.55},"3405":{"2025-07":-418.76,"2025-08":-382.35,"2025-09":-400.56,"2025-10":-418.76,"2025-11":-364.14,"2025-12":-382.35,"2026-01":-364.14,"2026-02":-364.14,"2026-03":-382.35,"2026-04":-364.14,"2026-05":-382.35,"2026-06":-364.14}},"84":{"1507":{"2025-07":29579.83,"2025-08":26443.84,"2025-09":52043.19,"2025-10":51433.5,"2025-11":45117.77,"2025-12":86783.92,"2026-01":17142.96,"2026-02":27976.36,"2026-03":20016.19,"2026-04":61609.1,"2026-05":63600.77,"2026-06":48694.46},"1505":{"2025-07":17477.03,"2025-08":35477.76,"2025-09":25026.01,"2025-10":26074.67,"2025-11":25914.61,"2025-12":16557.89,"2026-01":21555.43,"2026-02":16552.34,"2026-03":24058.9,"2026-04":25520.74,"2026-05":23584.7,"2026-06":47010.01},"1510":{"2025-07":11376.48,"2025-08":10599.05,"2025-09":16793.28,"2025-10":14744.81,"2025-11":17560.09,"2025-12":16740.51,"2026-01":22695.22,"2026-02":14078.58,"2026-03":21120.86,"2026-04":7158.56,"2026-05":12971.67,"2026-06":14265.5},"1710":{"2025-07":980.7,"2025-08":846.97,"2025-09":980.7,"2025-10":1025.28,"2025-11":891.54,"2025-12":936.12,"2026-01":891.54,"2026-02":891.54,"2026-03":980.7,"2026-04":891.54,"2026-05":891.54,"2026-06":936.12},"3395":{"2025-07":-1244.85,"2025-08":-1075.1,"2025-09":-1244.85,"2025-10":-1301.44,"2025-11":-1131.68,"2025-12":-1188.27,"2026-01":-1131.68,"2026-02":-1131.68,"2026-03":-1244.85,"2026-04":-1131.68,"2026-05":-1131.68,"2026-06":-1188.27},"3405":{"2025-07":-427.94,"2025-08":-369.58,"2025-09":-427.94,"2025-10":-447.39,"2025-11":-389.03,"2025-12":-408.48,"2026-01":-389.03,"2026-02":-389.03,"2026-03":-427.94,"2026-04":-389.03,"2026-05":-389.03,"2026-06":-408.48}},"86":{"1507":{"2025-07":1282675.2,"2025-08":1017081.1,"2025-09":1090046.11,"2025-10":1130669.91,"2025-11":1064593.04,"2025-12":1276900.45,"2026-01":942837.3,"2026-02":1247926.87,"2026-03":1299629.17,"2026-04":1230297.1,"2026-05":1358294.0,"2026-06":1126118.21},"1505":{"2025-07":1769095.65,"2025-08":1664344.09,"2025-09":1812211.4,"2025-10":1965871.21,"2025-11":2307734.13,"2025-12":2023696.87,"2026-01":1867220.93,"2026-02":1971351.69,"2026-03":2038227.85,"2026-04":1886357.66,"2026-05":1847376.12,"2026-06":1770704.25},"1510":{"2025-07":280980.26,"2025-08":335197.12,"2025-09":380410.85,"2025-10":305135.07,"2025-11":320585.83,"2025-12":347970.35,"2026-01":336752.51,"2026-02":330859.92,"2026-03":383606.46,"2026-04":303754.18,"2026-05":473643.53,"2026-06":490249.96},"1710":{"2025-07":6835.46,"2025-08":6241.07,"2025-09":6241.07,"2025-10":6835.45,"2025-11":5646.68,"2025-12":6241.07,"2026-01":5943.87,"2026-02":5943.87,"2026-03":6241.07,"2026-04":5943.87,"2026-05":6241.07,"2026-06":6241.07},"3395":{"2025-07":-16166.27,"2025-08":-14760.51,"2025-09":-14760.51,"2025-10":-16166.27,"2025-11":-13354.74,"2025-12":-14760.51,"2026-01":-14057.62,"2026-02":-14057.62,"2026-03":-14760.51,"2026-04":-14057.62,"2026-05":-14760.51,"2026-06":-14760.51},"3405":{"2025-07":-81.15,"2025-08":-74.09,"2025-09":-74.09,"2025-10":-81.15,"2025-11":-67.03,"2025-12":-74.09,"2026-01":-70.56,"2026-02":-70.56,"2026-03":-74.09,"2026-04":-70.56,"2026-05":-74.09,"2026-06":-74.09}},"88":{"1507":{"2025-07":66589.88,"2025-08":73880.01,"2025-09":80314.86,"2025-10":74974.24,"2025-11":97537.43,"2025-12":87611.05,"2026-01":61281.34,"2026-02":133058.77,"2026-03":145056.65,"2026-04":94414.35,"2026-05":116526.53,"2026-06":108732.53},"1505":{"2025-07":80366.63,"2025-08":56628.83,"2025-09":58982.86,"2025-10":74836.64,"2025-11":84352.74,"2025-12":84072.06,"2026-01":60029.27,"2026-02":58598.24,"2026-03":46159.4,"2026-04":70397.49,"2026-05":67999.51,"2026-06":62921.28},"1510":{"2025-07":390.53,"2025-08":638.15,"2025-09":324.68,"2025-10":402.69,"2025-11":553.44,"2025-12":600.35,"2026-01":758.56,"2026-02":587.64,"2026-03":551.72,"2026-04":62979.24,"2026-05":1082.11,"2026-06":628.97},"1710":{"2025-07":948.43,"2025-08":865.96,"2025-09":907.19,"2025-10":907.19,"2025-11":824.72,"2025-12":865.96,"2026-01":824.72,"2026-02":824.72,"2026-03":907.19,"2026-04":824.72,"2026-05":865.96,"2026-06":865.96},"3395":{"2025-07":-797.98,"2025-08":-728.59,"2025-09":-763.29,"2025-10":-763.29,"2025-11":-693.9,"2025-12":-728.59,"2026-01":-693.9,"2026-02":-693.9,"2026-03":-763.29,"2026-04":-693.9,"2026-05":-728.59,"2026-06":-728.59},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"89":{"1507":{"2025-07":178336.08,"2025-08":281289.95,"2025-09":200060.91,"2025-10":168617.69,"2025-11":204575.63,"2025-12":248035.56,"2026-01":155996.01,"2026-02":212115.71,"2026-03":270840.9,"2026-04":204989.58,"2026-05":359415.61,"2026-06":322184.31},"1505":{"2025-07":182563.09,"2025-08":177639.34,"2025-09":180801.64,"2025-10":232545.38,"2025-11":307468.44,"2025-12":273501.37,"2026-01":187256.61,"2026-02":195105.97,"2026-03":170336.82,"2026-04":173966.52,"2026-05":222341.08,"2026-06":181018.66},"1510":{"2025-07":120901.98,"2025-08":106509.91,"2025-09":156829.11,"2025-10":127190.21,"2025-11":165143.83,"2025-12":196279.78,"2026-01":191395.36,"2026-02":145276.7,"2026-03":177364.8,"2026-04":86418.15,"2026-05":130511.2,"2026-06":160830.74},"1710":{"2025-07":1778.01,"2025-08":790.09,"2025-09":790.09,"2025-10":1778.01,"2025-11":296.14,"2025-12":790.09,"2026-01":296.14,"2026-02":296.14,"2026-03":790.09,"2026-04":-197.82,"2026-05":790.09,"2026-06":790.09},"3395":{"2025-07":-6217.96,"2025-08":-5677.27,"2025-09":-5677.27,"2025-10":-6217.96,"2025-11":-5406.93,"2025-12":-5677.27,"2026-01":-5406.93,"2026-02":-5406.93,"2026-03":-5677.27,"2026-04":-5136.58,"2026-05":-5677.27,"2026-06":-5677.27},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"90":{"1507":{"2025-07":2148591.44,"2025-08":2307907.98,"2025-09":2297075.05,"2025-10":2010304.02,"2025-11":2548146.41,"2025-12":2345593.32,"2026-01":1653037.79,"2026-02":2067335.02,"2026-03":2940353.61,"2026-04":2622279.39,"2026-05":2568186.37,"2026-06":2936505.64},"1505":{"2025-07":2412358.39,"2025-08":2171483.85,"2025-09":2134283.42,"2025-10":2429170.06,"2025-11":2710237.82,"2025-12":2132545.18,"2026-01":2266793.83,"2026-02":2301680.92,"2026-03":2546323.64,"2026-04":2087518.78,"2026-05":2101609.94,"2026-06":2193338.68},"1510":{"2025-07":404791.06,"2025-08":363748.43,"2025-09":398766.88,"2025-10":423548.72,"2025-11":318986.74,"2025-12":432656.94,"2026-01":363711.78,"2026-02":379754.29,"2026-03":449374.84,"2026-04":398056.04,"2026-05":477037.07,"2026-06":492751.84},"1710":{"2025-07":14444.95,"2025-08":13188.87,"2025-09":13816.91,"2025-10":13816.91,"2025-11":12560.82,"2025-12":13188.87,"2026-01":12560.82,"2026-02":12560.82,"2026-03":13816.91,"2026-04":12560.82,"2026-05":13188.87,"2026-06":13188.87},"3395":{"2025-07":-38138.56,"2025-08":-34822.16,"2025-09":-36480.36,"2025-10":-36480.36,"2025-11":-33263.96,"2025-12":-34922.16,"2026-01":-33263.96,"2026-02":-33263.96,"2026-03":-36580.36,"2026-04":-33263.96,"2026-05":-34922.16,"2026-06":-34922.16},"3405":{"2025-07":-2872.67,"2025-08":-2622.88,"2025-09":-2747.78,"2025-10":-2747.78,"2025-11":-2497.98,"2025-12":-2622.88,"2026-01":-2497.98,"2026-02":-2497.98,"2026-03":-2747.78,"2026-04":-2497.98,"2026-05":-2622.88,"2026-06":-2622.88}},"91":{"1507":{"2025-07":62327.92,"2025-08":61202.42,"2025-09":103251.01,"2025-10":64227.75,"2025-11":111643.59,"2025-12":21498.73,"2026-01":43705.38,"2026-02":78410.11,"2026-03":69882.76,"2026-04":45543.35,"2026-05":58240.7,"2026-06":86791.23},"1505":{"2025-07":60660.61,"2025-08":54839.79,"2025-09":66415.37,"2025-10":63027.9,"2025-11":46719.13,"2025-12":36127.78,"2026-01":51415.58,"2026-02":48160.87,"2026-03":83435.01,"2026-04":46286.51,"2026-05":53991.0,"2026-06":46501.8},"1510":{"2025-07":35176.24,"2025-08":37003.16,"2025-09":30279.33,"2025-10":20457.36,"2025-11":36935.42,"2025-12":8804.01,"2026-01":61285.13,"2026-02":40177.05,"2026-03":48229.52,"2026-04":23612.07,"2026-05":30651.6,"2026-06":31440.72},"1710":{"2025-07":949.25,"2025-08":866.71,"2025-09":907.98,"2025-10":866.71,"2025-11":784.17,"2025-12":866.71,"2026-01":825.44,"2026-02":784.17,"2026-03":866.71,"2026-04":825.44,"2026-05":825.44,"2026-06":866.71},"3395":{"2025-07":-2271.89,"2025-08":-2074.33,"2025-09":-2173.11,"2025-10":-2074.33,"2025-11":-1876.78,"2025-12":-2074.33,"2026-01":-1975.56,"2026-02":-1876.78,"2026-03":-2074.33,"2026-04":-1975.56,"2026-05":-1975.56,"2026-06":-2074.33},"3405":{"2025-07":-78.41,"2025-08":-71.59,"2025-09":-75.0,"2025-10":-71.59,"2025-11":-64.77,"2025-12":-71.59,"2026-01":-68.18,"2026-02":-64.77,"2026-03":-71.59,"2026-04":-68.18,"2026-05":-68.18,"2026-06":-71.59}},"92":{"1507":{"2025-07":35298.43,"2025-08":21427.51,"2025-09":34024.75,"2025-10":40276.4,"2025-11":20324.37,"2025-12":28970.11,"2026-01":41963.22,"2026-02":43287.35,"2026-03":29944.04,"2026-04":26463.27,"2026-05":31852.57,"2026-06":47999.58},"1505":{"2025-07":6541.11,"2025-08":3741.08,"2025-09":6221.02,"2025-10":6241.24,"2025-11":6640.83,"2025-12":5708.1,"2026-01":4775.22,"2026-02":5369.12,"2026-03":6966.01,"2026-04":10345.49,"2026-05":8091.62,"2026-06":9333.44},"1510":{"2025-07":29.28,"2025-08":239.59,"2025-09":187.49,"2025-10":110.23,"2025-11":71.16,"2025-12":80.72,"2026-01":229.44,"2026-02":575.69,"2026-03":791.13,"2026-04":67.74,"2026-05":118.98,"2026-06":140.29},"1710":{"2025-07":57.06,"2025-08":52.09,"2025-09":54.58,"2025-10":54.58,"2025-11":49.61,"2025-12":52.09,"2026-01":49.61,"2026-02":49.61,"2026-03":54.58,"2026-04":49.61,"2026-05":52.09,"2026-06":52.09},"3395":{"2025-07":-110.82,"2025-08":-101.18,"2025-09":-106.0,"2025-10":-106.0,"2025-11":-96.36,"2025-12":-101.18,"2026-01":-96.36,"2026-02":-96.36,"2026-03":-106.0,"2026-04":-96.36,"2026-05":-101.18,"2026-06":-101.18},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"93":{"1507":{"2025-07":87255.24,"2025-08":79180.44,"2025-09":68200.95,"2025-10":66618.28,"2025-11":52241.33,"2025-12":35938.95,"2026-01":50880.89,"2026-02":57555.37,"2026-03":64096.9,"2026-04":42966.38,"2026-05":39593.58,"2026-06":73118.28},"1505":{"2025-07":19565.08,"2025-08":26047.69,"2025-09":13877.3,"2025-10":17281.24,"2025-11":35705.05,"2025-12":36858.07,"2026-01":23794.34,"2026-02":19520.82,"2026-03":29794.61,"2026-04":17359.87,"2026-05":12866.84,"2026-06":12122.54},"1510":{"2025-07":20899.36,"2025-08":20506.27,"2025-09":34007.33,"2025-10":27618.64,"2025-11":28588.48,"2025-12":36864.57,"2026-01":32061.8,"2026-02":33965.17,"2026-03":32281.2,"2026-04":11153.35,"2026-05":30331.24,"2026-06":25721.16},"1710":{"2025-07":150.62,"2025-08":137.53,"2025-09":144.07,"2025-10":144.07,"2025-11":130.98,"2025-12":137.53,"2026-01":130.98,"2026-02":130.98,"2026-03":144.07,"2026-04":130.98,"2026-05":130.98,"2026-06":144.07},"3395":{"2025-07":-693.84,"2025-08":-633.5,"2025-09":-663.67,"2025-10":-663.67,"2025-11":-603.34,"2025-12":-633.5,"2026-01":-603.34,"2026-02":-603.34,"2026-03":-663.67,"2026-04":-603.34,"2026-05":-603.34,"2026-06":-663.67},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}},"94":{"1507":{"2025-07":47216.44,"2025-08":27820.74,"2025-09":43546.12,"2025-10":33458.17,"2025-11":26948.71,"2025-12":36011.59,"2026-01":12190.73,"2026-02":16034.16,"2026-03":28025.66,"2026-04":14350.55,"2026-05":47871.26,"2026-06":49736.95},"1505":{"2025-07":3666.45,"2025-08":3293.51,"2025-09":3748.98,"2025-10":3750.24,"2025-11":5648.54,"2025-12":2509.04,"2026-01":3318.13,"2026-02":2377.59,"2026-03":3239.47,"2026-04":10703.44,"2026-05":12256.71,"2026-06":4680.17},"1510":{"2025-07":11681.59,"2025-08":1441.24,"2025-09":-3757.83,"2025-10":231.13,"2025-11":383.37,"2025-12":520.57,"2026-01":568.32,"2026-02":504.0,"2026-03":590.26,"2026-04":1016.73,"2026-05":881.1,"2026-06":657.95},"1710":{"2025-07":23.96,"2025-08":21.87,"2025-09":22.91,"2025-10":22.91,"2025-11":20.83,"2025-12":21.87,"2026-01":20.83,"2026-02":20.83,"2026-03":22.91,"2026-04":20.83,"2026-05":20.83,"2026-06":22.91},"3395":{"2025-07":-295.26,"2025-08":-269.58,"2025-09":-282.42,"2025-10":-282.42,"2025-11":-256.74,"2025-12":-269.58,"2026-01":-256.74,"2026-02":-256.74,"2026-03":-282.42,"2026-04":-256.74,"2026-05":-256.74,"2026-06":-282.42},"3405":{"2025-07":0.0,"2025-08":0.0,"2025-09":0.0,"2025-10":0.0,"2025-11":0.0,"2025-12":0.0,"2026-01":0.0,"2026-02":0.0,"2026-03":0.0,"2026-04":0.0,"2026-05":0.0,"2026-06":0.0}}}};
+</script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS & STATE
+// ═══════════════════════════════════════════════════════════════
+const GL_LABELS = {
+  '1505':'Tailgate Revenue','1507':'Site Revenue','1510':'Warehouse Revenue',
+  '1710':'Sundry / Commission','3395':'Freight Write-offs','3405':'Insurance Claims'
+};
+const GL_COLORS = {
+  '1505':'#c8102e','1507':'#1a2744','1510':'#0e7a47',
+  '1710':'#b45309','3395':'#7b88a8','3405':'#aab3cb'
+};
+const REVENUE_GL = ['1505','1507','1510'];
+const ADJ_GL    = ['1710','3395','3405'];
+const DEPOT_NAMES = PL_DATA.meta.depots;
+const FY_MONTH_POS = {7:1,8:2,9:3,10:4,11:5,12:6,1:7,2:8,3:9,4:10,5:11,6:12};
+const MONTH_NAMES_BY_POS = {1:'Jul',2:'Aug',3:'Sep',4:'Oct',5:'Nov',6:'Dec',7:'Jan',8:'Feb',9:'Mar',10:'Apr',11:'May',12:'Jun'};
+const MONTH_FROM_YM = ym => parseInt(ym.split('-')[1]);
+
+let horizon = 6;
+let currentDepot = 'all';
+let chartView = 'combined';
+let tableMode = 'revenue';
+let signals = {health:0, netCust:0, cadence:0, mix:0};
+
+let mainChartInst = null;
+let histChartInst = null;
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+function init(){
+  // Populate depot selector
+  const sel = document.getElementById('globalDepot');
+  const depots = Object.entries(DEPOT_NAMES).sort((a,b)=>a[1].localeCompare(b[1]));
+  depots.forEach(([code, name])=>{
+    const o = document.createElement('option');
+    o.value = code; o.textContent = `${name} (${code})`;
+    sel.appendChild(o);
+  });
+  rebuild();
+}
+
+function setHorizon(h){
+  horizon = h;
+  ['h3','h6','h12'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('h'+h).classList.add('active');
+  rebuild();
+}
+function setView(v){
+  chartView = v;
+  ['vtCombined','vtService'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('vt'+v.charAt(0).toUpperCase()+v.slice(1)).classList.add('active');
+  renderMainChart();
+}
+function setTableMode(m){
+  tableMode = m;
+  document.getElementById('tmRev').classList.toggle('active', m==='revenue');
+  document.getElementById('tmAll').classList.toggle('active', m==='all');
+  renderMonthlyTable();
+}
+function onSignal(key, val){
+  signals[key] = parseFloat(val);
+  document.getElementById('sig'+key.charAt(0).toUpperCase()+key.slice(1)+'Val').textContent = (val>=0?'+':'')+val+'%';
+  updateSignalBar();
+  rebuild();
+}
+function resetSignals(){
+  signals = {health:0,netCust:0,cadence:0,mix:0};
+  ['health','netCust','cadence','mix'].forEach(k=>{
+    document.getElementById('sig'+k.charAt(0).toUpperCase()+k.slice(1)).value=0;
+    document.getElementById('sig'+k.charAt(0).toUpperCase()+k.slice(1)+'Val').textContent='0%';
+  });
+  updateSignalBar();
+  rebuild();
+}
+function updateSignalBar(){
+  const net = computeNetSignal();
+  const el = document.getElementById('netSignalDisplay');
+  const bar = document.getElementById('netSignalBar');
+  el.textContent = (net>=0?'+':'') + (net*100).toFixed(1)+'%';
+  el.className = 'kpi-val '+(net>0.005?'green':net<-0.005?'red':'muted');
+  // Bar: 50% = neutral, 0% = -dampened max, 100% = +dampened max
+  const pct = 50 + net*100*2.5;
+  bar.style.width = Math.max(0,Math.min(100,pct))+'%';
+  bar.className = 'var-bar-fill '+(net>0?'pos':net<0?'neg':'');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CORE FORECAST ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+// Get the "reference annual" for a depot+gl by using FY24 or most recent available year
+function getRefAnnual(depot, gl){
+  const ann = (PL_DATA.annual[depot]||{})[gl]||{};
+  const fyOrd = ['FY24','FY23','FY22','FY21','FY20'];
+  for(const fy of fyOrd){
+    if(ann[fy] && Math.abs(ann[fy])>500) return ann[fy];
+  }
+  return 0;
+}
+
+// Get seasonal index for depot+gl+fyPos (1=Jul..12=Jun)
+function getSeasIdx(depot, gl, fyPos){
+  const s = (PL_DATA.seasonal[depot]||{})[gl]||{};
+  return s[String(fyPos)] || 1.0;
+}
+
+// Get trend rate for depot+gl (annual, fractional)
+function getTrend(depot, gl){
+  return (PL_DATA.trend[depot]||{})[gl] || 0;
+}
+
+// Net signal modifier for revenue lines (dampened, Kalman-style)
+function computeNetSignal(){
+  // Weights: health 35%, netCust 30%, cadence 25%, mix 10%
+  const weights = {health:.35, netCust:.30, cadence:.25, mix:.10};
+  let raw = 0;
+  Object.entries(signals).forEach(([k,v])=>{ raw += (v/100)*weights[k]; });
+  // Dampening factor: 0.55 (conservative — apply 55% of the composite signal)
+  return raw * 0.55;
+}
+
+// Generate month sequence from a start ym for n months
+function monthSeq(startYm, n){
+  const months = [];
+  let [y,m] = startYm.split('-').map(Number);
+  for(let i=0;i<n;i++){
+    months.push(`${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}`);
+    m++; if(m>12){m=1;y++;}
+  }
+  return months;
+}
+
+// Forecast a single month for a depot+gl
+function forecastMonth(depot, gl, ym, yearsFromRef){
+  const refAnnual = getRefAnnual(depot, gl);
+  if(Math.abs(refAnnual) < 100) return 0;
+  const trend = getTrend(depot, gl);
+  const [,mm] = ym.split('-').map(Number);
+  const fyPos = FY_MONTH_POS[mm] || 6;
+  const seasIdx = getSeasIdx(depot, gl, fyPos);
+
+  // Projected annual = refAnnual * (1+trend)^yearsFromRef
+  const projAnnual = refAnnual * Math.pow(1 + trend, yearsFromRef);
+  // Monthly base = annual/12 * seasonal_index
+  const monthBase = (projAnnual / 12) * seasIdx;
+
+  // Apply signal modifier to revenue lines only
+  const signalMod = REVENUE_GL.includes(gl) ? computeNetSignal() : 0;
+  return monthBase * (1 + signalMod);
+}
+
+// Compute confidence width: tighter for near-term, wider for longer horizon
+function confidenceWidth(ym, gl){
+  // Based on historical coefficient of variation + horizon distance
+  // Approx: 8–15% of monthly value for 6 months out
+  const baseWidth = {'1505':0.10,'1507':0.12,'1510':0.08,'1710':0.20,'3395':0.30,'3405':0.40};
+  return baseWidth[gl] || 0.12;
+}
+
+// Get all depots to include in computation
+function getDepots(){
+  if(currentDepot==='all') return Object.keys(DEPOT_NAMES);
+  return [currentDepot];
+}
+
+// Reference date: last month with confirmed actuals
+function getLastActualYm(){
+  // Find latest ym with data in fy25
+  let latest = '2025-07';
+  const depots = getDepots();
+  depots.forEach(dep=>{
+    const d = (PL_DATA.fy25[dep]||{});
+    REVENUE_GL.forEach(gl=>{
+      const yms = Object.keys(d[gl]||{}).filter(ym=>(d[gl][ym]||0)>0);
+      yms.forEach(ym=>{ if(ym>latest) latest=ym; });
+    });
+  });
+  return latest;
+}
+
+// "Years from reference" = how many years after FY24 (Jul2023-Jun2024)
+function yearsFromFY24(ym){
+  const [y,m] = ym.split('-').map(Number);
+  // FY24 midpoint: Jan 2024
+  const refDate = 2024 + 0; // FY24 = year starting Jul 2023
+  const ymDate = y + (m-1)/12;
+  const refMid = 2023.5; // mid of FY24
+  return ymDate - refMid;
+}
+
+// Aggregate actuals across selected depots
+function getAggActuals(gl, ym){
+  const depots = getDepots();
+  let sum = 0;
+  depots.forEach(dep=>{
+    const hist = ((PL_DATA.hist[dep]||{})[gl]||{})[ym]||0;
+    const fy25 = ((PL_DATA.fy25[dep]||{})[gl]||{})[ym]||0;
+    sum += hist || fy25;
+  });
+  return sum;
+}
+
+function getAggBudget(gl, ym){
+  const depots = getDepots();
+  let sum = 0;
+  depots.forEach(dep=>{
+    sum += ((PL_DATA.budget[dep]||{})[gl]||{})[ym]||0;
+  });
+  return sum;
+}
+
+function getAggForecast(gl, ym){
+  const depots = getDepots();
+  let sum = 0;
+  depots.forEach(dep=>{
+    sum += forecastMonth(dep, gl, ym, yearsFromFY24(ym));
+  });
+  return sum;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BUILD EVERYTHING
+// ═══════════════════════════════════════════════════════════════
+let forecastMonths = [];
+let histMonths = [];
+let forecastData = {}; // gl -> [values]
+let budgetData = {};
+let actualData = {};
+let confidenceLow = {};
+let confidenceHigh = {};
+
+function rebuild(){
+  currentDepot = document.getElementById('globalDepot').value;
+
+  const lastActual = getLastActualYm();
+  // Forecast starts next month after last actual
+  const [ly,lm] = lastActual.split('-').map(Number);
+  const fStart = lm===12?`${ly+1}-01`:`${ly}-${String(lm+1).padStart(2,'0')}`;
+  forecastMonths = monthSeq(fStart, horizon);
+
+  // Historical window: 24 months before forecast start for context
+  const hStart = (()=>{
+    let [hy,hm] = fStart.split('-').map(Number);
+    hm -= 24; while(hm<=0){hm+=12;hy--;}
+    return `${hy}-${String(hm).padStart(2,'0')}`;
+  })();
+  histMonths = [];
+  let [hy2,hm2] = hStart.split('-').map(Number);
+  while(`${hy2}-${String(hm2).padStart(2,'0')}` < fStart){
+    histMonths.push(`${hy2}-${String(hm2).padStart(2,'0')}`);
+    hm2++; if(hm2>12){hm2=1;hy2++;}
+  }
+
+  // Compute data arrays
+  const allGl = [...REVENUE_GL,...ADJ_GL];
+  allGl.forEach(gl=>{
+    forecastData[gl] = forecastMonths.map(ym=>getAggForecast(gl,ym));
+    budgetData[gl]   = forecastMonths.map(ym=>getAggBudget(gl,ym));
+    actualData[gl]   = histMonths.map(ym=>getAggActuals(gl,ym));
+    const cw = confidenceWidth(forecastMonths[0], gl);
+    confidenceLow[gl]  = forecastMonths.map((ym,i)=>forecastData[gl][i]*(1-cw*(1+i*0.04)));
+    confidenceHigh[gl] = forecastMonths.map((ym,i)=>forecastData[gl][i]*(1+cw*(1+i*0.04)));
+  });
+
+  renderKPIs(lastActual, fStart);
+  renderMainChart();
+  renderHistChart();
+  renderServiceTable();
+  renderMonthlyTable();
+  renderAdjTable();
+  updateSignalBar();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KPIs
+// ═══════════════════════════════════════════════════════════════
+function renderKPIs(lastActual, fStart){
+  // Period label
+  const fEnd = forecastMonths[forecastMonths.length-1];
+  const [fy,fm] = fStart.split('-').map(Number);
+  const [ey,em] = fEnd.split('-').map(Number);
+  document.getElementById('kfPeriod').textContent = horizon + ' mo';
+  document.getElementById('kfPeriodSub').textContent = `${fmtYm(fStart)} – ${fmtYm(fEnd)}`;
+
+  // Total forecast revenue
+  const totalFc = REVENUE_GL.reduce((s,gl)=>s+forecastData[gl].reduce((a,b)=>a+b,0),0);
+  document.getElementById('kfTotal').textContent = '$'+fmtM(totalFc);
+  document.getElementById('kfTotalSub').textContent = `Tailgate + Site + Warehouse`;
+
+  // vs Budget
+  const totalBud = REVENUE_GL.reduce((s,gl)=>s+budgetData[gl].reduce((a,b)=>a+b,0),0);
+  const budPct = totalBud > 0 ? (totalFc-totalBud)/totalBud : null;
+  const budEl = document.getElementById('kfVsBudget');
+  if(budPct!==null){
+    budEl.textContent = (budPct>=0?'+':'') + (budPct*100).toFixed(1)+'%';
+    budEl.className = 'kpi-val '+(budPct>=0?'green':'red');
+  } else {
+    budEl.textContent = '—'; budEl.className = 'kpi-val muted';
+  }
+  document.getElementById('kfVsBudgetSub').textContent = totalBud>0?`Bud: $${fmtM(totalBud)}`:'budget n/a';
+
+  // vs Prior Year (same calendar months, FY25 actuals)
+  const pyTotal = REVENUE_GL.reduce((s,gl)=>{
+    let sum = 0;
+    forecastMonths.forEach(ym=>{
+      const [y,m] = ym.split('-').map(Number);
+      const pyYm = `${y-1}-${String(m).padStart(2,'0')}`;
+      sum += getAggActuals(gl, pyYm);
+    });
+    return s+sum;
+  },0);
+  const pyPct = pyTotal>0 ? (totalFc-pyTotal)/pyTotal : null;
+  const pyEl = document.getElementById('kfVsPY');
+  if(pyPct!==null){
+    pyEl.textContent = (pyPct>=0?'+':'')+(pyPct*100).toFixed(1)+'%';
+    pyEl.className = 'kpi-val '+(pyPct>=-0.02?'green':'red');
+  } else { pyEl.textContent='—'; pyEl.className='kpi-val muted'; }
+  document.getElementById('kfVsPYSub').textContent = pyTotal>0?`PY: $${fmtM(pyTotal)}`:'prior year n/a';
+
+  // Signal
+  const sigNet = computeNetSignal();
+  const sigEl = document.getElementById('kfSignal');
+  sigEl.textContent = (sigNet>=0?'+':'')+(sigNet*100).toFixed(1)+'%';
+  sigEl.className = 'kpi-val '+(sigNet>0.005?'green':sigNet<-0.005?'red':'green');
+
+  // Confidence
+  const dataMonths = histMonths.filter(ym=>REVENUE_GL.some(gl=>getAggActuals(gl,ym)>0)).length;
+  const confPct = Math.min(95, Math.max(55, 60 + dataMonths*0.8 - horizon*2));
+  document.getElementById('kfConf').textContent = confPct.toFixed(0)+'%';
+  document.getElementById('kfConfSub').textContent = horizon+'mo horizon, '+dataMonths+'mo data';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN CHART
+// ═══════════════════════════════════════════════════════════════
+function renderMainChart(){
+  if(mainChartInst){mainChartInst.destroy();mainChartInst=null;}
+
+  const allMonths = [...histMonths,...forecastMonths];
+  const labels = allMonths.map(fmtYmShort);
+  const splitIdx = histMonths.length; // where forecast begins
+
+  let datasets = [];
+
+  if(chartView === 'combined'){
+    // Combined revenue actuals
+    const actVals = histMonths.map(ym=>REVENUE_GL.reduce((s,gl)=>s+getAggActuals(gl,ym),0));
+    const fcVals  = forecastMonths.map((_,i)=>REVENUE_GL.reduce((s,gl)=>s+forecastData[gl][i],0));
+    const budVals = forecastMonths.map((_,i)=>REVENUE_GL.reduce((s,gl)=>s+budgetData[gl][i],0));
+    const ciLo    = forecastMonths.map((_,i)=>REVENUE_GL.reduce((s,gl)=>s+confidenceLow[gl][i],0));
+    const ciHi    = forecastMonths.map((_,i)=>REVENUE_GL.reduce((s,gl)=>s+confidenceHigh[gl][i],0));
+
+    // Confidence band (upper)
+    datasets.push({
+      label:'Confidence High',
+      data:[...Array(splitIdx).fill(null), ...ciHi],
+      borderWidth:0, backgroundColor:'rgba(200,16,46,0.08)',
+      fill:'+1', pointRadius:0, tension:.4, order:4
+    });
+    datasets.push({
+      label:'Confidence Low',
+      data:[...Array(splitIdx).fill(null), ...ciLo],
+      borderWidth:0, backgroundColor:'rgba(200,16,46,0.08)',
+      fill:false, pointRadius:0, tension:.4, order:4
+    });
+    // Budget
+    datasets.push({
+      label:'Budget',
+      data:[...Array(splitIdx).fill(null), ...budVals],
+      borderColor:'#b45309', borderWidth:1.5, borderDash:[4,4],
+      backgroundColor:'transparent', pointRadius:0, tension:.3, order:3
+    });
+    // Forecast
+    const fcFull = [...Array(splitIdx-1).fill(null), actVals[splitIdx-1]||null, ...fcVals];
+    datasets.push({
+      label:'Forecast',
+      data: fcFull,
+      borderColor:'#c8102e', borderWidth:2, borderDash:[6,3],
+      backgroundColor:'transparent', pointRadius:0, tension:.4, order:2
+    });
+    // Actuals
+    datasets.push({
+      label:'Actuals',
+      data:[...actVals, ...Array(forecastMonths.length).fill(null)],
+      borderColor:'#1a2744', borderWidth:2,
+      backgroundColor:'transparent', pointRadius:0, tension:.3, order:1
+    });
+
+  } else {
+    // By service
+    REVENUE_GL.forEach((gl,gi)=>{
+      const actVals = histMonths.map(ym=>getAggActuals(gl,ym));
+      const fcVals  = forecastMonths.map((_,i)=>forecastData[gl][i]);
+      const lastAct = actVals[splitIdx-1]||null;
+      const fcFull  = [...Array(splitIdx-1).fill(null), lastAct, ...fcVals];
+      datasets.push({
+        label:GL_LABELS[gl]+' (act)',
+        data:[...actVals, ...Array(forecastMonths.length).fill(null)],
+        borderColor:GL_COLORS[gl], borderWidth:2,
+        backgroundColor:'transparent', pointRadius:0, tension:.3
+      });
+      datasets.push({
+        label:GL_LABELS[gl]+' (fc)',
+        data: fcFull,
+        borderColor:GL_COLORS[gl], borderWidth:2, borderDash:[5,3],
+        backgroundColor:'transparent', pointRadius:0, tension:.4
+      });
+    });
+  }
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  mainChartInst = new Chart(ctx,{
+    type:'line',
+    data:{labels, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1a2744',
+          titleColor:'#fff', bodyColor:'rgba(255,255,255,.75)',
+          titleFont:{family:'Barlow Condensed',weight:'700',size:12},
+          bodyFont:{family:'Barlow',size:11},
+          padding:10,
+          callbacks:{
+            label: ctx=>{
+              if(ctx.parsed.y===null) return null;
+              return ' '+ctx.dataset.label+': $'+fmtK(ctx.parsed.y);
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          grid:{color:'rgba(226,230,240,.5)', drawBorder:false},
+          ticks:{font:{family:'Barlow Condensed',size:11}, color:'#7b88a8', maxRotation:0,
+            callback:(v,i)=>{
+              // Show every other label if many months
+              if(allMonths.length>18 && i%2!==0) return '';
+              return labels[i];
+            }
+          },
+          border:{display:false}
+        },
+        y:{
+          grid:{color:'rgba(226,230,240,.5)', drawBorder:false},
+          border:{display:false},
+          ticks:{font:{family:'Barlow Condensed',size:11}, color:'#7b88a8',
+            callback: v=>'$'+fmtK(v)
+          }
+        }
+      },
+      // Vertical divider annotation at forecast start
+      plugins2:{}
+    },
+    plugins:[{
+      id:'splitLine',
+      beforeDraw(chart){
+        const {ctx,scales:{x},chartArea:{top,bottom}} = chart;
+        const xPx = x.getPixelForValue(splitIdx-0.5);
+        ctx.save();
+        ctx.setLineDash([4,4]);
+        ctx.strokeStyle='rgba(200,16,46,0.35)';
+        ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(xPx,top); ctx.lineTo(xPx,bottom); ctx.stroke();
+        ctx.fillStyle='rgba(200,16,46,0.6)';
+        ctx.font='700 10px Barlow Condensed';
+        ctx.textAlign='left'; ctx.letterSpacing='0.05em';
+        ctx.fillText('FORECAST →', xPx+5, top+14);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HISTORICAL CHART
+// ═══════════════════════════════════════════════════════════════
+function renderHistChart(){
+  if(histChartInst){histChartInst.destroy();histChartInst=null;}
+  // Aggregate monthly across all FY sheets (FY20-FY25)
+  // Build year-by-year series from hist + fy25 data
+  const FY_SHEETS = ['FY20','FY21','FY22','FY23','FY24','FY25'];
+  const FY_COLORS = ['#aab3cb','#7b88a8','#2d3d6b','#1a2744','#c8102e','#0e7a47'];
+
+  // We have hist actuals covering 2022-07 to fStart
+  // Build per-FY annual totals for REVENUE_GL
+  const annualTotals = {};
+  const depots = getDepots();
+  FY_SHEETS.forEach(fy=>{
+    let total = 0;
+    depots.forEach(dep=>{
+      REVENUE_GL.forEach(gl=>{
+        total += ((PL_DATA.annual[dep]||{})[gl]||{})[fy]||0;
+      });
+    });
+    annualTotals[fy] = total;
+  });
+
+  // Monthly actuals for context (last 36 months)
+  const allMo = [];
+  let [my,mm] = ['2022','07'].map(Number);
+  const lastActual = getLastActualYm();
+  while(`${my}-${String(mm).padStart(2,'0')}` <= lastActual){
+    allMo.push(`${my}-${String(mm).padStart(2,'0')}`);
+    mm++; if(mm>12){mm=1;my++;}
+  }
+  const moActuals = allMo.map(ym=>REVENUE_GL.reduce((s,gl)=>s+getAggActuals(gl,ym),0));
+  // Forecast extension
+  const fcExt = forecastMonths.map((_,i)=>REVENUE_GL.reduce((s,gl)=>s+forecastData[gl][i],0));
+
+  const allLabels = [...allMo,...forecastMonths].map(fmtYmShort);
+  const splitIdx2 = allMo.length;
+
+  const ciLo2 = forecastMonths.map((_,i)=>REVENUE_GL.reduce((s,gl)=>s+confidenceLow[gl][i],0));
+  const ciHi2 = forecastMonths.map((_,i)=>REVENUE_GL.reduce((s,gl)=>s+confidenceHigh[gl][i],0));
+
+  const lastMoAct = moActuals[splitIdx2-1]||null;
+  const ctx = document.getElementById('histChart').getContext('2d');
+  histChartInst = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels: allLabels,
+      datasets:[
+        {label:'CI High',data:[...Array(splitIdx2).fill(null),...ciHi2],borderWidth:0,backgroundColor:'rgba(200,16,46,0.08)',fill:'+1',pointRadius:0,tension:.4},
+        {label:'CI Low', data:[...Array(splitIdx2).fill(null),...ciLo2],borderWidth:0,backgroundColor:'rgba(200,16,46,0.08)',fill:false,pointRadius:0,tension:.4},
+        {label:'Forecast',data:[...Array(splitIdx2-1).fill(null),lastMoAct,...fcExt],borderColor:'#c8102e',borderWidth:2,borderDash:[6,3],backgroundColor:'transparent',pointRadius:0,tension:.4},
+        {label:'Actuals',data:[...moActuals,...Array(forecastMonths.length).fill(null)],borderColor:'#1a2744',borderWidth:2,backgroundColor:'transparent',pointRadius:0,tension:.3}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1a2744', titleColor:'#fff', bodyColor:'rgba(255,255,255,.75)',
+          titleFont:{family:'Barlow Condensed',weight:'700',size:12}, bodyFont:{family:'Barlow',size:11}, padding:10,
+          callbacks:{label:ctx=>ctx.parsed.y===null?null:' '+ctx.dataset.label+': $'+fmtK(ctx.parsed.y)}
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(226,230,240,.5)',drawBorder:false},border:{display:false},
+          ticks:{font:{family:'Barlow Condensed',size:11},color:'#7b88a8',maxRotation:0,
+            callback:(v,i)=>(i%3===0?allLabels[i]:'')}},
+        y:{grid:{color:'rgba(226,230,240,.5)',drawBorder:false},border:{display:false},
+          ticks:{font:{family:'Barlow Condensed',size:11},color:'#7b88a8',callback:v=>'$'+fmtK(v)}}
+      }
+    },
+    plugins:[{
+      id:'splitLine2',
+      beforeDraw(chart){
+        const {ctx,scales:{x},chartArea:{top,bottom}} = chart;
+        const xPx = x.getPixelForValue(splitIdx2-0.5);
+        ctx.save(); ctx.setLineDash([4,4]);
+        ctx.strokeStyle='rgba(200,16,46,0.35)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(xPx,top); ctx.lineTo(xPx,bottom); ctx.stroke(); ctx.restore();
+      }
+    }]
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SERVICE TABLE
+// ═══════════════════════════════════════════════════════════════
+function renderServiceTable(){
+  const tbody = document.getElementById('svcTableBody');
+  let html = '';
+  let totalFc=0, totalBud=0;
+
+  REVENUE_GL.forEach(gl=>{
+    const fc   = forecastData[gl].reduce((a,b)=>a+b,0);
+    const bud  = budgetData[gl].reduce((a,b)=>a+b,0);
+    const trend = getTrend(getDepots()[0]||'86', gl); // representative
+    const dBud = bud>0?(fc-bud)/bud:null;
+    totalFc+=fc; totalBud+=bud;
+
+    const dBudStr = dBud!==null ? `<span style="color:${dBud>=0?'var(--green)':'var(--red)'}">${dBud>=0?'+':''}${(dBud*100).toFixed(1)}%</span>` : '—';
+    const trendColor = trend>=0?'var(--green)':'var(--red)';
+    const trendStr = `<span style="color:${trendColor}">${trend>=0?'+':''}${(trend*100).toFixed(1)}%/yr</span>`;
+    html += `<tr>
+      <td><div class="svc-name"><span class="svc-dot" style="background:${GL_COLORS[gl]}"></span>${GL_LABELS[gl]}</div></td>
+      <td class="right">$${fmtM(fc)}</td>
+      <td class="right">$${fmtM(bud)}</td>
+      <td class="right">${dBudStr}</td>
+      <td class="right">${trendStr}</td>
+    </tr>`;
+  });
+  const dTot = totalBud>0?(totalFc-totalBud)/totalBud:null;
+  const dTotColor = dTot>=0?'var(--green)':'var(--red)';
+  const dTotStr = dTot!==null?`<span style="color:${dTotColor}">${dTot>=0?'+':''}${(dTot*100).toFixed(1)}%</span>`:'—';
+  html += `<tr class="total-row">
+    <td><strong>Total Revenue</strong></td>
+    <td class="right"><strong>$${fmtM(totalFc)}</strong></td>
+    <td class="right"><strong>$${fmtM(totalBud)}</strong></td>
+    <td class="right">${dTotStr}</td>
+    <td class="right">—</td>
+  </tr>`;
+  tbody.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MONTHLY TABLE
+// ═══════════════════════════════════════════════════════════════
+function renderMonthlyTable(){
+  const glList = tableMode==='revenue' ? REVENUE_GL : [...REVENUE_GL,...ADJ_GL];
+  const head = document.getElementById('monthlyHead');
+  const body = document.getElementById('monthlyBody');
+
+  // Header
+  head.innerHTML = `<tr><th>Month</th>${glList.map(gl=>`<th class="right" style="font-size:9px">${GL_LABELS[gl].split(' ')[0]}</th>`).join('')}<th class="right">Total</th><th class="right">Budget</th><th class="right">Δ Bud</th></tr>`;
+
+  let html='';
+  forecastMonths.forEach((ym,i)=>{
+    const vals = glList.map(gl=>forecastData[gl][i]);
+    const revTotal = REVENUE_GL.reduce((s,gl)=>s+forecastData[gl][i],0);
+    const bud = REVENUE_GL.reduce((s,gl)=>s+budgetData[gl][i],0);
+    const dBud = bud>0?(revTotal-bud)/bud:null;
+    html += `<tr>
+      <td><strong style="font-family:var(--cond)">${fmtYm(ym)}</strong></td>
+      ${vals.map((v,vi)=>`<td class="right" style="color:${vi>=REVENUE_GL.length?'var(--muted)':'var(--ink)'}">$${fmtK(Math.abs(v),0)}${v<0?' (neg)':''}</td>`).join('')}
+      <td class="right"><strong>$${fmtK(revTotal)}</strong></td>
+      <td class="right" style="color:var(--muted)">$${fmtK(bud)}</td>
+      <td class="right" style="color:${dBud===null?'var(--muted)':dBud>=0?'var(--green)':'var(--red)'}">
+        ${dBud!==null?(dBud>=0?'+':'')+(dBud*100).toFixed(1)+'%':'—'}
+      </td>
+    </tr>`;
+  });
+  body.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADJUSTMENTS TABLE
+// ═══════════════════════════════════════════════════════════════
+function renderAdjTable(){
+  const tbody = document.getElementById('adjTableBody');
+  let html='';
+  ADJ_GL.forEach(gl=>{
+    const fcVals = forecastData[gl];
+    const fcTotal = fcVals.reduce((a,b)=>a+b,0);
+    const fcMonthly = fcTotal / horizon;
+    // 5yr average monthly from annual data
+    const depots = getDepots();
+    const fySheets = ['FY20','FY21','FY22','FY23','FY24'];
+    let histSum=0, histCnt=0;
+    depots.forEach(dep=>{
+      fySheets.forEach(fy=>{
+        const v = ((PL_DATA.annual[dep]||{})[gl]||{})[fy]||0;
+        if(Math.abs(v)>50){histSum+=v/12; histCnt++;}
+      });
+    });
+    const histAvg = histCnt>0 ? histSum/histCnt : 0;
+
+    html += `<tr>
+      <td><div class="svc-name"><span class="svc-dot" style="background:${GL_COLORS[gl]}"></span>${GL_LABELS[gl]}</div></td>
+      <td class="right" style="color:${fcMonthly<0?'var(--red)':'var(--ink)'}">$${fmtK(Math.abs(fcMonthly))}${fcMonthly<0?' cr':''}</td>
+      <td class="right" style="color:${fcTotal<0?'var(--red)':'var(--ink)'}">$${fmtK(Math.abs(fcTotal))}${fcTotal<0?' cr':''}</td>
+      <td class="right" style="color:var(--muted)">$${fmtK(Math.abs(histAvg))}${histAvg<0?' cr':''}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FORMATTERS
+// ═══════════════════════════════════════════════════════════════
+function fmtK(v, dec=0){
+  if(Math.abs(v)>=1000000) return (v/1000000).toFixed(1)+'M';
+  if(Math.abs(v)>=1000)    return (v/1000).toFixed(dec===0?0:1)+'K';
+  return v.toFixed(0);
+}
+function fmtM(v){
+  if(Math.abs(v)>=1000000) return (v/1000000).toFixed(2)+'M';
+  if(Math.abs(v)>=1000)    return (v/1000).toFixed(1)+'K';
+  return v.toFixed(0);
+}
+function fmtYm(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return mon[m-1]+' '+y;
+}
+function fmtYmShort(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const mon=['J','F','M','A','M','J','J','A','S','O','N','D'];
+  return mon[m-1]+String(y).slice(2);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

@@ -276,9 +276,24 @@ input[type=range]{flex:1;accent-color:var(--navy);cursor:pointer}
       <div class="card-hd"><div class="card-title">Forecast Methodology</div></div>
       <div class="card-body">
         <div class="method-grid">
-          <div class="method-block"><div class="method-tag mt1">Layer 1</div><div class="method-title">Seasonal Baseline</div><div class="method-body">Multiplicative seasonal decomposition from FY20–FY24. Monthly indices capture the December/January trough and November/March peaks inherent in COPE's freight cycle.</div></div>
-          <div class="method-block"><div class="method-tag mt1">Layer 1</div><div class="method-title">Exponential Trend</div><div class="method-body">Exponentially weighted year-on-year growth rates with recent years weighted 1.5× prior. Capped at –15%/+20% per year to prevent extrapolation beyond plausible bounds.</div></div>
-          <div class="method-block"><div class="method-tag mt2">Layer 2</div><div class="method-title">Customer Signal</div><div class="method-body">Four live signals from your Trading Report combine with a 55% dampening factor — a 10% portfolio deterioration moves the forecast ~5.5%, not the full 10%. Adjustments and sundry lines are unaffected.</div></div>
+          <div class="method-block">
+            <div style="font-size:22px;margin-bottom:8px">📐</div>
+            <div class="method-tag mt1">Layer 1</div>
+            <div class="method-title">Seasonal Baseline</div>
+            <div class="method-body">Multiplicative seasonal decomposition from FY20–FY24. Monthly indices capture the December/January trough and November/March peaks inherent in COPE's freight cycle.</div>
+          </div>
+          <div class="method-block">
+            <div style="font-size:22px;margin-bottom:8px">📈</div>
+            <div class="method-tag mt1">Layer 1</div>
+            <div class="method-title">Exponential Trend</div>
+            <div class="method-body">Exponentially weighted year-on-year growth rates with recent years weighted 1.5× prior. Capped at –15%/+20% per year to prevent extrapolation beyond plausible bounds.</div>
+          </div>
+          <div class="method-block">
+            <div style="font-size:22px;margin-bottom:8px">🎯</div>
+            <div class="method-tag mt2">Layer 2</div>
+            <div class="method-title">Customer Signal</div>
+            <div class="method-body">Four live signals from your Trading Report combine with a 55% dampening factor — a 10% portfolio deterioration moves the forecast ~5.5%, not the full 10%. Adjustments and sundry lines are unaffected.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -595,7 +610,7 @@ function renderMainChart() {
     });
     datasets.push({
       label:'Budget',
-      data:[...Array(split).fill(null),...buds],
+      data:[...Array(split).fill(null),...buds.map(v=>v>100?v:null)],
       borderColor:'#b45309',borderWidth:1.5,borderDash:[4,4],backgroundColor:'transparent',
       pointRadius:0,tension:.3,spanGaps:false
     });
@@ -660,6 +675,7 @@ function renderMainChart() {
           }
           c.closePath();
           c.fillStyle='rgba(200,16,46,0.08)';
+          c.strokeStyle='rgba(0,0,0,0)';
           c.fill();
           c.restore();
           // Vertical marker

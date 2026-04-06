@@ -645,36 +645,37 @@ function renderMainChart() {
         try {
           const {ctx:c,scales:{x,y},chartArea:{top,bottom}} = chart;
           const band = ciBandCombined;
-          // Draw CI filled polygon
+          const n = band.lo.length;
+          if(n < 1) return;
+          // Filled band — no stroke, fill only to avoid visible edge lines
           c.save();
           c.beginPath();
-          let started = false;
-          band.hi.forEach((v,i)=>{
+          for(let i=0;i<n;i++){
             const px=x.getPixelForValue(band.split+i);
-            const py=y.getPixelForValue(v);
-            if(!started){c.moveTo(px,py);started=true;}else c.lineTo(px,py);
-          });
-          for(let i=band.lo.length-1;i>=0;i--){
+            const py=y.getPixelForValue(band.hi[i]);
+            i===0?c.moveTo(px,py):c.lineTo(px,py);
+          }
+          for(let i=n-1;i>=0;i--){
             c.lineTo(x.getPixelForValue(band.split+i),y.getPixelForValue(band.lo[i]));
           }
           c.closePath();
-          c.fillStyle='rgba(200,16,46,0.07)';
+          c.fillStyle='rgba(200,16,46,0.08)';
           c.fill();
           c.restore();
-          // Vertical split line
-          const xPx = x.getPixelForValue(band.split-0.5);
+          // Vertical marker
+          const xPx=x.getPixelForValue(band.split-0.5);
           c.save();
-          c.setLineDash([4,4]);
-          c.strokeStyle='rgba(200,16,46,0.25)';
-          c.lineWidth=1.5;
+          c.setLineDash([3,4]);
+          c.strokeStyle='rgba(150,150,150,0.25)';
+          c.lineWidth=1;
           c.beginPath();c.moveTo(xPx,top);c.lineTo(xPx,bottom);c.stroke();
           c.setLineDash([]);
-          c.fillStyle='rgba(200,16,46,0.5)';
-          c.font='600 10px Barlow Condensed';
+          c.fillStyle='rgba(200,16,46,0.45)';
+          c.font='500 9.5px Barlow Condensed';
           c.textAlign='left';
-          c.fillText('FORECAST →',xPx+5,top+14);
+          c.fillText('FORECAST →',xPx+5,top+13);
           c.restore();
-        } catch(e) { /* skip */ }
+        } catch(e) {}
       }
     }]
   });
@@ -802,43 +803,44 @@ async function syncSignals() {
     const rows = await r.json();
     if(!rows||!rows.length||!rows[0].payload) throw new Error('no data');
     const store = rows[0].payload;
-    if(!Array.isArray(store)||!store.length) throw new Error('empty');
+    // Store structure: { "dateKey": { "depotCode": { "acctNum": { revenue, count, kg, div:{Warehouse,Tailgate,'Site-to-Site'} } } } }
+    if(!store || typeof store !== 'object') throw new Error('bad payload');
 
-    // Filter to depot
-    const dep = depot==='all'?null:depot;
-    const rows2 = dep?store.filter(r=>String(r.Depot||r.depot||'')===dep):store;
-    if(!rows2.length) throw new Error('no rows for depot');
-
-    // Compute signals
-    const accts={};
-    rows2.forEach(r=>{
-      const acct=r.AccountNumber||r.Account||'';
-      const rev=parseFloat(r.NettAmount||0)+parseFloat(r.FuelLevy||0)+parseFloat(r.RiskLevy||0);
-      if(!acct) return;
-      if(!accts[acct]) accts[acct]={rev:0};
-      accts[acct].rev+=rev;
+    // Flatten all date-depot-account entries into a single account map
+    const dep = depot === 'all' ? null : depot;
+    const accts = {};
+    Object.values(store).forEach(dateObj => {
+      if(typeof dateObj !== 'object') return;
+      Object.entries(dateObj).forEach(([depotCode, acctObj]) => {
+        if(dep && depotCode !== dep) return;
+        if(typeof acctObj !== 'object') return;
+        Object.entries(acctObj).forEach(([acctNum, data]) => {
+          if(!accts[acctNum]) accts[acctNum] = {rev:0, siteRev:0, tailRev:0};
+          accts[acctNum].rev += (data.revenue || 0);
+          if(data.div) {
+            accts[acctNum].siteRev += (data.div['Site-to-Site'] || 0);
+            accts[acctNum].tailRev += (data.div['Tailgate'] || 0);
+          }
+        });
+      });
     });
-    const list=Object.values(accts).sort((a,b)=>b.rev-a.rev);
-    const totalRev=list.reduce((s,a)=>s+a.rev,0);
-    if(totalRev<=0) throw new Error('zero revenue');
 
-    // Portfolio health: top 20% revenue share vs benchmark
-    const top20Rev=list.slice(0,Math.max(1,Math.floor(list.length*.2))).reduce((s,a)=>s+a.rev,0);
-    const topShare=top20Rev/totalRev;
-    const healthSig=Math.round(Math.max(-15,Math.min(15,(0.60-topShare)*50)));
+    const list = Object.values(accts).sort((a,b)=>b.rev-a.rev);
+    const totalRev = list.reduce((s,a)=>s+a.rev, 0);
+    if(totalRev <= 0) throw new Error('zero revenue');
 
-    // Service mix: site vs tailgate
-    let siteR=0,tailR=0;
-    rows2.forEach(r=>{
-      const div=(r.Division||r.division||'').toUpperCase();
-      const rev=parseFloat(r.NettAmount||0)+parseFloat(r.FuelLevy||0)+parseFloat(r.RiskLevy||0);
-      if(div.startsWith('SITE'))siteR+=rev;
-      else if(div.startsWith('NORM')||div.startsWith('TAIL'))tailR+=rev;
-    });
-    const mixSig=Math.round(Math.max(-10,Math.min(10,((siteR/(siteR+tailR||1))-0.45)*40)));
+    // Portfolio health: top 20% revenue share vs 60% benchmark
+    const top20Rev = list.slice(0,Math.max(1,Math.floor(list.length*.2))).reduce((s,a)=>s+a.rev,0);
+    const topShare = top20Rev/totalRev;
+    const healthSig = Math.round(Math.max(-15, Math.min(15, (0.60-topShare)*50)));
 
-    // Velocity: active account spread
-    const velSig=Math.round(Math.max(-5,Math.min(5,Math.log10(Math.max(1,list.length))-1.5)));
+    // Service mix: site vs tailgate ratio vs 45% benchmark
+    const siteR = list.reduce((s,a)=>s+a.siteRev,0);
+    const tailR = list.reduce((s,a)=>s+a.tailRev,0);
+    const mixSig = Math.round(Math.max(-10, Math.min(10, ((siteR/(siteR+tailR||1))-0.45)*40)));
+
+    // Velocity: active account count as proxy
+    const velSig = Math.round(Math.max(-5, Math.min(5, Math.log10(Math.max(1,list.length))-1.5)));
 
     // Apply
     const newSigs={health:healthSig,velocity:velSig,cadence:0,mix:mixSig};

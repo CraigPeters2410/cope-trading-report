@@ -165,7 +165,7 @@ input[type=range]{flex:1;accent-color:var(--navy);height:4px;cursor:pointer}
 /* ── TOOLTIPS ── */
 .info-tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--rule);color:var(--muted);font-size:9px;font-weight:700;cursor:pointer;margin-left:4px;transition:all .15s;position:relative}
 .info-tip:hover{background:var(--navy);color:#fff}
-.tip-popup{display:none;position:absolute;z-index:999;background:var(--navy);color:#fff;font-size:11.5px;line-height:1.6;padding:12px 14px;border-radius:var(--r);max-width:280px;box-shadow:var(--sh-lg);top:calc(100% + 6px);left:0;white-space:normal;font-weight:400;letter-spacing:0}
+.tip-popup{display:none;position:fixed;z-index:9999;background:var(--navy);color:#fff;font-size:11.5px;line-height:1.6;padding:12px 14px;border-radius:var(--r);max-width:280px;box-shadow:var(--sh-lg);white-space:normal;font-weight:400;letter-spacing:0}
 .tip-popup.open{display:block}
 
 /* ── SECTION HEADER ── */
@@ -298,7 +298,7 @@ input[type=range]{flex:1;accent-color:var(--navy);height:4px;cursor:pointer}
       </div>
       <div class="card-body">
         <div id="signalStatusBanner" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:6px;font-size:11px;font-weight:600;background:var(--green-l);color:var(--green);border:1px solid var(--green-b)"></div>
-        <p style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.6">These sliders let you factor in what you are currently seeing in the customer portfolio. Use the Trading Report to assess where things sit — if Champions and Loyals are dropping, cadence is slowing, or you are losing more accounts than you are winning, dial the relevant signals down. The forecast will adjust accordingly, with a conservative dampening applied so small shifts do not overreact the model. If the Trading Report is connected, signals update automatically.</p>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.6">Use these sliders to reflect what you are seeing in the market. Pull them down if things are softening — customers shipping less often, accounts going quiet, or the pipeline feeling thinner than usual. Push them up if momentum is building. Hit <strong>Sync from Report</strong> to pull signals directly from your live Trading Report data.</p>
         <div class="signal-inputs" id="signalInputs">
           <div class="slider-row">
             <label>Portfolio Health <span class="info-tip" onclick="toggleTip('sig-health',this)" data-tid="sig-health">?</span><div class="tip-popup" id="tip-sig-health"></div></label>
@@ -1021,43 +1021,45 @@ function renderMainChart(){
     },
     plugins:[{
       id:'splitLine',
-      beforeDraw(chart){
-        const {ctx,scales:{x,y},chartArea:{top,bottom}} = chart;
-        // Draw confidence band as filled polygon
-        const band = _mainCiBand;
-        if(band && band.lo.length){
-          const startX = x.getPixelForValue(band.split);
-          ctx.save();
-          ctx.beginPath();
-          // Top edge: hi values left to right
-          band.hi.forEach((v,i)=>{
-            const px = x.getPixelForValue(band.split+i);
-            const py = y.getPixelForValue(v);
-            i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
-          });
-          // Bottom edge: lo values right to left
-          for(let i=band.lo.length-1;i>=0;i--){
-            const px = x.getPixelForValue(band.split+i);
-            const py = y.getPixelForValue(band.lo[i]);
-            ctx.lineTo(px,py);
+      afterDraw(chart){
+        try{
+          const {ctx,scales:{x,y},chartArea:{top,bottom}} = chart;
+          const band = _mainCiBand;
+          // Confidence band polygon
+          if(band && band.lo && band.lo.length && y){
+            ctx.save();
+            ctx.beginPath();
+            let started = false;
+            band.hi.forEach((v,i)=>{
+              if(v==null) return;
+              const px = x.getPixelForValue(band.split+i);
+              const py = y.getPixelForValue(v);
+              if(!started){ctx.moveTo(px,py);started=true;}
+              else ctx.lineTo(px,py);
+            });
+            for(let i=band.lo.length-1;i>=0;i--){
+              if(band.lo[i]==null) continue;
+              ctx.lineTo(x.getPixelForValue(band.split+i), y.getPixelForValue(band.lo[i]));
+            }
+            ctx.closePath();
+            ctx.fillStyle='rgba(200,16,46,0.08)';
+            ctx.fill();
+            ctx.restore();
           }
-          ctx.closePath();
-          ctx.fillStyle='rgba(200,16,46,0.08)';
-          ctx.fill();
+          // Vertical split line
+          const xPx = x.getPixelForValue(band.split - 0.5);
+          ctx.save();
+          ctx.setLineDash([4,4]);
+          ctx.strokeStyle='rgba(200,16,46,0.3)';
+          ctx.lineWidth=1.5;
+          ctx.beginPath();ctx.moveTo(xPx,top);ctx.lineTo(xPx,bottom);ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle='rgba(200,16,46,0.55)';
+          ctx.font='600 10px Barlow Condensed';
+          ctx.textAlign='left';
+          ctx.fillText('FORECAST →', xPx+5, top+14);
           ctx.restore();
-        }
-        // Vertical split line
-        const xPx = x.getPixelForValue(band.split-0.5);
-        ctx.save();
-        ctx.setLineDash([4,4]);
-        ctx.strokeStyle='rgba(200,16,46,0.35)';
-        ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.moveTo(xPx,top); ctx.lineTo(xPx,bottom); ctx.stroke();
-        ctx.fillStyle='rgba(200,16,46,0.6)';
-        ctx.font='700 10px Barlow Condensed';
-        ctx.textAlign='left';
-        ctx.fillText('FORECAST →', xPx+5, top+14);
-        ctx.restore();
+        }catch(e){ /* skip if scales not ready */ }
       }
     }]
   });
@@ -1142,12 +1144,17 @@ function renderHistChart(){
     },
     plugins:[{
       id:'splitLine2',
-      beforeDraw(chart){
-        const {ctx,scales:{x},chartArea:{top,bottom}} = chart;
-        const xPx = x.getPixelForValue(splitIdx2-0.5);
-        ctx.save(); ctx.setLineDash([4,4]);
-        ctx.strokeStyle='rgba(200,16,46,0.35)'; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.moveTo(xPx,top); ctx.lineTo(xPx,bottom); ctx.stroke(); ctx.restore();
+      afterDraw(chart){
+        try{
+          const {ctx,scales:{x},chartArea:{top,bottom}} = chart;
+          const xPx = x.getPixelForValue(splitIdx2-0.5);
+          ctx.save();
+          ctx.setLineDash([4,4]);
+          ctx.strokeStyle='rgba(200,16,46,0.3)';
+          ctx.lineWidth=1.5;
+          ctx.beginPath();ctx.moveTo(xPx,top);ctx.lineTo(xPx,bottom);ctx.stroke();
+          ctx.restore();
+        }catch(e){}
       }
     }]
   });
@@ -1291,19 +1298,27 @@ const TIP_CONTENT = {
   'methodology': 'The net modifier is a weighted combination of the four signals: Portfolio Health (35%), Net Customer Velocity (30%), Cadence Trend (25%), and Service Mix (10%). A dampening factor of 55% is then applied — so a 10% portfolio deterioration moves the forecast by roughly 5.5%, not the full 10%. This is consistent with professional financial modelling standards.'
 };
 function toggleTip(id, el){
+  // Close all existing
+  document.querySelectorAll('.tip-popup.open').forEach(p=>p.classList.remove('open'));
   const popup = document.getElementById('tip-'+id);
   if(!popup) return;
-  const isOpen = popup.classList.contains('open');
-  // Close all open tips first
-  document.querySelectorAll('.tip-popup.open').forEach(p=>p.classList.remove('open'));
-  if(!isOpen){
-    popup.textContent = TIP_CONTENT[id] || '';
-    popup.classList.add('open');
-  }
+  if(popup._wasOpen){ popup._wasOpen=false; return; }
+  popup.textContent = TIP_CONTENT[id] || '';
+  // Position near the clicked element
+  const rect = el.getBoundingClientRect();
+  popup.style.position='fixed';
+  popup.style.top=(rect.bottom+6)+'px';
+  popup.style.left=Math.min(rect.left, window.innerWidth-290)+'px';
+  popup.style.zIndex='9999';
+  popup.style.maxWidth='280px';
+  popup.classList.add('open');
+  popup._wasOpen=false;
+  // Mark as just opened so the document click handler doesn't immediately close it
+  setTimeout(()=>{ popup._wasOpen=true; },10);
 }
 document.addEventListener('click', e=>{
-  if(!e.target.closest('.info-tip')){
-    document.querySelectorAll('.tip-popup.open').forEach(p=>p.classList.remove('open'));
+  if(!e.target.closest('.info-tip') && !e.target.closest('.tip-popup')){
+    document.querySelectorAll('.tip-popup.open').forEach(p=>{ p.classList.remove('open'); p._wasOpen=false; });
   }
 });
 

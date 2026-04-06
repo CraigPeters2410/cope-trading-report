@@ -277,20 +277,17 @@ input[type=range]{flex:1;accent-color:var(--navy);cursor:pointer}
       <div class="card-body">
         <div class="method-grid">
           <div class="method-block">
-            <div style="font-size:22px;margin-bottom:8px">📐</div>
-            <div class="method-tag mt1">Layer 1</div>
+            <div style="font-size:26px;margin-bottom:10px">📐</div>
             <div class="method-title">Seasonal Baseline</div>
             <div class="method-body">Multiplicative seasonal decomposition from FY20–FY24. Monthly indices capture the December/January trough and November/March peaks inherent in COPE's freight cycle.</div>
           </div>
           <div class="method-block">
-            <div style="font-size:22px;margin-bottom:8px">📈</div>
-            <div class="method-tag mt1">Layer 1</div>
+            <div style="font-size:26px;margin-bottom:10px">📈</div>
             <div class="method-title">Exponential Trend</div>
             <div class="method-body">Exponentially weighted year-on-year growth rates with recent years weighted 1.5× prior. Capped at –15%/+20% per year to prevent extrapolation beyond plausible bounds.</div>
           </div>
           <div class="method-block">
-            <div style="font-size:22px;margin-bottom:8px">🎯</div>
-            <div class="method-tag mt2">Layer 2</div>
+            <div style="font-size:26px;margin-bottom:10px">🎯</div>
             <div class="method-title">Customer Signal</div>
             <div class="method-body">Four live signals from your Trading Report combine with a 55% dampening factor — a 10% portfolio deterioration moves the forecast ~5.5%, not the full 10%. Adjustments and sundry lines are unaffected.</div>
           </div>
@@ -327,6 +324,9 @@ const REV_GL   = ['1505','1507','1510'];
 const ADJ_GL   = ['1710','3395','3405'];
 const ALL_GL   = [...REV_GL,...ADJ_GL];
 const FY_POS   = {7:1,8:2,9:3,10:4,11:5,12:6,1:7,2:8,3:9,4:10,5:11,6:12};
+// Standard working days per FY position (1=Jul...12=Jun) — AU approximate
+const WD = {1:23,2:21,3:22,4:23,5:21,6:20,7:21,8:20,9:23,10:21,11:22,12:21};
+const WD_AVG = 21.5;
 
 // ── State ──────────────────────────────────────────────────
 let horizon = 6;
@@ -458,7 +458,29 @@ function getActual(gl, ym) {
 function getBudget(gl, ym) {
   return getDepots().reduce((s,d) => s + (((PL_DATA.budget[d]||{})[gl]||{})[ym]||0), 0);
 }
+function getRefAnnualFY25(d, gl) {
+  // Compute seasonal-adjusted annual rate from FY25 actuals if ≥3 months available
+  const fy25gl = (PL_DATA.fy25[d]||{})[gl]||{};
+  const months = Object.entries(fy25gl).filter(([,v])=>v>100);
+  if(months.length < 3) return null;
+  // Sum actuals and their seasonal weights
+  let sumRev=0, sumSeas=0;
+  months.forEach(([ym,v])=>{
+    const m = parseInt(ym.split('-')[1]);
+    const pos = FY_POS[m]||6;
+    const s = getSeas(d,gl,pos);
+    sumRev += v;
+    sumSeas += s;
+  });
+  const avgSeas = sumSeas / months.length;
+  // Season-adjusted annualised rate
+  return (sumRev / months.length) / avgSeas * 12;
+}
 function getRefAnnual(d, gl) {
+  // Prefer FY25-anchored estimate if available
+  const fy25est = getRefAnnualFY25(d, gl);
+  if(fy25est && fy25est > 100) return fy25est;
+  // Fall back to historical annuals
   const ann = (PL_DATA.annual[d]||{})[gl]||{};
   for(const fy of ['FY_MID','FY24','FY23','FY22','FY21','FY20']) {
     if(ann[fy] && Math.abs(ann[fy])>100) return ann[fy];
@@ -478,9 +500,12 @@ function forecastOne(d, gl, ym) {
   if(Math.abs(ref) < 100) return 0;
   const tr = getTrend(d, gl);
   const m = parseInt(ym.split('-')[1]);
-  const seas = getSeas(d, gl, FY_POS[m]||6);
+  const fyPos = FY_POS[m]||6;
+  const seas = getSeas(d, gl, fyPos);
+  // Working day adjustment: 50% blend to avoid double-counting with seasonal
+  const wdMult = 1 + (WD[fyPos]/WD_AVG - 1) * 0.5;
   const proj = ref * Math.pow(1+tr, yearsFromRef(ym));
-  const base = (proj/12)*seas;
+  const base = (proj/12) * seas * wdMult;
   const mod  = REV_GL.includes(gl) ? netSignal() : 0;
   return base * (1+mod);
 }
@@ -825,18 +850,22 @@ async function syncSignals() {
     // Flatten all date-depot-account entries into a single account map
     const dep = depot === 'all' ? null : depot;
     const accts = {};
+    // Track per-depot totals for multi-depot revenue weighting
+    const depotRevTotals = {};
     Object.values(store).forEach(dateObj => {
       if(typeof dateObj !== 'object') return;
       Object.entries(dateObj).forEach(([depotCode, acctObj]) => {
         if(dep && depotCode !== dep) return;
         if(typeof acctObj !== 'object') return;
         Object.entries(acctObj).forEach(([acctNum, data]) => {
-          if(!accts[acctNum]) accts[acctNum] = {rev:0, siteRev:0, tailRev:0};
-          accts[acctNum].rev += (data.revenue || 0);
+          const rev = data.revenue || 0;
+          if(!accts[acctNum]) accts[acctNum] = {rev:0, siteRev:0, tailRev:0, depot:depotCode};
+          accts[acctNum].rev += rev;
           if(data.div) {
             accts[acctNum].siteRev += (data.div['Site-to-Site'] || 0);
             accts[acctNum].tailRev += (data.div['Tailgate'] || 0);
           }
+          depotRevTotals[depotCode] = (depotRevTotals[depotCode]||0) + rev;
         });
       });
     });
@@ -858,8 +887,56 @@ async function syncSignals() {
     // Velocity: active account count as proxy
     const velSig = Math.round(Math.max(-5, Math.min(5, Math.log10(Math.max(1,list.length))-1.5)));
 
+    // Cadence: booking frequency trend from date keys
+    // Store has multiple date keys — compare recent vs baseline frequency
+    let cadSig = 0;
+    try {
+      const allDateKeys = Object.keys(store).sort();
+      const totalDates = allDateKeys.length;
+      if(totalDates >= 4 && dep) {
+        // Per-account, count how many date keys they appear in
+        const acctDateCounts = {};
+        allDateKeys.forEach(dk=>{
+          const depotData = store[dk]||{};
+          const acctData = depotData[dep]||{};
+          Object.keys(acctData).forEach(ac=>{
+            if((acctData[ac].revenue||0)>0) acctDateCounts[ac]=(acctDateCounts[ac]||0)+1;
+          });
+        });
+        // Recent: last 25% of date keys
+        const recentCutoff = Math.floor(totalDates*0.75);
+        const recentKeys = allDateKeys.slice(recentCutoff);
+        const recentDates = recentKeys.length;
+        const acctRecentCounts = {};
+        recentKeys.forEach(dk=>{
+          const acctData=(store[dk]||{})[dep]||{};
+          Object.keys(acctData).forEach(ac=>{
+            if((acctData[ac].revenue||0)>0) acctRecentCounts[ac]=(acctRecentCounts[ac]||0)+1;
+          });
+        });
+        // For each active account: recent_freq vs baseline_freq
+        let cadenceShifts=[], totalRevForWeighting=0;
+        Object.entries(acctDateCounts).forEach(([ac,baseCount])=>{
+          const baseFreq = baseCount/totalDates;
+          const recentCount = acctRecentCounts[ac]||0;
+          const recentFreq = recentCount/recentDates;
+          const shift = baseFreq > 0 ? recentFreq/baseFreq : 1;
+          const acctRev = (accts[ac]||{}).rev||0;
+          if(acctRev>0){ cadenceShifts.push({shift,rev:acctRev}); totalRevForWeighting+=acctRev; }
+        });
+        // Revenue-weighted average cadence shift
+        if(cadenceShifts.length > 0 && totalRevForWeighting > 0){
+          const wtdShift = cadenceShifts.reduce((s,x)=>s+(x.shift*(x.rev/totalRevForWeighting)),0);
+          // wtdShift > 1 = customers booking more often = positive
+          // wtdShift < 1 = customers booking less often = negative
+          // Convert to -15..+15 signal
+          cadSig = Math.round(Math.max(-15, Math.min(15, (wtdShift-1)*50)));
+        }
+      }
+    } catch(e) { cadSig = 0; }
+
     // Apply
-    const newSigs={health:healthSig,velocity:velSig,cadence:0,mix:mixSig};
+    const newSigs={health:healthSig,velocity:velSig,cadence:cadSig,mix:mixSig};
     Object.entries(newSigs).forEach(([k,v])=>{
       sigs[k]=v;
       const cap=k.charAt(0).toUpperCase()+k.slice(1);
@@ -872,7 +949,8 @@ async function syncSignals() {
     rebuild();
     document.getElementById('liveSignalBadge').style.display='block';
     banner.className='status-banner sb-ok';
-    banner.textContent=`✓ Live signals loaded — ${list.length} active accounts analysed`;
+    const cadStr = cadSig !== 0 ? ` · cadence ${cadSig > 0 ? '+':''}${cadSig}%` : '';
+    banner.textContent=`✓ Live signals loaded — ${list.length} active accounts, ${Object.keys(store).length} billing periods${cadStr}`;
   } catch(e) {
     banner.className='status-banner sb-info';
     banner.textContent='Trading Report data not available. Adjust signals manually above.';

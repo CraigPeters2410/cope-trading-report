@@ -495,7 +495,7 @@ function yearsFromRef(ym) {
   const [y,m] = ym.split('-').map(Number);
   return (y + (m-1)/12) - 2025.0;
 }
-function forecastOne(d, gl, ym) {
+function forecastOne(d, gl, ym, forecastIndex) {
   const ref = getRefAnnual(d, gl);
   if(Math.abs(ref) < 100) return 0;
   const tr = getTrend(d, gl);
@@ -506,11 +506,18 @@ function forecastOne(d, gl, ym) {
   const wdMult = 1 + (WD[fyPos]/WD_AVG - 1) * 0.5;
   const proj = ref * Math.pow(1+tr, yearsFromRef(ym));
   const base = (proj/12) * seas * wdMult;
-  const mod  = REV_GL.includes(gl) ? netSignal() : 0;
-  return base * (1+mod);
+  // Momentum correction: recent actual vs budget gap, fading exponentially
+  let momAdj = 0;
+  if(REV_GL.includes(gl) && window._momRatio !== undefined && forecastIndex !== undefined){
+    const momCorr = window._momRatio - 1.0; // negative = running below budget
+    const fade = Math.exp(-2.5 * forecastIndex / Math.max(1, window._momHorizon));
+    momAdj = momCorr * fade;
+  }
+  const mod = REV_GL.includes(gl) ? netSignal() : 0;
+  return base * (1 + mod + momAdj);
 }
-function getForecast(gl, ym) {
-  return getDepots().reduce((s,d) => s + forecastOne(d, gl, ym), 0);
+function getForecast(gl, ym, idx) {
+  return getDepots().reduce((s,d) => s + forecastOne(d, gl, ym, idx), 0);
 }
 function lastActualYm() {
   const CAP = '2026-02';
@@ -551,13 +558,35 @@ function rebuild() {
   hMonths = monthSeq(hy+'-'+String(hm).padStart(2,'0'), 24);
 
   ALL_GL.forEach(gl => {
-    fcData[gl]  = fMonths.map(ym => getForecast(gl, ym));
+    fcData[gl]  = fMonths.map((ym,i) => getForecast(gl, ym, i));
     budData[gl] = fMonths.map(ym => getBudget(gl, ym));
     actData[gl] = hMonths.map(ym => { const v=getActual(gl,ym); return v>0?v:null; });
     const cw    = {'1505':.10,'1507':.12,'1510':.08,'1710':.20,'3395':.30,'3405':.40}[gl]||.12;
     ciLo[gl]    = fMonths.map((_,i) => fcData[gl][i]*(1-cw*(1+i*.04)));
     ciHi[gl]    = fMonths.map((_,i) => fcData[gl][i]*(1+cw*(1+i*.04)));
   });
+
+  // ── MOMENTUM CORRECTION ────────────────────────────────────────────────
+  // Compare last 3 actual months to their budgets to detect recent trajectory
+  // Applies as a fading correction: full impact on near-term, fades over horizon
+  let _momRatio = 1.0;
+  {
+    const depots = getDepots();
+    const recentMonths = ['2025-12','2026-01','2026-02'];
+    let ratioSum = 0, ratioCount = 0;
+    depots.forEach(d=>{
+      REV_GL.forEach(gl=>{
+        recentMonths.forEach(ym=>{
+          const act = ((PL_DATA.fy25[d]||{})[gl]||{})[ym] || ((PL_DATA.hist[d]||{})[gl]||{})[ym] || 0;
+          const bud = ((PL_DATA.budget[d]||{})[gl]||{})[ym] || 0;
+          if(act > 100 && bud > 100){ ratioSum += act/bud; ratioCount++; }
+        });
+      });
+    });
+    if(ratioCount >= 3) _momRatio = ratioSum / ratioCount;
+  }
+  window._momRatio = _momRatio;
+  window._momHorizon = horizon;
 
   renderKPIs(fStart);
   renderMainChart();
@@ -582,7 +611,9 @@ function renderKPIs(fStart) {
   const bEl = document.getElementById('kBud');
   bEl.textContent = dp!==null?(dp>=0?'+':'')+(dp*100).toFixed(1)+'%':'—';
   bEl.className   = 'kpi-val '+(dp!==null&&dp>=0?'cg':'cr');
-  document.getElementById('kBudSub').textContent = bud>0?'Bud: $'+fmtM(bud):'budget n/a';
+  const momPct = window._momRatio !== undefined ? Math.round((window._momRatio-1)*100) : 0;
+  const momStr = momPct !== 0 ? ` · mom ${momPct>0?'+':''}${momPct}%` : '';
+  document.getElementById('kBudSub').textContent = bud>0?'Bud: $'+fmtM(bud)+momStr:'budget n/a';
 
   const py = REV_GL.reduce((s,gl)=>{
     let sum=0;

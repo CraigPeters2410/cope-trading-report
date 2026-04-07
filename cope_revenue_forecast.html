@@ -459,22 +459,25 @@ function getBudget(gl, ym) {
   return getDepots().reduce((s,d) => s + (((PL_DATA.budget[d]||{})[gl]||{})[ym]||0), 0);
 }
 function getRefAnnualFY25(d, gl) {
-  // Compute seasonal-adjusted annual rate from FY25 actuals if ≥3 months available
+  // Recency-weighted deseasonalised annual rate from FY25 actuals
+  // Decay=0.55: recent months weighted ~2x more than 7 months ago
+  // This prevents strong early-FY25 months inflating the forecast for later months
   const fy25gl = (PL_DATA.fy25[d]||{})[gl]||{};
-  const months = Object.entries(fy25gl).filter(([,v])=>v>100);
+  const months = Object.entries(fy25gl).filter(([,v])=>v>100).sort((a,b)=>a[0].localeCompare(b[0]));
   if(months.length < 3) return null;
-  // Sum actuals and their seasonal weights
-  let sumRev=0, sumSeas=0;
-  months.forEach(([ym,v])=>{
+  const n = months.length;
+  const DECAY = 0.55;
+  let totalWeight=0, weightedSum=0;
+  months.forEach(([ym,v],i)=>{
     const m = parseInt(ym.split('-')[1]);
     const pos = FY_POS[m]||6;
-    const s = getSeas(d,gl,pos);
-    sumRev += v;
-    sumSeas += s;
+    const s = getSeas(d, gl, pos);
+    const annual = (v/s)*12;           // deseasonalise then annualise
+    const weight = Math.pow(DECAY, n-1-i); // most recent = DECAY^0 = 1.0
+    weightedSum += weight * annual;
+    totalWeight += weight;
   });
-  const avgSeas = sumSeas / months.length;
-  // Season-adjusted annualised rate
-  return (sumRev / months.length) / avgSeas * 12;
+  return weightedSum / totalWeight;
 }
 function getRefAnnual(d, gl) {
   // Prefer FY25-anchored estimate if available
@@ -992,7 +995,7 @@ async function syncSignals() {
 function fmtK(v,d=0){if(Math.abs(v)>=1e6)return(v/1e6).toFixed(1)+'M';if(Math.abs(v)>=1000)return(v/1000).toFixed(d===0?0:1)+'K';return v.toFixed(0);}
 function fmtM(v){if(Math.abs(v)>=1e6)return(v/1e6).toFixed(2)+'M';if(Math.abs(v)>=1000)return(v/1000).toFixed(1)+'K';return v.toFixed(0);}
 function fmtYm(ym){const[y,m]=ym.split('-').map(Number);return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]+' '+y;}
-function fmtYmS(ym){const[y,m]=ym.split('-').map(Number);return['J','F','M','A','M','J','J','A','S','O','N','D'][m-1]+String(y).slice(2);}
+function fmtYmS(ym){const[y,m]=ym.split('-').map(Number);return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]+' '+y;}
 
 document.addEventListener('DOMContentLoaded', init);
 </script>

@@ -181,6 +181,7 @@ input[type=range]{flex:1;accent-color:var(--navy);cursor:pointer}
       <div class="leg"><div class="leg-dash" style="border-color:var(--red)"></div>Forecast</div>
       <div class="leg"><div class="leg-band"></div>Confidence Band</div>
       <div class="leg"><div class="leg-dash" style="border-color:var(--amber)"></div>Budget</div>
+      <div id="gapNote" style="display:none;font-size:10px;color:var(--muted);font-style:italic;margin-left:auto">Jul 2024 – Feb 2026 actuals estimated from Melbourne × national ratio</div>
     </div>
   </div>
 </div>
@@ -449,11 +450,28 @@ function updateSigBar() {
 // ── Data helpers ───────────────────────────────────────────
 function getDepots() { return depot==='all' ? Object.keys(DEPOTS) : [depot]; }
 
+// FY24-based national/Melbourne ratio — used to estimate national actuals
+// for the Jul24-Feb26 period where only Melbourne has extracted FY25 data
+const GAP_RATIO = {'1505':3.056,'1507':3.911,'1510':3.723,'1710':1,'3395':1,'3405':1};
+const GAP_START = '2024-07';
+
 function getActual(gl, ym) {
-  return getDepots().reduce((s,d) => {
+  const depots = getDepots();
+  // Standard path: sum hist + fy25 across selected depots
+  let total = depots.reduce((s,d) => {
     const v = ((PL_DATA.hist[d]||{})[gl]||{})[ym] || ((PL_DATA.fy25[d]||{})[gl]||{})[ym] || 0;
     return s + v;
   }, 0);
+  // In All Depots mode for the gap period (Jul24 onward), non-Melbourne depots
+  // have no extracted actuals. Scale Melbourne's fy25 data by the FY24 national ratio.
+  if(depot === 'all' && ym >= GAP_START && GAP_RATIO[gl]) {
+    const melVal = ((PL_DATA.fy25['86']||{})[gl]||{})[ym] || 0;
+    if(melVal > 0) {
+      // Replace raw total with scaled Melbourne estimate for the gap period
+      total = melVal * GAP_RATIO[gl];
+    }
+  }
+  return total;
 }
 function getBudget(gl, ym) {
   return getDepots().reduce((s,d) => s + (((PL_DATA.budget[d]||{})[gl]||{})[ym]||0), 0);
@@ -577,19 +595,26 @@ function rebuild() {
     const depots = getDepots();
     const recentMonths = ['2025-12','2026-01','2026-02'];
     let ratioSum = 0, ratioCount = 0;
-    depots.forEach(d=>{
-      REV_GL.forEach(gl=>{
-        recentMonths.forEach(ym=>{
-          const act = ((PL_DATA.fy25[d]||{})[gl]||{})[ym] || ((PL_DATA.hist[d]||{})[gl]||{})[ym] || 0;
-          const bud = ((PL_DATA.budget[d]||{})[gl]||{})[ym] || 0;
-          if(act > 100 && bud > 100){ ratioSum += act/bud; ratioCount++; }
-        });
+    REV_GL.forEach(gl=>{
+      recentMonths.forEach(ym=>{
+        // Use scaled actual (same logic as getActual) for All Depots gap period
+        let act = depots.reduce((s,d)=>s+(((PL_DATA.fy25[d]||{})[gl]||{})[ym]||0),0);
+        if(depot === 'all' && ym >= GAP_START && GAP_RATIO[gl]) {
+          const melVal = ((PL_DATA.fy25['86']||{})[gl]||{})[ym]||0;
+          if(melVal > 0) act = melVal * GAP_RATIO[gl];
+        }
+        const bud = depots.reduce((s,d)=>s+(((PL_DATA.budget[d]||{})[gl]||{})[ym]||0),0);
+        if(act > 100 && bud > 100){ ratioSum += act/bud; ratioCount++; }
       });
     });
     if(ratioCount >= 3) _momRatio = ratioSum / ratioCount;
   }
   window._momRatio = _momRatio;
   window._momHorizon = horizon;
+
+  // Show gap note for All Depots view
+  const gapNote = document.getElementById('gapNote');
+  if(gapNote) gapNote.style.display = depot==='all' ? 'block' : 'none';
 
   renderKPIs(fStart);
   renderMainChart();

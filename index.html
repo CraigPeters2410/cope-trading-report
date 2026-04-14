@@ -774,11 +774,85 @@ const sbH = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorizat
 async function sbLoad() {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${ROW_ID}&select=payload`,{headers:sbH});
   if(!r.ok){const t=await r.text();throw new Error('Load: '+r.status+' '+t);}
-  const d=await r.json();return d.length?d[0].payload:null;
+  const d=await r.json();
+  if(!d.length) return null;
+  const payload = d[0].payload;
+  // Detect compressed format by checking for abbreviated keys
+  const firstDate = Object.keys(payload||{})[0];
+  if(!firstDate) return payload;
+  const firstDepot = Object.keys(payload[firstDate]||{})[0];
+  if(!firstDepot) return payload;
+  const firstAcct = Object.keys(payload[firstDate][firstDepot]||{})[0];
+  if(!firstAcct) return payload;
+  const sample = payload[firstDate][firstDepot][firstAcct];
+  // If sample has 'r' key it's compressed format
+  const isCompressed = sample && sample.r !== undefined;
+  console.log('Loaded from Supabase, format:', isCompressed ? 'compressed' : 'legacy', '| dates:', Object.keys(payload).length);
+  return isCompressed ? decompressStore(payload) : payload;
 }
+// Compress store before saving — abbreviate keys and strip zero values
+function compressStore(store){
+  const out={};
+  Object.entries(store).forEach(([date,depots])=>{
+    out[date]={};
+    Object.entries(depots).forEach(([depot,accts])=>{
+      out[date][depot]={};
+      Object.entries(accts).forEach(([acct,data])=>{
+        const c={r:Math.round((data.revenue||0)*100)/100};
+        if(data.count)  c.c=data.count;
+        if(data.kg)     c.k=Math.round((data.kg||0)*10)/10;
+        if(data.div){
+          const d={};
+          if(data.div.Tailgate)        d.T=Math.round(data.div.Tailgate*100)/100;
+          if(data.div.Warehouse)       d.W=Math.round(data.div.Warehouse*100)/100;
+          if(data.div['Site-to-Site']) d.S=Math.round(data.div['Site-to-Site']*100)/100;
+          if(Object.keys(d).length)    c.d=d;
+        }
+        out[date][depot][acct]=c;
+      });
+    });
+  });
+  return out;
+}
+
+// Decompress back to full format on load
+function decompressStore(compressed){
+  const out={};
+  Object.entries(compressed).forEach(([date,depots])=>{
+    out[date]={};
+    Object.entries(depots).forEach(([depot,accts])=>{
+      out[date][depot]={};
+      Object.entries(accts).forEach(([acct,c])=>{
+        // Handle both compressed and legacy uncompressed formats
+        if(c.r !== undefined){
+          const div={'Tailgate':0,'Warehouse':0,'Site-to-Site':0};
+          if(c.d){ if(c.d.T) div.Tailgate=c.d.T; if(c.d.W) div.Warehouse=c.d.W; if(c.d.S) div['Site-to-Site']=c.d.S; }
+          out[date][depot][acct]={revenue:c.r,count:c.c||0,kg:c.k||0,div};
+        } else {
+          // Already full format (legacy)
+          out[date][depot][acct]=c;
+        }
+      });
+    });
+  });
+  return out;
+}
+
 async function sbSave(payload) {
-  const r=await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`,{method:'POST',headers:{...sbH,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:ROW_ID,payload,updated_at:new Date().toISOString()})});
-  if(!r.ok){const t=await r.text();throw new Error('Save: '+r.status+' '+t);}
+  const compressed = compressStore(payload);
+  const body = JSON.stringify({id:ROW_ID,payload:compressed,updated_at:new Date().toISOString()});
+  console.log('Saving to Supabase — raw keys:', Object.keys(payload).length, '| compressed size:', body.length, 'chars');
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`,{
+    method:'POST',
+    headers:{...sbH,'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body
+  });
+  if(!r.ok){
+    const t=await r.text();
+    console.error('Supabase response:', r.status, t);
+    throw new Error('Save: '+r.status+' '+t);
+  }
+  console.log('Supabase save OK, status:', r.status);
 }
 
 // ═══ INDEXED DB (migration source) ═══
@@ -791,11 +865,18 @@ function dbAll(){return new Promise((r,e)=>{const q=db.transaction(STORE,'readon
 // { [dateKey]: { [depotNum]: { [acct]: {revenue,count} } } }
 // store declared above
 
-function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(pushToSupabase,1200);}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(pushToSupabase,3000);}
 async function pushToSupabase(){
   setSyncStatus('busy','Saving…');
-  try{await sbSave(store);setSyncStatus('ok','Saved to cloud');}
-  catch(e){setSyncStatus('err','Save failed');console.error(e);}
+  try{
+    await sbSave(store);
+    setSyncStatus('ok','Saved to cloud');
+  } catch(e){
+    setSyncStatus('err','Save failed');
+    console.error('Supabase save error:', e);
+    // Show visible toast with actual error so we can diagnose
+    toast('Save failed: ' + e.message, 'bad');
+  }
 }
 function setSyncStatus(type,msg){
   const el=document.getElementById('syncStatus'),lbl=document.getElementById('syncLabel');

@@ -141,7 +141,12 @@ input[type=range]{flex:1;accent-color:var(--navy);cursor:pointer}
       <button class="pbtn" onclick="setH(3)" id="h3">3 Months</button>
       <button class="pbtn active" onclick="setH(6)" id="h6">6 Months</button>
       <button class="pbtn" onclick="setH(12)" id="h12">12 Months</button>
+      <button class="pbtn" onclick="setHToJun2027()" id="hJun27">To Jun 2027</button>
     </div>
+    <button class="btn-hd btn-ghost" onclick="openBudgetModal()" style="margin-right:4px" title="Upload FY27 budget">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      FY27 Budget
+    </button>
     <div class="hd-div"></div>
     <button class="btn-hd btn-ghost" onclick="window.open('index.html')">
       <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1v-3M9 7l5-5M14 7V2H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -302,7 +307,7 @@ input[type=range]{flex:1;accent-color:var(--navy);cursor:pointer}
 <div class="card">
   <div class="card-hd">
     <div class="card-title">Historical Context</div>
-    <span style="font-size:10px;color:var(--muted);font-style:italic">FY20 actuals through forecast horizon</span>
+    <span style="font-size:10px;color:var(--muted);font-style:italic">FY20 actuals through forecast horizon &nbsp;·&nbsp; <span style="color:#22c55e">●</span> confirmed actual &nbsp;·&nbsp; <span style="cursor:pointer;text-decoration:underline;color:var(--muted)" onclick="openConfirmModal(PL_DATA.meta.last_actual, null)">click chart bar to confirm actual</span></span>
   </div>
   <div class="card-body">
     <div class="chart-wrap"><canvas id="histChart"></canvas></div>
@@ -328,6 +333,12 @@ const FY_POS   = {7:1,8:2,9:3,10:4,11:5,12:6,1:7,2:8,3:9,4:10,5:11,6:12};
 // Standard working days per FY position (1=Jul...12=Jun) — AU approximate
 const WD = {1:23,2:21,3:22,4:23,5:21,6:20,7:21,8:20,9:23,10:21,11:22,12:21};
 const WD_AVG = 21.5;
+// Gap data: estimated Jul 2024 – Jun 2025 (interpolated from FY24/FY26 actuals)
+const GAP_DATA = {"81":{"1505":{"2024-07":157856.27,"2024-08":164899.99,"2024-09":194228.28,"2024-10":180288.97,"2024-11":200796.62,"2024-12":154308.27,"2025-01":159537.93,"2025-02":173398.22,"2025-03":199431.4,"2025-04":174465.53,"2025-05":212884.14,"2025-06":168403.17},"1507":{"2024-07":139138.98,"2024-08":275658.23,"2024-09":201940.89,"2024-10":228687.33,"2024-11":223646.84,"2024-12":253988.38,"2025-01":186350.57,"2025-02":215171.98,"2025-03":194850.73,"2025-04":164520.38,"2025-05":200653.32,"2025-06":173084.76},"1510":{"2024-07":89649.57,"2024-08":77084.97,"2024-09":67768.8,"2024-10":76539.15,"2024-11":72896.66,"2024-12":91813.39,"2025-01":81126.39,"2025-02":82001.59,"2025-03":98648.78,"2025-04":79822.92,"2025-05":147714.98,"2025-06":103901.38}},"82":{"1505":{"2024-07":314468.95,"2024-08":357234.99,"2024-09":477675.43,"2024-10":424396.54,"2024-11":526833.02,"2024-12":300996.32,"2025-01":412478.2,"2025-02":338105.69,"2025-03":476413.56,"2025-04":333127.84,"2025-05":338738.44,"2025-06":290485.94},"1507":{"2024-07":609198.8,"2024-08":770372.11,"2024-09":604655.93,"2024-10":595773.67,"2024-11":713567.66,"2024-12":562026.24,"2025-01":412977.76,"2025-02":801805.41,"2025-03":757222.3,"2025-04":601649.83,"2025-05":691832.42,"2025-06":638727.06},"1510":{"2024-07":186654.92,"2024-08":164786.91,"2024-09":145651.82,"2024-10":171434.76,"2024-11":131219.62,"2024-12":181946.94,"2025-01":112700.53,"2025-02":115795.54,"2025-03":170468.54,"2025-04":114255.97,"2025-05":248752.43,"2025-06":192983.07}},"83":{"1505":{"2024-07":39328.21,"2024-08":70861.77,"2024-09":71608.78,"2024-10":49003.32,"2024-11":91552.59,"2024-12":51169.61,"2025-01":40306.45,"2025-02":76336.14,"2025-03":65129.73,"2025-04":50357.74,"2025-05":57389.65,"2025-06":65101.45},"1507":{"2024-07":159382.38,"2024-08":212116.94,"2024-09":190282.31,"2024-10":186501.07,"2024-11":211511.32,"2024-12":152634.73,"2025-01":167576.14,"2025-02":252049.38,"2025-03":176566.69,"2025-04":251426.04,"2025-05":223147.84,"2025-06":279950.45},"1510":{"2024-07":17997.77,"2024-08":21852.24,"2024-09":12684.11,"2024-10":18731.24,"2024-11":12405.04,"2024-12":15266.1,"2025-01":11306.13,"2025-02":10988.82,"2025-03":11924.21,"2025-04":5575.26,"2025-05":4012.81,"2025-06":3701.65}},"84":{"1505":{"2024-07":23316.99,"2024-08":32981.58,"2024-09":24101.81,"2024-10":24123.51,"2024-11":28799.39,"2024-12":31146.88,"2025-01":21225.89,"2025-02":20982.0,"2025-03":24941.24,"2025-04":22413.7,"2025-05":20720.32,"2025-06":36561.91},"1507":{"2024-07":58165.71,"2024-08":48249.83,"2024-09":40981.38,"2024-10":52398.15,"2024-11":55190.22,"2024-12":54340.55,"2025-01":31448.91,"2025-02":37497.25,"2025-03":39474.86,"2025-04":55195.02,"2025-05":83387.7,"2025-06":54750.66},"1510":{"2024-07":13709.07,"2024-08":16575.74,"2024-09":13032.77,"2024-10":12566.83,"2024-11":9611.36,"2024-12":14387.68,"2025-01":30745.27,"2025-02":9220.49,"2025-03":11933.96,"2025-04":8437.76,"2025-05":14762.65,"2025-06":14155.95}},"86":{"1505":{"2024-07":1537998.92,"2024-08":1568648.14,"2024-09":1584319.68,"2024-10":1806713.2,"2024-11":2036884.84,"2024-12":1503292.63,"2025-01":1469884.74,"2025-02":1592979.26,"2025-03":1570733.72,"2025-04":1527802.88,"2025-05":1624657.21,"2025-06":1296872.62},"1507":{"2024-07":1089059.24,"2024-08":1227657.7,"2024-09":1361610.2,"2024-10":1420713.78,"2024-11":1490560.94,"2024-12":1409068.97,"2025-01":995787.41,"2025-02":1431949.62,"2025-03":1495202.45,"2025-04":1165109.81,"2025-05":1331317.77,"2025-06":1352480.8},"1510":{"2024-07":345975.35,"2024-08":354872.44,"2024-09":362126.58,"2024-10":308397.81,"2024-11":341697.72,"2024-12":355987.56,"2025-01":301032.53,"2025-02":285539.51,"2025-03":321698.24,"2025-04":273581.24,"2025-05":466040.05,"2025-06":362761.89}},"87":{"1505":{},"1507":{},"1510":{}},"88":{"1505":{"2024-07":57510.7,"2024-08":58995.09,"2024-09":58142.99,"2024-10":73699.72,"2024-11":76012.29,"2024-12":96508.16,"2025-01":55545.61,"2025-02":59398.74,"2025-03":66968.5,"2025-04":70844.25,"2025-05":70425.61,"2025-06":58395.7},"1507":{"2024-07":75270.92,"2024-08":84340.25,"2024-09":102047.0,"2024-10":101545.65,"2024-11":123992.5,"2024-12":127363.32,"2025-01":50965.7,"2025-02":99662.91,"2025-03":116236.59,"2025-04":156686.18,"2025-05":123975.98,"2025-06":135327.04},"1510":{"2024-07":1174.65,"2024-08":974.48,"2024-09":806.52,"2024-10":778.98,"2024-11":494.28,"2024-12":599.04,"2025-01":562.78,"2025-02":568.67,"2025-03":2673.82,"2025-04":832.41,"2025-05":1175.4,"2025-06":866.73}},"89":{"1505":{"2024-07":147216.95,"2024-08":148243.79,"2024-09":176573.23,"2024-10":219959.11,"2024-11":193528.31,"2024-12":148216.93,"2025-01":171081.05,"2025-02":200236.97,"2025-03":205624.24,"2025-04":170154.38,"2025-05":207316.78,"2025-06":167298.71},"1507":{"2024-07":312982.36,"2024-08":339099.2,"2024-09":226513.86,"2024-10":335282.78,"2024-11":388888.15,"2024-12":282201.62,"2025-01":223561.26,"2025-02":394081.6,"2025-03":251798.45,"2025-04":252273.79,"2025-05":388867.27,"2025-06":324051.59},"1510":{"2024-07":137508.11,"2024-08":122985.4,"2024-09":124943.93,"2024-10":153726.59,"2024-11":159423.75,"2024-12":150307.36,"2025-01":132778.97,"2025-02":155271.01,"2025-03":168561.22,"2025-04":111008.01,"2025-05":147911.07,"2025-06":180255.06}},"90":{"1505":{"2024-07":1882582.15,"2024-08":2239497.97,"2024-09":2181356.52,"2024-10":2310462.33,"2024-11":2567263.25,"2024-12":1988853.94,"2025-01":2027360.18,"2025-02":2164854.94,"2025-03":2155739.27,"2025-04":1893725.35,"2025-05":2231475.16,"2025-06":1928206.63},"1507":{"2024-07":2015075.05,"2024-08":2607880.47,"2024-09":2495152.64,"2024-10":2439999.34,"2024-11":2620571.67,"2024-12":2433630.17,"2025-01":1517996.63,"2025-02":1929143.22,"2025-03":2789139.38,"2025-04":2395253.4,"2025-05":2349184.13,"2025-06":2610131.94},"1510":{"2024-07":523785.22,"2024-08":478457.29,"2024-09":442151.71,"2024-10":455900.71,"2024-11":481229.88,"2024-12":487665.54,"2025-01":338899.86,"2025-02":405105.06,"2025-03":448235.34,"2025-04":338917.38,"2025-05":412044.68,"2025-06":429402.45}},"91":{"1505":{"2024-07":56000.57,"2024-08":72119.95,"2024-09":52860.44,"2024-10":85077.68,"2024-11":82417.89,"2024-12":42220.55,"2025-01":57742.09,"2025-02":76847.53,"2025-03":70414.96,"2025-04":46947.67,"2025-05":52251.54,"2025-06":43525.42},"1507":{"2024-07":69229.02,"2024-08":89417.9,"2024-09":64718.65,"2024-10":50156.2,"2024-11":68173.75,"2024-12":124568.1,"2025-01":52381.79,"2025-02":39044.6,"2025-03":86438.05,"2025-04":45593.78,"2025-05":64671.14,"2025-06":86778.86},"1510":{"2024-07":24803.45,"2024-08":20228.37,"2024-09":21870.39,"2024-10":28889.96,"2024-11":22269.29,"2024-12":27785.11,"2025-01":22308.39,"2025-02":36349.1,"2025-03":43798.49,"2025-04":25842.49,"2025-05":34765.69,"2025-06":32218.94}},"92":{"1505":{"2024-07":9049.09,"2024-08":12191.43,"2024-09":8790.72,"2024-10":7202.99,"2024-11":12901.09,"2024-12":3066.9,"2025-01":5869.98,"2025-02":11663.07,"2025-03":5430.32,"2025-04":9379.7,"2025-05":8160.29,"2025-06":8927.33},"1507":{"2024-07":41336.8,"2024-08":31178.27,"2024-09":44420.87,"2024-10":49335.26,"2024-11":46740.04,"2024-12":61682.05,"2025-01":23524.19,"2025-02":29569.01,"2025-03":45789.77,"2025-04":31685.65,"2025-05":32659.63,"2025-06":56769.54},"1510":{"2024-07":1722.5,"2024-08":738.3,"2024-09":3677.71,"2024-10":1554.48,"2024-11":864.25,"2024-12":218.09,"2025-01":518.91,"2025-02":47.55,"2025-03":66.9,"2025-04":49.73,"2025-05":87.49,"2025-06":96.22}},"93":{"1505":{"2024-07":13590.67,"2024-08":35345.55,"2024-09":17466.9,"2024-10":28102.63,"2024-11":51692.13,"2024-12":36785.21,"2025-01":35083.97,"2025-02":47296.9,"2025-03":30428.21,"2025-04":16230.9,"2025-05":13077.08,"2025-06":13739.75},"1507":{"2024-07":47119.63,"2024-08":70707.28,"2024-09":69841.99,"2024-10":51436.66,"2024-11":72311.26,"2024-12":52685.19,"2025-01":68380.76,"2025-02":78492.86,"2025-03":106018.3,"2025-04":50126.11,"2025-05":51681.29,"2025-06":87395.18},"1510":{"2024-07":29673.96,"2024-08":25744.74,"2024-09":34479.68,"2024-10":23161.22,"2024-11":32852.05,"2024-12":15881.09,"2025-01":12914.02,"2025-02":19786.9,"2025-03":15873.04,"2025-04":12144.85,"2025-05":39361.14,"2025-06":16946.0}},"94":{"1505":{"2024-07":9070.24,"2024-08":3635.26,"2024-09":7471.25,"2024-10":2754.57,"2024-11":12897.46,"2024-12":2931.4,"2025-01":11011.39,"2025-02":13326.83,"2025-03":5673.59,"2025-04":8005.59,"2025-05":12427.39,"2025-06":5178.37},"1507":{"2024-07":30586.4,"2024-08":62395.87,"2024-09":52998.28,"2024-10":21685.82,"2024-11":29919.73,"2024-12":33850.72,"2025-01":44279.63,"2025-02":33453.84,"2025-03":16490.78,"2025-04":13359.04,"2025-05":62529.94,"2025-06":44737.79},"1510":{"2024-07":2181.59,"2024-08":687.68,"2024-09":583.58,"2024-10":888.71,"2024-11":664.28,"2024-12":762.47,"2025-01":650.11,"2025-02":1407.8,"2025-03":2207.06,"2025-04":1278.78,"2025-05":1094.68,"2025-06":781.73}}};
+// Confirmed actuals: {ym: totalRevenue} — user-confirmed values override forecast
+window._confirmedActuals = JSON.parse(localStorage.getItem('_confirmedActuals')||'{}');
+// FY27 budget: uploaded by user, merged into PL_DATA.budget
+window._fy27Budget = JSON.parse(localStorage.getItem('_fy27Budget')||'{}');
 
 // ── State ──────────────────────────────────────────────────
 let horizon = 6;
@@ -393,8 +404,24 @@ function init() {
   setTimeout(syncSignals, 900);
 }
 
+function setHToJun2027() {
+  // Calculate months from next forecast month to 2027-06
+  const la = PL_DATA.meta.last_actual;
+  const [ly,lm] = la.split('-').map(Number);
+  const fStart = lm===12?(ly+1)+'-01':ly+'-'+String(lm+1).padStart(2,'0');
+  const [fy,fm] = fStart.split('-').map(Number);
+  // Months from fStart to 2027-06 inclusive
+  const endYear=2027, endMonth=6;
+  let months = (endYear-fy)*12 + (endMonth-fm) + 1;
+  if(months < 1) months = 1;
+  horizon = months;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('hJun27').classList.add('active');
+  rebuild();
+}
 function setH(h) {
   horizon = h;
+  document.getElementById('hJun27')?.classList.remove('active');
   ['h3','h6','h12'].forEach(id => document.getElementById(id).classList.toggle('active', id==='h'+h));
   rebuild();
 }
@@ -457,7 +484,8 @@ function getActual(gl, ym) {
   }, 0);
 }
 function getBudget(gl, ym) {
-  return getDepots().reduce((s,d) => s + (((PL_DATA.budget[d]||{})[gl]||{})[ym]||0), 0);
+  const fy27val = (window._fy27Budget[ym]||0);
+  return getDepots().reduce((s,d) => s + (((PL_DATA.budget[d]||{})[gl]||{})[ym]||0), 0) + fy27val;
 }
 function getRefAnnualFY25(d, gl) {
   // Recency-weighted deseasonalised annual rate from FY25 actuals
@@ -564,7 +592,11 @@ function rebuild() {
   ALL_GL.forEach(gl => {
     fcData[gl]  = fMonths.map((ym,i) => getForecast(gl, ym, i));
     budData[gl] = fMonths.map(ym => getBudget(gl, ym));
-    actData[gl] = hMonths.map(ym => { const v=getActual(gl,ym); return v>0?v:null; });
+    actData[gl] = hMonths.map(ym => {
+    // Check if this month has a user-confirmed actual
+    if(window._confirmedActuals[ym] !== undefined) return window._confirmedActuals[ym];
+    const v=getActual(gl,ym); return v>0?v:null;
+  });
     const cw    = {'1505':.10,'1507':.12,'1510':.08,'1710':.20,'3395':.30,'3405':.40}[gl]||.12;
     ciLo[gl]    = fMonths.map((_,i) => fcData[gl][i]*(1-cw*(1+i*.04)));
     ciHi[gl]    = fMonths.map((_,i) => fcData[gl][i]*(1+cw*(1+i*.04)));
@@ -678,7 +710,7 @@ function renderMainChart() {
       const acts = hMonths.map(ym=>{const v=getActual(gl,ym);return v>0?v:null;});
       const fcs  = fMonths.map((_,i)=>fcData[gl][i]);
       const lastAct = [...acts].reverse().find(v=>v!==null)||null;
-      datasets.push({label:GL_LABEL[gl],data:[...acts,...Array(fMonths.length).fill(null)],borderColor:GL_COLOR[gl],borderWidth:2,backgroundColor:'transparent',pointRadius:0,tension:.3,spanGaps:false});
+    datasets.push({label:GL_LABEL[gl],data:[...acts,...Array(fMonths.length).fill(null)],borderColor:GL_COLOR[gl],borderWidth:2,backgroundColor:'transparent',pointRadius:hMonths.map(ym=>window._confirmedActuals[ym]!==undefined?5:0),pointHoverRadius:6,tension:.3,spanGaps:false});
       datasets.push({label:GL_LABEL[gl]+' (fc)',data:[...Array(split-1).fill(null),lastAct,...fcs],borderColor:GL_COLOR[gl],borderWidth:2,borderDash:[5,3],backgroundColor:'transparent',pointRadius:0,tension:.4,spanGaps:false});
     });
   }
@@ -707,6 +739,14 @@ function renderMainChart() {
           bodyFont:{family:'Barlow',size:11},padding:10,
           callbacks:{label:ctx=>ctx.parsed.y===null?null:' '+ctx.dataset.label+': $'+fmtK(ctx.parsed.y)}
         }
+      },
+      onClick(event, elements) {
+        if(!elements||!elements.length) return;
+        const idx = elements[0].index;
+        const ym = allMo[idx];
+        if(!ym) return;
+        const currentVal = REV_GL.reduce((s,gl)=>s+getActual(gl,ym),0);
+        if(currentVal>0) openConfirmModal(ym, currentVal);
       },
       scales:{
         x:{grid:{color:'rgba(226,230,240,.5)'},border:{display:false},ticks:{font:{family:'Barlow Condensed',size:11},color:'#7b88a8',maxRotation:0,callback:(v,i)=>allMo.length>18&&i%2!==0?'':labels[i]}},
@@ -774,12 +814,16 @@ function renderHistChart() {
   const split2 = allMo.length;
   const lastAct2 = [...acts].reverse().find(v=>v!==null)||null;
 
+  // Confirmed actuals overlay for All Depots chart
+  const confirmedAllMo = [...allMo,...fMonths].map(ym => window._confirmedActuals[ym] !== undefined ? window._confirmedActuals[ym] : null);
+
   const ctx2 = document.getElementById('histChart').getContext('2d');
   histCh = new Chart(ctx2, {
     type:'line',
     data:{labels:allLabels,datasets:[
       {label:'Actuals',data:[...acts,...Array(fMonths.length).fill(null)],borderColor:'#1a2744',borderWidth:2.5,backgroundColor:'transparent',pointRadius:0,tension:.3,spanGaps:false},
-      {label:'Forecast',data:[...Array(split2-1).fill(null),lastAct2,...fcs],borderColor:'#c8102e',borderWidth:2.5,borderDash:[6,3],backgroundColor:'transparent',pointRadius:0,tension:.4,spanGaps:false}
+      {label:'Forecast',data:[...Array(split2-1).fill(null),lastAct2,...fcs],borderColor:'#c8102e',borderWidth:2.5,borderDash:[6,3],backgroundColor:'transparent',pointRadius:0,tension:.4,spanGaps:false},
+      {label:'Confirmed',data:confirmedAllMo,borderColor:'#22c55e',borderWidth:0,backgroundColor:'#22c55e',pointRadius:6,pointHoverRadius:8,tension:0,spanGaps:false,showLine:false}
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
@@ -1022,5 +1066,107 @@ function fmtYmS(ym){const[y,m]=ym.split('-').map(Number);return['Jan','Feb','Mar
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- Budget Upload Modal -->
+<div id="budgetModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);align-items:flex-end;justify-content:center">
+  <div style="background:#1e2433;border-radius:12px 12px 0 0;padding:24px;width:100%;max-width:640px;max-height:80vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(0,0,0,.5)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0;color:#fff;font-size:15px">Upload FY27 Budget (Jul 2026 – Jun 2027)</h3>
+      <button onclick="closeBudgetModal()" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+    <p style="color:#aaa;font-size:12px;margin:0 0 12px">Paste CSV with two columns: <strong style="color:#ccc">YYYY-MM, amount</strong> (one month per row). Amount = total network revenue for that month.</p>
+    <textarea id="budgetCsv" placeholder="2026-07,12500000&#10;2026-08,11800000&#10;..." style="width:100%;height:180px;background:#0d1117;border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e6edf3;font-family:monospace;font-size:12px;padding:10px;box-sizing:border-box;resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+      <button onclick="clearFY27Budget()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#aaa;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px">Clear Budget</button>
+      <button onclick="parseBudgetCsv()" style="background:#CC1720;border:none;color:#fff;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Load Budget</button>
+    </div>
+    <div id="budgetStatus" style="margin-top:10px;font-size:12px;color:#aaa"></div>
+  </div>
+</div>
+
+<!-- Confirm Actual Modal -->
+<div id="confirmModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);align-items:center;justify-content:center">
+  <div style="background:#1e2433;border-radius:12px;padding:24px;width:340px;box-shadow:0 4px 32px rgba(0,0,0,.5)">
+    <h3 style="margin:0 0 8px;color:#fff;font-size:15px">Confirm Actual Revenue</h3>
+    <p id="confirmMonthLabel" style="color:#aaa;font-size:13px;margin:0 0 16px"></p>
+    <input id="confirmValue" type="number" placeholder="Enter confirmed revenue $" style="width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#e6edf3;font-size:14px;padding:10px;box-sizing:border-box">
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button onclick="closeConfirmModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#aaa;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px">Cancel</button>
+      <button onclick="clearConfirmedActual()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#aaa;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px">Clear</button>
+      <button onclick="saveConfirmedActual()" style="background:#CC1720;border:none;color:#fff;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Budget Modal ──────────────────────────────────────────────
+function openBudgetModal(){
+  const m=document.getElementById('budgetModal');
+  m.style.display='flex';
+  // Pre-populate with existing data if any
+  const existing = window._fy27Budget;
+  if(Object.keys(existing).length>0){
+    const lines = Object.entries(existing).sort().map(([ym,v])=>ym+','+v).join('\n');
+    document.getElementById('budgetCsv').value = lines;
+  }
+}
+function closeBudgetModal(){document.getElementById('budgetModal').style.display='none';}
+function clearFY27Budget(){
+  window._fy27Budget={};
+  localStorage.setItem('_fy27Budget','{}');
+  document.getElementById('budgetStatus').textContent='FY27 budget cleared.';
+  closeBudgetModal();
+  rebuild();
+}
+function parseBudgetCsv(){
+  const raw = document.getElementById('budgetCsv').value.trim();
+  const lines = raw.split(/\r?\n/).filter(l=>l.trim());
+  const result = {};
+  let ok=0, skip=0;
+  for(const line of lines){
+    const parts = line.split(',');
+    if(parts.length<2){skip++;continue;}
+    const ym = parts[0].trim();
+    const val = parseFloat(parts[1].replace(/[^0-9.-]/g,''));
+    if(!/^\d{4}-\d{2}$/.test(ym)||isNaN(val)){skip++;continue;}
+    result[ym] = val;
+    ok++;
+  }
+  window._fy27Budget = result;
+  localStorage.setItem('_fy27Budget', JSON.stringify(result));
+  document.getElementById('budgetStatus').textContent = ok+' months loaded'+(skip?' ('+skip+' skipped)':'')+'.'  ;
+  setTimeout(()=>{closeBudgetModal();rebuild();},800);
+}
+
+// ── Confirm Actual Modal ──────────────────────────────────────
+let _confirmYm = null;
+function openConfirmModal(ym, currentVal){
+  _confirmYm = ym;
+  document.getElementById('confirmMonthLabel').textContent = 'Month: '+ym+(currentVal?' — current: $'+Math.round(currentVal).toLocaleString():'');
+  const existing = window._confirmedActuals[ym];
+  document.getElementById('confirmValue').value = existing!==undefined ? existing : (currentVal||'');
+  const m=document.getElementById('confirmModal');
+  m.style.display='flex';
+  setTimeout(()=>document.getElementById('confirmValue').focus(),100);
+}
+function closeConfirmModal(){document.getElementById('confirmModal').style.display='none';_confirmYm=null;}
+function clearConfirmedActual(){
+  if(!_confirmYm)return;
+  delete window._confirmedActuals[_confirmYm];
+  localStorage.setItem('_confirmedActuals',JSON.stringify(window._confirmedActuals));
+  closeConfirmModal();
+  rebuild();
+}
+function saveConfirmedActual(){
+  if(!_confirmYm)return;
+  const val=parseFloat(document.getElementById('confirmValue').value);
+  if(isNaN(val)||val<=0){alert('Enter a valid revenue amount.');return;}
+  window._confirmedActuals[_confirmYm]=val;
+  localStorage.setItem('_confirmedActuals',JSON.stringify(window._confirmedActuals));
+  closeConfirmModal();
+  rebuild();
+}
+</script>
+
 </body>
 </html>

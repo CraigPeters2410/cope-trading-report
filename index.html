@@ -934,56 +934,67 @@ async function pushToSupabase(){
 async function init(){
   setSyncStatus('busy','Connecting…');
   try{
-    // ── Try new per-date row architecture first ──
-    let remote = null;
-    try{
-      remote = await sbLoadAllDates();
-    } catch(e){
-      console.warn('Per-date load failed, trying legacy single row:', e.message);
-    }
+    // ── 1. Try new per-date table first ──
+    let newDates = null;
+    try{ newDates = await sbLoadAllDates(); } catch(e){ console.warn('New table load failed:',e.message); }
 
-    if(remote && Object.keys(remote).length>0){
-      store = remote;
-      // Mark all loaded dates as already saved — no need to re-upload them
+    if(newDates && Object.keys(newDates).length>0){
+      // New table has data — use it directly
+      store = newDates;
       Object.keys(store).forEach(d=>_savedDates.add(d));
       setSyncStatus('ok','Synced '+Object.keys(store).length+' days from cloud');
+
     } else {
-      // ── Fall back to legacy single-row format ──
+      // ── 2. New table empty — load from legacy single row and show data immediately ──
+      setSyncStatus('busy','Loading data…');
       const legacyRemote = await sbLoad();
+
       if(legacyRemote && Object.keys(legacyRemote).length>0){
-        const firstVal = Object.values(legacyRemote)[0];
-        const firstKey = Object.keys(firstVal||{})[0];
+        // Hydrate store from legacy data so UI shows immediately
+        const firstKey = Object.keys(Object.values(legacyRemote)[0]||{})[0];
         if(firstKey && DEPOT_MAP[firstKey]){
           store = legacyRemote;
         } else {
           store = {};
           Object.entries(legacyRemote).forEach(([date,accts])=>{ store[date]={'86':accts}; });
         }
-        // Migrate legacy data to per-date rows in the background
-        setSyncStatus('busy','Migrating to new format…');
-        for(const dateKey of Object.keys(store)){
-          try{ await sbSaveDate(dateKey, store[dateKey]); _savedDates.add(dateKey); }
-          catch(e){ console.warn('Migration failed for',dateKey,e.message); }
+        render(); // Show data NOW before migration starts
+        setSyncStatus('busy','Migrating '+Object.keys(store).length+' days…');
+
+        // ── 3. Migrate in batches of 20 to avoid timeout ──
+        const dates = Object.keys(store).sort();
+        let done = 0, failed = 0;
+        for(let i=0; i<dates.length; i+=20){
+          const batch = dates.slice(i, i+20);
+          await Promise.all(batch.map(async dateKey=>{
+            try{
+              await sbSaveDate(dateKey, store[dateKey]);
+              _savedDates.add(dateKey);
+              done++;
+            } catch(e){
+              failed++;
+              console.warn('Migration failed for',dateKey,e.message);
+            }
+          }));
+          setSyncStatus('busy','Migrating… '+done+'/'+dates.length);
+          // Small pause between batches to avoid overwhelming Supabase
+          await new Promise(r=>setTimeout(r,300));
         }
-        setSyncStatus('ok','Migration complete — '+Object.keys(store).length+' days');
+        if(failed===0){
+          setSyncStatus('ok','Migration complete — '+done+' days saved');
+          toast('Data migrated to new format ✓ ('+done+' days)','ok');
+        } else {
+          setSyncStatus('ok','Partial migration — '+done+' ok, '+failed+' failed');
+          toast('Migration partial — '+failed+' dates failed. Reload to retry.','bad');
+        }
+
       } else {
-        // Try local IndexedDB migration
-        try{
-          await openDB();const local=await dbAll();
-          if(local.length>0){
-            setSyncStatus('busy','Migrating local data…');
-            local.forEach(r=>{
-              if(!store[r.date]) store[r.date]={};
-              store[r.date]['86']=r.data;
-            });
-            await pushToSupabase();
-            toast(`Migrated ${local.length} days of local data to cloud ✓`,'ok');
-          } else {setSyncStatus('ok','Connected · No data yet');}
-        }catch(_){setSyncStatus('ok','Connected · No data yet');}
+        setSyncStatus('ok','Connected · No data yet');
       }
     }
   }catch(e){
     setSyncStatus('err','Cloud unavailable');
+    console.error('init error:',e);
     try{await openDB();const local=await dbAll();local.forEach(r=>{if(!store[r.date])store[r.date]={};store[r.date]['86']=r.data;});}catch(_){}
   }
   render();

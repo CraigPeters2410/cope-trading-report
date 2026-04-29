@@ -1018,46 +1018,91 @@ async function syncSignals() {
   banner.style.display='block';
   banner.textContent='Connecting to Trading Report…';
   try {
-    const SB='https://oufuwgvcqtsqeqoyxuad.supabase.co';
-    const KEY='sb_publishable_uECVAXdG3Q6bD7FY2aXbxA_J9kE2236';
-    const r = await fetch(`${SB}/rest/v1/trading_data?id=eq.cope_all_depots_v1&select=payload`,
-      {headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY}});
-    if(!r.ok) throw new Error('fetch failed');
-    const rows = await r.json();
-    if(!rows||!rows.length||!rows[0].payload) throw new Error('no data');
-    let store = rows[0].payload;
-    // Detect compressed format (Trading Report uses short keys: r=revenue, c=count, k=kg, d={T,W,S})
-    // Expand to full format before processing
-    if(store && typeof store === 'object') {
-      const firstDate = Object.values(store)[0];
-      const firstDepot = firstDate && Object.values(firstDate)[0];
-      const firstAcct = firstDepot && Object.values(firstDepot)[0];
-      if(firstAcct && firstAcct.r !== undefined) {
-        // Compressed format — expand it
-        const expanded = {};
-        Object.entries(store).forEach(([date,depots])=>{
-          expanded[date]={};
-          Object.entries(depots).forEach(([depot,accts])=>{
-            expanded[date][depot]={};
-            Object.entries(accts).forEach(([acct,c])=>{
-              const div={'Tailgate':0,'Warehouse':0,'Site-to-Site':0};
-              if(c.d){if(c.d.T)div.Tailgate=c.d.T;if(c.d.W)div.Warehouse=c.d.W;if(c.d.S)div['Site-to-Site']=c.d.S;}
-              expanded[date][depot][acct]={revenue:c.r||0,count:c.c||0,kg:c.k||0,div};
-            });
-          });
-        });
-        store = expanded;
-      }
+    const SB  = 'https://oufuwgvcqtsqeqoyxuad.supabase.co';
+    const KEY = 'sb_publishable_uECVAXdG3Q6bD7FY2aXbxA_J9kE2236';
+    const hdrs = {'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY};
+
+    // ── Load from new per-date trading_dates table ────────────────
+    // Paginate in batches of 500 rows (matches Trading Report architecture)
+    let allRows = [], offset = 0, batchSize = 500;
+    while(true) {
+      const url = `${SB}/rest/v1/trading_dates?select=date_key,payload&order=date_key.asc&limit=${batchSize}&offset=${offset}`;
+      const r = await fetch(url, {headers: hdrs});
+      if(!r.ok) throw new Error('trading_dates fetch failed: ' + r.status);
+      const batch = await r.json();
+      allRows = [...allRows, ...batch];
+      if(batch.length < batchSize) break;
+      offset += batchSize;
     }
-    // Store structure: { "dateKey": { "depotCode": { "acctNum": { revenue, count, kg, div:{Warehouse,Tailgate,'Site-to-Site'} } } } }
+
+    // If new table is empty, fall back to legacy single-blob table
+    if(allRows.length === 0) {
+      const rLeg = await fetch(`${SB}/rest/v1/trading_data?id=eq.cope_all_depots_v1&select=payload`, {headers: hdrs});
+      if(rLeg.ok) {
+        const legRows = await rLeg.json();
+        if(legRows && legRows.length && legRows[0].payload) {
+          // Use legacy blob directly — decompress if needed
+          let legStore = legRows[0].payload;
+          const fd = Object.values(legStore)[0];
+          const fdep = fd && Object.values(fd)[0];
+          const facc = fdep && Object.values(fdep)[0];
+          if(facc && facc.r !== undefined) {
+            // Compressed legacy format — expand
+            const exp = {};
+            Object.entries(legStore).forEach(([date,depots]) => {
+              exp[date] = {};
+              Object.entries(depots).forEach(([dep,accts]) => {
+                exp[date][dep] = {};
+                Object.entries(accts).forEach(([acct,c]) => {
+                  const div={'Tailgate':0,'Warehouse':0,'Site-to-Site':0};
+                  if(c.d){if(c.d.T)div.Tailgate=c.d.T;if(c.d.W)div.Warehouse=c.d.W;if(c.d.S)div['Site-to-Site']=c.d.S;}
+                  exp[date][dep][acct]={revenue:c.r||0,count:c.c||0,kg:c.k||0,div};
+                });
+              });
+            });
+            legStore = exp;
+          }
+          allRows = Object.entries(legStore).map(([date_key, payload]) => ({date_key, payload}));
+          banner.textContent = 'Trading Report data not available. Adjust signals manually above.';
+          return;
+        }
+      }
+      throw new Error('no data in either table');
+    }
+
+    // ── Reassemble store from per-date rows ───────────────────────
+    // Each row.payload is a compressed date-slice: {depotCode: {acctNum: {r,c,k,d}}}
+    // decompressDateSlice restores to {depotCode: {acctNum: {revenue,count,kg,div}}}
+    function decompressSlice(depots) {
+      const out = {};
+      Object.entries(depots).forEach(([dep, accts]) => {
+        out[dep] = {};
+        Object.entries(accts).forEach(([acct, c]) => {
+          if(c.r !== undefined) {
+            const div = {'Tailgate':0,'Warehouse':0,'Site-to-Site':0};
+            if(c.d){if(c.d.T)div.Tailgate=c.d.T;if(c.d.W)div.Warehouse=c.d.W;if(c.d.S)div['Site-to-Site']=c.d.S;}
+            out[dep][acct] = {revenue:c.r||0, count:c.c||0, kg:c.k||0, div};
+          } else {
+            out[dep][acct] = c; // legacy uncompressed
+          }
+        });
+      });
+      return out;
+    }
+
+    const store = {};
+    allRows.forEach(row => {
+      store[row.date_key] = decompressSlice(row.payload);
+    });
+
     if(!store || typeof store !== 'object') throw new Error('bad payload');
 
-    // Flatten all date-depot-account entries into a single account map
-    const dep = depot === 'all' ? null : depot;
+    // ── Build account list for Melbourne (depot 86) ───────────────
+    const dep = depot === 'all' ? null : depot; // depot is locked to '86'
     const accts = {};
-    // Track per-depot totals for multi-depot revenue weighting
     const depotRevTotals = {};
-    Object.values(store).forEach(dateObj => {
+
+    Object.entries(store).forEach(([dateKey, dateObj]) => {
       if(typeof dateObj !== 'object') return;
       Object.entries(dateObj).forEach(([depotCode, acctObj]) => {
         if(dep && depotCode !== dep) return;
@@ -1075,137 +1120,123 @@ async function syncSignals() {
       });
     });
 
-    const list = Object.values(accts).sort((a,b)=>b.rev-a.rev);
-    const totalRev = list.reduce((s,a)=>s+a.rev, 0);
+    const list = Object.values(accts).sort((a,b) => b.rev - a.rev);
+    const totalRev = list.reduce((s,a) => s+a.rev, 0);
     if(totalRev <= 0) throw new Error('zero revenue');
 
+    // ── Signal computation ────────────────────────────────────────
     // Portfolio health: top 20% revenue share vs 60% benchmark
-    const top20Rev = list.slice(0,Math.max(1,Math.floor(list.length*.2))).reduce((s,a)=>s+a.rev,0);
-    const topShare = top20Rev/totalRev;
+    const top20Rev = list.slice(0, Math.max(1, Math.floor(list.length*0.2))).reduce((s,a) => s+a.rev, 0);
+    const topShare = top20Rev / totalRev;
     const healthSig = Math.round(Math.max(-15, Math.min(15, (0.60-topShare)*50)));
 
     // Service mix: site vs tailgate ratio vs 45% benchmark
-    const siteR = list.reduce((s,a)=>s+a.siteRev,0);
-    const tailR = list.reduce((s,a)=>s+a.tailRev,0);
+    const siteR = list.reduce((s,a) => s+a.siteRev, 0);
+    const tailR = list.reduce((s,a) => s+a.tailRev, 0);
     const mixSig = Math.round(Math.max(-10, Math.min(10, ((siteR/(siteR+tailR||1))-0.45)*40)));
 
-    // Velocity: active account count as proxy
+    // Velocity: active account count
     const velSig = Math.round(Math.max(-5, Math.min(5, Math.log10(Math.max(1,list.length))-1.5)));
 
-    // Cadence: booking frequency trend from date keys
-    // Store has multiple date keys — compare recent vs baseline frequency
+    // Cadence: booking frequency trend (recent vs baseline)
     let cadSig = 0;
     try {
       const allDateKeys = Object.keys(store).sort();
       const totalDates = allDateKeys.length;
       if(totalDates >= 4 && dep) {
-        // Per-account, count how many date keys they appear in
         const acctDateCounts = {};
-        allDateKeys.forEach(dk=>{
-          const depotData = store[dk]||{};
-          const acctData = depotData[dep]||{};
-          Object.keys(acctData).forEach(ac=>{
-            if((acctData[ac].revenue||0)>0) acctDateCounts[ac]=(acctDateCounts[ac]||0)+1;
+        allDateKeys.forEach(dk => {
+          const acctData = (store[dk]||{})[dep]||{};
+          Object.keys(acctData).forEach(ac => {
+            if((acctData[ac].revenue||0)>0) acctDateCounts[ac] = (acctDateCounts[ac]||0)+1;
           });
         });
-        // Recent: last 25% of date keys
         const recentCutoff = Math.floor(totalDates*0.75);
         const recentKeys = allDateKeys.slice(recentCutoff);
         const recentDates = recentKeys.length;
         const acctRecentCounts = {};
-        recentKeys.forEach(dk=>{
-          const acctData=(store[dk]||{})[dep]||{};
-          Object.keys(acctData).forEach(ac=>{
-            if((acctData[ac].revenue||0)>0) acctRecentCounts[ac]=(acctRecentCounts[ac]||0)+1;
+        recentKeys.forEach(dk => {
+          const acctData = (store[dk]||{})[dep]||{};
+          Object.keys(acctData).forEach(ac => {
+            if((acctData[ac].revenue||0)>0) acctRecentCounts[ac] = (acctRecentCounts[ac]||0)+1;
           });
         });
-        // For each active account: recent_freq vs baseline_freq
-        let cadenceShifts=[], totalRevForWeighting=0;
-        Object.entries(acctDateCounts).forEach(([ac,baseCount])=>{
+        let cadenceShifts = [], totalRevForWeighting = 0;
+        Object.entries(acctDateCounts).forEach(([ac, baseCount]) => {
           const baseFreq = baseCount/totalDates;
-          const recentCount = acctRecentCounts[ac]||0;
-          const recentFreq = recentCount/recentDates;
+          const recentFreq = (acctRecentCounts[ac]||0)/recentDates;
           const shift = baseFreq > 0 ? recentFreq/baseFreq : 1;
           const acctRev = (accts[ac]||{}).rev||0;
-          if(acctRev>0){ cadenceShifts.push({shift,rev:acctRev}); totalRevForWeighting+=acctRev; }
+          if(acctRev>0){ cadenceShifts.push({shift, rev:acctRev}); totalRevForWeighting+=acctRev; }
         });
-        // Revenue-weighted average cadence shift
-        if(cadenceShifts.length > 0 && totalRevForWeighting > 0){
-          const wtdShift = cadenceShifts.reduce((s,x)=>s+(x.shift*(x.rev/totalRevForWeighting)),0);
-          // wtdShift > 1 = customers booking more often = positive
-          // wtdShift < 1 = customers booking less often = negative
-          // Convert to -15..+15 signal
-          cadSig = Math.round(Math.max(-15, Math.min(15, (wtdShift-1)*50)));
+        if(cadenceShifts.length > 0 && totalRevForWeighting > 0) {
+          const wtdShift = cadenceShifts.reduce((s,x) => s+(x.shift*(x.rev/totalRevForWeighting)), 0);
+          cadSig = Math.round(Math.max(-10, Math.min(10, (wtdShift-1)*20)));
         }
       }
     } catch(e) { cadSig = 0; }
 
-    // Apply
-    const newSigs={health:healthSig,velocity:velSig,cadence:cadSig,mix:mixSig};
-    Object.entries(newSigs).forEach(([k,v])=>{
-      sigs[k]=v;
-      const cap=k.charAt(0).toUpperCase()+k.slice(1);
-      const s=document.getElementById('s'+cap);
-      const lbl=document.getElementById('v'+cap);
-      if(s)s.value=v;
-      if(lbl)lbl.textContent=(v>=0?'+':'')+v+'%';
+    // ── Apply signals to sliders ──────────────────────────────────
+    const newSigs = {health:healthSig, velocity:velSig, cadence:cadSig, mix:mixSig};
+    Object.entries(newSigs).forEach(([k,v]) => {
+      sigs[k] = v;
+      const cap = k.charAt(0).toUpperCase()+k.slice(1);
+      const s   = document.getElementById('s'+cap);
+      const lbl = document.getElementById('v'+cap);
+      if(s)   s.value = v;
+      if(lbl) lbl.textContent = (v>=0?'+':'')+v+'%';
     });
     updateSigBar();
-    rebuild();
-    document.getElementById('liveSignalBadge').style.display='block';
-    banner.className='status-banner sb-ok';
-    const cadStr = cadSig !== 0 ? ` · cadence ${cadSig > 0 ? '+':''}${cadSig}%` : '';
-    // ── Auto-confirm actuals from Trading Report billing data ──────
-// Group all billing date keys by YYYY-MM, sum revenue for selected depot(s)
-const monthlyRevFromSignals = {};
-const now = new Date();
-const thisYm = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-Object.entries(store).forEach(([dateKey, dateObj]) => {
-  // dateKey format: "YYYY-MM-DD" or "YYYY-MM"
-  const ym = dateKey.length >= 7 ? dateKey.substring(0,7) : null;
-  // Only auto-confirm COMPLETED months (not current partial month)
-  const lastCompleted = now.getMonth() === 0
-    ? (now.getFullYear()-1) + '-12'
-    : now.getFullYear() + '-' + String(now.getMonth()).padStart(2,'0');
-  if(!ym || ym > lastCompleted) return; // skip current and future months
-  if(typeof dateObj !== 'object') return;
-  Object.entries(dateObj).forEach(([depotCode, acctObj]) => {
-    if(dep && depotCode !== dep) return; // filter to selected depot
-    if(typeof acctObj !== 'object') return;
-    Object.values(acctObj).forEach(data => {
-      const rev = data.revenue || 0;
-      if(rev > 0) {
-        monthlyRevFromSignals[ym] = (monthlyRevFromSignals[ym] || 0) + rev;
+
+    // ── Auto-confirm completed months from billing data ───────────
+    const monthlyRevFromSignals = {};
+    const now = new Date();
+    const lastCompleted = now.getMonth() === 0
+      ? (now.getFullYear()-1) + '-12'
+      : now.getFullYear() + '-' + String(now.getMonth()).padStart(2,'0');
+
+    Object.entries(store).forEach(([dateKey, dateObj]) => {
+      const ym = dateKey.length >= 7 ? dateKey.substring(0,7) : null;
+      if(!ym || ym > lastCompleted) return;
+      if(typeof dateObj !== 'object') return;
+      Object.entries(dateObj).forEach(([depotCode, acctObj]) => {
+        if(dep && depotCode !== dep) return;
+        if(typeof acctObj !== 'object') return;
+        Object.values(acctObj).forEach(data => {
+          const rev = data.revenue || 0;
+          if(rev > 0) monthlyRevFromSignals[ym] = (monthlyRevFromSignals[ym]||0) + rev;
+        });
+      });
+    });
+
+    const depotKey = dep || 'all';
+    let autoConfirmed = 0;
+    const autoConfirmedMonths = [];
+    if(!window._confirmedActuals[depotKey]) window._confirmedActuals[depotKey] = {};
+    Object.entries(monthlyRevFromSignals).forEach(([ym, rev]) => {
+      if(ym < '2022-07') return;
+      if(rev < 1000) return;
+      const existing = window._confirmedActuals[depotKey][ym];
+      if(existing === undefined || Math.abs(existing - rev) / rev > 0.001) {
+        window._confirmedActuals[depotKey][ym] = rev;
+        autoConfirmed++;
+        autoConfirmedMonths.push(ym);
       }
     });
-  });
-});
+    if(autoConfirmed > 0) {
+      localStorage.setItem('_confirmedActuals', JSON.stringify(window._confirmedActuals));
+    }
 
-// Auto-confirm: store per depot key (dep || 'all')
-const depotKey = dep || 'all';
-let autoConfirmed = 0;
-const autoConfirmedMonths = [];
-if(!window._confirmedActuals[depotKey]) window._confirmedActuals[depotKey] = {};
-Object.entries(monthlyRevFromSignals).forEach(([ym, rev]) => {
-  if(ym < '2022-07') return;
-  if(rev < 1000) return;
-  const existing = window._confirmedActuals[depotKey][ym];
-  if(existing === undefined || Math.abs(existing - rev) / rev > 0.001) {
-    window._confirmedActuals[depotKey][ym] = rev;
-    autoConfirmed++;
-    autoConfirmedMonths.push(ym);
-  }
-});
-if(autoConfirmed > 0) {
-  localStorage.setItem('_confirmedActuals', JSON.stringify(window._confirmedActuals));
-  console.log('Auto-confirmed', autoConfirmed, 'months for depot', depotKey, ':', autoConfirmedMonths.join(', '));
-  rebuild();
-}
+    rebuild();
+    document.getElementById('liveSignalBadge').style.display = 'block';
+    banner.className = 'status-banner sb-ok';
+    const cadStr = cadSig !== 0 ? ` · cadence ${cadSig>0?'+':''}${cadSig}%` : '';
+    banner.textContent = `✓ Live signals loaded — ${list.length} active accounts, ${allRows.length} billing periods${autoConfirmed > 0 ? ' · ' + autoConfirmed + ' months auto-confirmed' : ''}${cadStr}`;
 
-banner.textContent=`✓ Live signals loaded — ${list.length} active accounts, ${Object.keys(store).length} billing periods${autoConfirmed > 0 ? ' · ' + autoConfirmed + ' months auto-confirmed' : ''}${cadStr}`;
   } catch(e) {
-    banner.className='status-banner sb-info';
-    banner.textContent='Trading Report data not available. Adjust signals manually above.';
+    banner.className = 'status-banner sb-info';
+    banner.textContent = 'Trading Report data not available. Adjust signals manually above.';
+    console.error('syncSignals error:', e);
   }
 }
 

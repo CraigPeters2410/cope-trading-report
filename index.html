@@ -869,20 +869,15 @@ async function sbSaveDate(dateKey, depots){
 async function sbLoadAllDates(){
   // Load all rows for this account — paginate in batches of 500
   let all=[], offset=0, batchSize=500;
-  console.log('sbLoadAllDates: fetching from', DATE_TABLE);
   while(true){
     const url=`${SUPABASE_URL}/rest/v1/${DATE_TABLE}?select=date_key,payload&order=date_key.asc&limit=${batchSize}&offset=${offset}`;
-    console.log('Fetching:', url.replace(SUPABASE_URL,'[SB]'));
     const r=await fetch(url,{headers:sbH});
-    console.log('Response status:', r.status);
-    if(!r.ok){const t=await r.text();console.error('Load error body:',t);throw new Error('LoadDates: '+r.status+' '+t);}
+    if(!r.ok){const t=await r.text();throw new Error('LoadDates: '+r.status+' '+t);}
     const batch=await r.json();
-    console.log('Batch received:',batch.length,'rows');
     all=[...all,...batch];
     if(batch.length<batchSize) break;
     offset+=batchSize;
   }
-  console.log('Loaded from Supabase:',all.length,'date rows');
   // Reassemble store
   const out={};
   all.forEach(row=>{
@@ -906,7 +901,6 @@ async function sbLoad(){
   if(!firstAcct) return payload;
   const sample=payload[firstDate][firstDepot][firstAcct];
   const isCompressed=sample&&sample.r!==undefined;
-  console.log('Legacy sbLoad result: dates=',Object.keys(payload).length,'compressed=',isCompressed);
   return isCompressed?decompressStore(payload):payload;
 }
 
@@ -931,8 +925,7 @@ async function pushToSupabase(){
     const dates=Object.keys(store);
     const toSave=dates.filter(d=>!_savedDates.has(d));
     if(toSave.length===0){setSyncStatus('ok','Saved to cloud');return;}
-    console.log('Saving',toSave.length,'new date(s) to Supabase');
-    for(const dateKey of toSave){
+      for(const dateKey of toSave){
       await sbSaveDate(dateKey, store[dateKey]);
       _savedDates.add(dateKey);
     }
@@ -947,14 +940,11 @@ async function pushToSupabase(){
 // ═══ INIT ═══
 async function init(){
   setSyncStatus('busy','Connecting…');
-  console.log('=== INIT START ===');
   try{
     // ── 1. Try new per-date table first ──
     let newDates = null;
     try{
-      console.log('Trying new trading_dates table...');
       newDates = await sbLoadAllDates();
-      console.log('trading_dates result:', newDates ? Object.keys(newDates).length+' dates' : 'null/empty');
     } catch(e){ console.warn('New table load failed:',e.message); }
 
     if(newDates && Object.keys(newDates).length>0){
@@ -969,10 +959,8 @@ async function init(){
       const legacyRemote = await sbLoad();
 
       if(legacyRemote && Object.keys(legacyRemote).length>0){
-        console.log('Using legacy data, dates:', Object.keys(legacyRemote).length);
-        // Hydrate store from legacy data so UI shows immediately
+          // Hydrate store from legacy data so UI shows immediately
         const firstKey = Object.keys(Object.values(legacyRemote)[0]||{})[0];
-        console.log('First depot key:', firstKey, '| in DEPOT_MAP:', !!DEPOT_MAP[firstKey]);
         if(firstKey && DEPOT_MAP[firstKey]){
           store = legacyRemote;
         } else {

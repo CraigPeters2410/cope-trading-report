@@ -790,136 +790,197 @@ async function sbLoad() {
   console.log('Loaded from Supabase, format:', isCompressed ? 'compressed' : 'legacy', '| dates:', Object.keys(payload).length);
   return isCompressed ? decompressStore(payload) : payload;
 }
-// Compress store before saving — abbreviate keys and strip zero values
+// ═══ COMPRESSION HELPERS ═══
+// Compress a single date's depot→acct data — abbreviate keys and strip zeros
+function compressDateSlice(depots){
+  const out={};
+  Object.entries(depots).forEach(([depot,accts])=>{
+    out[depot]={};
+    Object.entries(accts).forEach(([acct,data])=>{
+      const c={r:Math.round((data.revenue||0)*100)/100};
+      if(data.count)  c.c=data.count;
+      if(data.kg)     c.k=Math.round((data.kg||0)*10)/10;
+      if(data.div){
+        const d={};
+        if(data.div.Tailgate)        d.T=Math.round(data.div.Tailgate*100)/100;
+        if(data.div.Warehouse)       d.W=Math.round(data.div.Warehouse*100)/100;
+        if(data.div['Site-to-Site']) d.S=Math.round(data.div['Site-to-Site']*100)/100;
+        if(Object.keys(d).length)    c.d=d;
+      }
+      out[depot][acct]=c;
+    });
+  });
+  return out;
+}
+
+// Decompress a single date slice back to full format
+function decompressDateSlice(depots){
+  const out={};
+  Object.entries(depots).forEach(([depot,accts])=>{
+    out[depot]={};
+    Object.entries(accts).forEach(([acct,c])=>{
+      if(c.r!==undefined){
+        const div={'Tailgate':0,'Warehouse':0,'Site-to-Site':0};
+        if(c.d){if(c.d.T)div.Tailgate=c.d.T;if(c.d.W)div.Warehouse=c.d.W;if(c.d.S)div['Site-to-Site']=c.d.S;}
+        out[depot][acct]={revenue:c.r,count:c.c||0,kg:c.k||0,div};
+      } else {
+        // Legacy uncompressed
+        out[depot][acct]=c;
+      }
+    });
+  });
+  return out;
+}
+
+// Legacy full-store compress/decompress (kept for migration only)
 function compressStore(store){
   const out={};
-  Object.entries(store).forEach(([date,depots])=>{
-    out[date]={};
-    Object.entries(depots).forEach(([depot,accts])=>{
-      out[date][depot]={};
-      Object.entries(accts).forEach(([acct,data])=>{
-        const c={r:Math.round((data.revenue||0)*100)/100};
-        if(data.count)  c.c=data.count;
-        if(data.kg)     c.k=Math.round((data.kg||0)*10)/10;
-        if(data.div){
-          const d={};
-          if(data.div.Tailgate)        d.T=Math.round(data.div.Tailgate*100)/100;
-          if(data.div.Warehouse)       d.W=Math.round(data.div.Warehouse*100)/100;
-          if(data.div['Site-to-Site']) d.S=Math.round(data.div['Site-to-Site']*100)/100;
-          if(Object.keys(d).length)    c.d=d;
-        }
-        out[date][depot][acct]=c;
-      });
-    });
-  });
+  Object.entries(store).forEach(([date,depots])=>{ out[date]=compressDateSlice(depots); });
   return out;
 }
-
-// Decompress back to full format on load
 function decompressStore(compressed){
   const out={};
-  Object.entries(compressed).forEach(([date,depots])=>{
-    out[date]={};
-    Object.entries(depots).forEach(([depot,accts])=>{
-      out[date][depot]={};
-      Object.entries(accts).forEach(([acct,c])=>{
-        // Handle both compressed and legacy uncompressed formats
-        if(c.r !== undefined){
-          const div={'Tailgate':0,'Warehouse':0,'Site-to-Site':0};
-          if(c.d){ if(c.d.T) div.Tailgate=c.d.T; if(c.d.W) div.Warehouse=c.d.W; if(c.d.S) div['Site-to-Site']=c.d.S; }
-          out[date][depot][acct]={revenue:c.r,count:c.c||0,kg:c.k||0,div};
-        } else {
-          // Already full format (legacy)
-          out[date][depot][acct]=c;
-        }
-      });
-    });
-  });
+  Object.entries(compressed).forEach(([date,depots])=>{ out[date]=decompressDateSlice(depots); });
   return out;
 }
 
-async function sbSave(payload) {
-  const compressed = compressStore(payload);
-  const body = JSON.stringify({id:ROW_ID,payload:compressed,updated_at:new Date().toISOString()});
-  console.log('Saving to Supabase — raw keys:', Object.keys(payload).length, '| compressed size:', body.length, 'chars');
-  const r=await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}`,{
+// ═══ SUPABASE — PER-DATE ROW ARCHITECTURE ═══
+// Each date is stored as its own row: { id: "cope_86_2026-01-15", date_key, payload }
+// This keeps every write small (~5-15KB per date) regardless of total history size
+
+const DATE_TABLE = 'trading_dates';
+
+// Save only the dates that changed since last load
+let _savedDates = new Set(); // dates confirmed saved to Supabase
+
+async function sbSaveDate(dateKey, depots){
+  const id = 'cope_'+dateKey;
+  const payload = compressDateSlice(depots);
+  const body = JSON.stringify({id, date_key:dateKey, payload, updated_at:new Date().toISOString()});
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${DATE_TABLE}`,{
     method:'POST',
     headers:{...sbH,'Prefer':'resolution=merge-duplicates,return=minimal'},
     body
   });
-  if(!r.ok){
-    const t=await r.text();
-    console.error('Supabase response:', r.status, t);
-    throw new Error('Save: '+r.status+' '+t);
-  }
-  console.log('Supabase save OK, status:', r.status);
+  if(!r.ok){const t=await r.text();throw new Error('SaveDate '+dateKey+': '+r.status+' '+t);}
+  return true;
 }
 
-// ═══ INDEXED DB (migration source) ═══
-const DB_NAME='CopeTradeDB_v2',STORE='dates';
-let db=null;
-function openDB(){return new Promise((res,rej)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=e=>e.target.result.createObjectStore(STORE,{keyPath:'date'});req.onsuccess=e=>{db=e.target.result;res()};req.onerror=()=>rej(req.error)});}
-function dbAll(){return new Promise((r,e)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).getAll();q.onsuccess=()=>r(q.result);q.onerror=e;});}
+async function sbLoadAllDates(){
+  // Load all rows for this account — paginate in batches of 500
+  let all=[], offset=0, batchSize=500;
+  while(true){
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${DATE_TABLE}?select=date_key,payload&order=date_key.asc&limit=${batchSize}&offset=${offset}`,{headers:sbH});
+    if(!r.ok){const t=await r.text();throw new Error('LoadDates: '+r.status+' '+t);}
+    const batch=await r.json();
+    all=[...all,...batch];
+    if(batch.length<batchSize) break;
+    offset+=batchSize;
+  }
+  console.log('Loaded from Supabase:',all.length,'date rows');
+  // Reassemble store
+  const out={};
+  all.forEach(row=>{
+    out[row.date_key]=decompressDateSlice(row.payload);
+  });
+  return out;
+}
 
-// ═══ STORE ═══
-// { [dateKey]: { [depotNum]: { [acct]: {revenue,count} } } }
-// store declared above
+// Legacy single-row load (for migration from old format)
+async function sbLoad(){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${ROW_ID}&select=payload`,{headers:sbH});
+  if(!r.ok){const t=await r.text();throw new Error('Load: '+r.status+' '+t);}
+  const d=await r.json();
+  if(!d.length) return null;
+  const payload=d[0].payload;
+  const firstDate=Object.keys(payload||{})[0];
+  if(!firstDate) return payload;
+  const firstDepot=Object.keys(payload[firstDate]||{})[0];
+  if(!firstDepot) return payload;
+  const firstAcct=Object.keys(payload[firstDate][firstDepot]||{})[0];
+  if(!firstAcct) return payload;
+  const sample=payload[firstDate][firstDepot][firstAcct];
+  const isCompressed=sample&&sample.r!==undefined;
+  console.log('Legacy row loaded, format:',isCompressed?'compressed':'uncompressed','| dates:',Object.keys(payload).length);
+  return isCompressed?decompressStore(payload):payload;
+}
 
-function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(pushToSupabase,3000);}
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(pushToSupabase,3000);
+}
+
 async function pushToSupabase(){
   setSyncStatus('busy','Saving…');
   try{
-    await sbSave(store);
-    setSyncStatus('ok','Saved to cloud');
+    // Only save dates not yet confirmed saved
+    const dates=Object.keys(store);
+    const toSave=dates.filter(d=>!_savedDates.has(d));
+    if(toSave.length===0){setSyncStatus('ok','Saved to cloud');return;}
+    console.log('Saving',toSave.length,'new date(s) to Supabase');
+    for(const dateKey of toSave){
+      await sbSaveDate(dateKey, store[dateKey]);
+      _savedDates.add(dateKey);
+    }
+    setSyncStatus('ok','Saved to cloud ('+toSave.length+' date'+(toSave.length>1?'s':'')+')');
   } catch(e){
     setSyncStatus('err','Save failed');
-    console.error('Supabase save error:', e);
-    // Show visible toast with actual error so we can diagnose
-    toast('Save failed: ' + e.message, 'bad');
+    console.error('Supabase save error:',e);
+    toast('Save failed: '+e.message,'bad');
   }
-}
-function setSyncStatus(type,msg){
-  const el=document.getElementById('syncStatus'),lbl=document.getElementById('syncLabel');
-  el.className='hd-sync '+type;lbl.textContent=msg;
-  el.querySelector('.sync-dot').className='sync-dot'+(type==='busy'?' pulse':'');
 }
 
 // ═══ INIT ═══
 async function init(){
   setSyncStatus('busy','Connecting…');
   try{
-    const remote=await sbLoad();
-    if(remote&&Object.keys(remote).length>0){
-      // Check if old format (date -> acct -> data) vs new (date -> depot -> acct -> data)
-      const firstVal = Object.values(remote)[0];
-      const firstKey = Object.keys(firstVal||{})[0];
-      // If first key is a depot number, it's new format
-      if(firstKey && DEPOT_MAP[firstKey]) {
-        store=remote;
-      } else {
-        // Old format — migrate: assume all data is depot 86
-        store={};
-        Object.entries(remote).forEach(([date,accts])=>{
-          store[date]={'86':accts};
-        });
-        // Save migrated format
-        await sbSave(store);
-      }
-      setSyncStatus('ok','Synced from cloud');
+    // ── Try new per-date row architecture first ──
+    let remote = null;
+    try{
+      remote = await sbLoadAllDates();
+    } catch(e){
+      console.warn('Per-date load failed, trying legacy single row:', e.message);
+    }
+
+    if(remote && Object.keys(remote).length>0){
+      store = remote;
+      // Mark all loaded dates as already saved — no need to re-upload them
+      Object.keys(store).forEach(d=>_savedDates.add(d));
+      setSyncStatus('ok','Synced '+Object.keys(store).length+' days from cloud');
     } else {
-      // Try local IndexedDB migration
-      try{
-        await openDB();const local=await dbAll();
-        if(local.length>0){
-          setSyncStatus('busy','Migrating local data…');
-          local.forEach(r=>{
-            if(!store[r.date]) store[r.date]={};
-            store[r.date]['86']=r.data;
-          });
-          await pushToSupabase();
-          toast(`Migrated ${local.length} days of local data to cloud ✓`,'ok');
-        } else {setSyncStatus('ok','Connected · No data yet');}
-      }catch(_){setSyncStatus('ok','Connected · No data yet');}
+      // ── Fall back to legacy single-row format ──
+      const legacyRemote = await sbLoad();
+      if(legacyRemote && Object.keys(legacyRemote).length>0){
+        const firstVal = Object.values(legacyRemote)[0];
+        const firstKey = Object.keys(firstVal||{})[0];
+        if(firstKey && DEPOT_MAP[firstKey]){
+          store = legacyRemote;
+        } else {
+          store = {};
+          Object.entries(legacyRemote).forEach(([date,accts])=>{ store[date]={'86':accts}; });
+        }
+        // Migrate legacy data to per-date rows in the background
+        setSyncStatus('busy','Migrating to new format…');
+        for(const dateKey of Object.keys(store)){
+          try{ await sbSaveDate(dateKey, store[dateKey]); _savedDates.add(dateKey); }
+          catch(e){ console.warn('Migration failed for',dateKey,e.message); }
+        }
+        setSyncStatus('ok','Migration complete — '+Object.keys(store).length+' days');
+      } else {
+        // Try local IndexedDB migration
+        try{
+          await openDB();const local=await dbAll();
+          if(local.length>0){
+            setSyncStatus('busy','Migrating local data…');
+            local.forEach(r=>{
+              if(!store[r.date]) store[r.date]={};
+              store[r.date]['86']=r.data;
+            });
+            await pushToSupabase();
+            toast(`Migrated ${local.length} days of local data to cloud ✓`,'ok');
+          } else {setSyncStatus('ok','Connected · No data yet');}
+        }catch(_){setSyncStatus('ok','Connected · No data yet');}
+      }
     }
   }catch(e){
     setSyncStatus('err','Cloud unavailable');

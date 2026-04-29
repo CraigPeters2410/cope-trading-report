@@ -915,6 +915,15 @@ function scheduleSave(){
   saveTimer=setTimeout(pushToSupabase,3000);
 }
 
+function setSyncStatus(type,msg){
+  const el=document.getElementById('syncStatus');
+  const lbl=document.getElementById('syncLabel');
+  if(el){ el.className='hd-sync '+type; }
+  if(lbl){ lbl.textContent=msg; }
+  const dot=el?.querySelector('.sync-dot');
+  if(dot){ dot.className='sync-dot'+(type==='busy'?' pulse':''); }
+}
+
 async function pushToSupabase(){
   setSyncStatus('busy','Saving…');
   try{

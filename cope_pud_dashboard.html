@@ -145,19 +145,31 @@ tbody tr:last-child td{border-bottom:none}
 .insight-sub{font-size:10px;color:rgba(255,255,255,.5);margin-top:3px}
 .insight-divider{width:1px;background:rgba(255,255,255,.1);align-self:stretch}
 
-/* ── EFFICIENCY SCORECARD ── */
-.score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.score-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:6px}
-.score-driver{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.score-metric{display:flex;justify-content:space-between;align-items:center}
-.score-lbl{font-size:10px;color:var(--muted)}
-.score-val{font-family:var(--cond);font-size:13px;font-weight:700;color:var(--navy)}
-.score-bar-outer{height:4px;background:var(--rule-l);border-radius:2px;overflow:hidden}
-.score-bar-inner{height:100%;border-radius:2px}
 
 /* ── RESPONSIVE ── */
 @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.chart-row-3{grid-template-columns:1fr 1fr}.rank-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.kpi-grid{grid-template-columns:1fr 1fr}.chart-row-2,.chart-row-3{grid-template-columns:1fr}.rank-grid{grid-template-columns:1fr}.hd-r{display:none}}
+
+/* ── PANEL STYLES ── */
+.dp-kpi-card{background:#fff;border:1px solid var(--rule);border-radius:6px;padding:10px 12px}
+.dp-kpi-lbl{font-family:var(--cond);font-size:8.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.dp-kpi-val{font-family:var(--cond);font-size:20px;font-weight:800;color:var(--navy);line-height:1}
+.dp-kpi-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.vs-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--rule-l)}
+.vs-row:last-child{border-bottom:none}
+.vs-lbl{font-size:11px;color:var(--ink2);flex:1}
+.vs-driver{font-family:var(--cond);font-size:13px;font-weight:700;color:var(--navy);width:70px;text-align:right}
+.vs-fleet{font-size:11px;color:var(--muted);width:70px;text-align:right}
+.vs-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;width:46px;text-align:center;flex-shrink:0}
+.cost-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cost-lbl{font-size:11px;color:var(--ink2);width:60px;flex-shrink:0}
+.cost-bar-outer{flex:1;height:8px;background:var(--rule-l);border-radius:4px;overflow:hidden}
+.cost-bar-inner{height:100%;border-radius:4px}
+.cost-val{font-family:var(--cond);font-size:12px;font-weight:700;color:var(--navy);width:60px;text-align:right}
+.flag-item{font-size:11.5px;color:#92400e;padding:4px 0;border-bottom:1px solid #fed7aa;line-height:1.4}
+.flag-item:last-child{border-bottom:none}
+.rank-row:hover{background:var(--navy-l);border-radius:4px}
+tbody tr:hover td{background:var(--navy-l)}
 </style>
 </head>
 <body>
@@ -300,9 +312,9 @@ tbody tr:last-child td{border-bottom:none}
     </div>
   </div>
 
-  <!-- ── Efficiency Rankings ── -->
+  <!-- ── Driver Rankings + Slide-out ── -->
   <div id="efficiency">
-    <div class="section-hdr"><div class="section-hdr-title">Efficiency Rankings</div><div class="section-hdr-rule"></div><div class="section-hdr-tag">BY DRIVER</div></div>
+    <div class="section-hdr"><div class="section-hdr-title">Driver Analysis</div><div class="section-hdr-rule"></div><div class="section-hdr-tag">CLICK A DRIVER FOR FULL PROFILE</div></div>
     <div class="rank-grid" style="margin-top:10px">
       <div class="rank-card"><div class="rank-title"><span style="color:#0e7a47">▲</span> Contacts / Hr <span style="font-size:10px;font-weight:400;color:#7b88a8">&nbsp;Higher is better</span></div><div id="rank-cph"></div></div>
       <div class="rank-card"><div class="rank-title"><span style="color:#ED1D24">▼</span> Cost / Stop <span style="font-size:10px;font-weight:400;color:#7b88a8">&nbsp;Lower is better</span></div><div id="rank-cps"></div></div>
@@ -310,11 +322,7 @@ tbody tr:last-child td{border-bottom:none}
     </div>
   </div>
 
-  <!-- ── Driver Scorecards ── -->
-  <div>
-    <div class="section-hdr"><div class="section-hdr-title">Driver Scorecards</div><div class="section-hdr-rule"></div><div class="section-hdr-tag">COMPOSITE EFFICIENCY</div></div>
-    <div class="score-grid" style="margin-top:10px" id="score-grid"></div>
-  </div>
+
 
   <!-- ── Time Analysis ── -->
   <div>
@@ -449,17 +457,38 @@ function updateKPIs(data){
 function updateCharts(data){chartCphDriver(data);chartStopsDriver(data);chartMonthly(data);chartCostSplit(data);chartMonthlyVol(data);chartCpsRun(data);chartCpkDriver(data);chartDepartDriver(data);chartOnroadHist(data);}
 function chartCphDriver(data){kill('cph-d');const byD=group(data,r=>r.driver);const E=Object.entries(byD).map(([d,rows])=>([d,avg(rows,r=>r.cph)])).filter(([,v])=>v!=null).sort(([,a],[,b])=>b-a);const fa=avg(data,r=>r.cph);const colors=E.map(([,v])=>v>=(fa||0)*1.05?C.green:v>=(fa||0)*0.9?C.navy:C.red);const ctx=document.getElementById('ch-cph-d')?.getContext('2d');if(!ctx)return;charts['cph-d']=new Chart(ctx,{type:'bar',config:{_meta:{avgVal:fa,avgLabel:fa?.toFixed(2)}},data:{labels:E.map(([d])=>d.split(',')[0].trim()),datasets:[{data:E.map(([,v])=>v),backgroundColor:colors,borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tip(),callbacks:{title:i=>E[i[0].dataIndex][0],label:i=>` ${i.raw.toFixed(2)} CPH`}}},scales:axes({y:{ticks:{callback:v=>v.toFixed(1)}}})}}); }
 function chartStopsDriver(data){kill('stops-d');const byD=group(data,r=>r.driver);const E=Object.entries(byD).map(([d,rows])=>([d,sum(rows,r=>r.contacts||0)])).filter(([,v])=>v>0).sort(([,a],[,b])=>b-a);const ctx=document.getElementById('ch-stops-d')?.getContext('2d');if(!ctx)return;charts['stops-d']=new Chart(ctx,{type:'bar',indexAxis:'y',data:{labels:E.map(([d])=>d.split(',')[0].trim()),datasets:[{data:E.map(([,v])=>v),backgroundColor:E.map((_,i)=>C.SERIES[i%C.SERIES.length]),borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tip(),callbacks:{title:i=>E[i[0].dataIndex][0],label:i=>` ${Math.round(i.raw).toLocaleString()} stops`}}},scales:axes({x:{ticks:{callback:v=>v.toLocaleString()}},y:{grid:{display:false},ticks:{font:{size:10}}}})}}); }
-function chartMonthly(data){kill('ch-monthly');const byM=group(data,r=>r.month);const months=MONTHS.filter(m=>byM[m]);const ctx=document.getElementById('ch-monthly')?.getContext('2d');if(!ctx)return;charts['ch-monthly']=new Chart(ctx,{type:'line',data:{labels:months,datasets:[{label:'Contacts/Hr',data:months.map(m=>avg(byM[m],r=>r.cph)),borderColor:C.navy,backgroundColor:C.navyL,borderWidth:2.5,pointRadius:5,pointBackgroundColor:C.navy,tension:.35,fill:true,yAxisID:'y'},{label:'Cost/Stop ($)',data:months.map(m=>avg(byM[m],r=>r.cost_per_stop)),borderColor:C.red,backgroundColor:'transparent',borderWidth:2,pointRadius:4,pointBackgroundColor:C.red,tension:.35,borderDash:[5,3],yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#7b88a8',boxWidth:10,padding:14}},tooltip:{...tip()}},scales:axes({y:{ticks:{callback:v=>v.toFixed(1)},position:'left'},y2:{grid:{display:false},ticks:{callback:v=>'$'+v.toFixed(0)},position:'right'}})}});}
+function chartMonthly(data){kill('ch-monthly');const byM=group(data,r=>r.month);const months=MONTHS.filter(m=>byM[m]);const ctx=document.getElementById('ch-monthly')?.getContext('2d');if(!ctx)return;charts['ch-monthly']=new Chart(ctx,{type:'line',data:{labels:months,datasets:[{label:'Contacts/Hr',data:months.map(m=>avg(byM[m],r=>r.cph)),borderColor:C.navy,backgroundColor:'rgba(26,39,68,0.07)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:C.navy,tension:.35,fill:true,yAxisID:'y'},{label:'Cost/Stop ($)',data:months.map(m=>avg(byM[m],r=>r.cost_per_stop)),borderColor:C.red,backgroundColor:'transparent',borderWidth:2,pointRadius:4,pointBackgroundColor:C.red,tension:.35,borderDash:[5,3],yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#7b88a8',boxWidth:10,padding:14}},tooltip:{...tip()}},scales:axes({y:{ticks:{callback:v=>v.toFixed(1)},position:'left'},y2:{grid:{display:false},ticks:{callback:v=>'$'+v.toFixed(0)},position:'right'}})}});}
 function chartCostSplit(data){kill('ch-cost-split');const lab=sum(data,r=>r.labour_cost||0),fix=sum(data,r=>r.fixed_cost||0),fue=sum(data,r=>r.fuel_cost||0),tot=lab+fix+fue;const ctx=document.getElementById('ch-cost-split')?.getContext('2d');if(!ctx)return;charts['ch-cost-split']=new Chart(ctx,{type:'doughnut',data:{labels:['Labour','Fixed','Fuel'],datasets:[{data:[lab,fix,fue],backgroundColor:[C.navy,C.red,C.blue],borderColor:'#fff',borderWidth:3,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:true,position:'bottom',labels:{color:'#7b88a8',boxWidth:10,padding:12}},tooltip:{...tip(),callbacks:{label:i=>` ${Math.round(i.raw).toLocaleString()} (${(i.raw/tot*100).toFixed(1)}%)`}}}}}); }
-function chartMonthlyVol(data){kill('ch-monthly-vol');const byM=group(data,r=>r.month);const months=MONTHS.filter(m=>byM[m]);const ctx=document.getElementById('ch-monthly-vol')?.getContext('2d');if(!ctx)return;charts['ch-monthly-vol']=new Chart(ctx,{type:'bar',data:{labels:months,datasets:[{label:'Stops',data:months.map(m=>sum(byM[m],r=>r.contacts||0)),backgroundColor:C.navyL,borderColor:C.navy,borderWidth:1.5,borderRadius:5,borderSkipped:false,yAxisID:'y'},{label:'Cost',data:months.map(m=>sum(byM[m],r=>r.total_cost||0)),type:'line',borderColor:C.red,backgroundColor:'transparent',borderWidth:2,pointRadius:4,pointBackgroundColor:C.red,tension:.3,yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#7b88a8',boxWidth:10,padding:12}},tooltip:{...tip()}},scales:axes({y:{ticks:{callback:v=>v.toLocaleString()},position:'left'},y2:{grid:{display:false},ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'},position:'right'}})}});}
+function chartMonthlyVol(data){kill('ch-monthly-vol');const byM=group(data,r=>r.month);const months=MONTHS.filter(m=>byM[m]);const ctx=document.getElementById('ch-monthly-vol')?.getContext('2d');if(!ctx)return;
+  // Cost per stop by month — clean bar chart showing efficiency trend
+  const cpsData=months.map(m=>parseFloat(avg(byM[m],r=>r.cost_per_stop)?.toFixed(2))||0);
+  const stopsData=months.map(m=>sum(byM[m],r=>r.contacts||0));
+  const fleetAvgCps=avg(data,r=>r.cost_per_stop)||0;
+  charts['ch-monthly-vol']=new Chart(ctx,{
+    type:'bar',
+    data:{labels:months,datasets:[
+      {label:'Cost / Stop ($)',data:cpsData,backgroundColor:months.map(v=>parseFloat(v)<=fleetAvgCps?'rgba(14,122,71,0.75)':'rgba(200,16,46,0.75)'),borderColor:months.map(v=>parseFloat(v)<=fleetAvgCps?C.green:C.red),borderWidth:1.5,borderRadius:6,borderSkipped:false,yAxisID:'y'},
+      {label:'Stops',data:stopsData,type:'line',borderColor:C.navy,backgroundColor:'transparent',borderWidth:2,pointRadius:4,pointBackgroundColor:C.navy,tension:.3,yAxisID:'y2'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{color:'#7b88a8',boxWidth:10,padding:14}},
+        tooltip:{...tip(),callbacks:{label:i=>i.datasetIndex===0?' $'+i.raw.toFixed(2)+' / stop':' '+Math.round(i.raw)+' stops'}},
+        annotation:{annotations:{avgLine:{type:'line',yMin:fleetAvgCps,yMax:fleetAvgCps,borderColor:'rgba(26,39,68,0.4)',borderWidth:1,borderDash:[4,3],yScaleID:'y',label:{content:'Avg $'+fleetAvgCps.toFixed(0),display:true,position:'end',color:'#1a2744',font:{size:9}}}}}
+      },
+      scales:axes({y:{ticks:{callback:v=>'$'+v.toFixed(0)},position:'left',title:{display:true,text:'$/Stop',color:'#aab3cb',font:{size:9}}},y2:{grid:{display:false},ticks:{callback:v=>v},position:'right',title:{display:true,text:'Stops',color:'#aab3cb',font:{size:9}}}})
+    }
+  });
+}
+
 function chartCpsRun(data){kill('ch-cps-run');const byR=group(data,r=>r.run);const E=Object.entries(byR).map(([rn,rows])=>([+rn,avg(rows,r=>r.cost_per_stop)])).filter(([,v])=>v!=null).sort(([a],[b])=>a-b);const fa=avg(data,r=>r.cost_per_stop);const colors=E.map(([,v])=>v>=(fa||0)*1.15?C.red:v>=(fa||0)*1.0?C.amber:C.green);const ctx=document.getElementById('ch-cps-run')?.getContext('2d');if(!ctx)return;charts['ch-cps-run']=new Chart(ctx,{type:'bar',config:{_meta:{avgVal:fa,avgLabel:'$'+fa?.toFixed(0)}},data:{labels:E.map(([rn])=>`Run ${rn}`),datasets:[{data:E.map(([,v])=>v),backgroundColor:colors,borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tip(),callbacks:{label:i=>` ${i.raw.toFixed(2)} / stop`}}},scales:axes({x:{ticks:{font:{size:9}}},y:{ticks:{callback:v=>'$'+v.toFixed(0)}}})}});}
 function chartCpkDriver(data){kill('ch-cpk-d');const byD=group(data,r=>r.driver);const E=Object.entries(byD).map(([d,rows])=>([d,avg(rows,r=>r.cost_per_km)])).filter(([,v])=>v!=null).sort(([,a],[,b])=>a-b);const fa=avg(data,r=>r.cost_per_km);const colors=E.map(([,v])=>v<=(fa||0)*.95?C.green:v<=(fa||0)*1.05?C.navy:C.red);const ctx=document.getElementById('ch-cpk-d')?.getContext('2d');if(!ctx)return;charts['ch-cpk-d']=new Chart(ctx,{type:'bar',config:{_meta:{avgVal:fa,avgLabel:'$'+fa?.toFixed(2)+'/km'}},data:{labels:E.map(([d])=>d.split(',')[0].trim()),datasets:[{data:E.map(([,v])=>v),backgroundColor:colors,borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tip(),callbacks:{title:i=>E[i[0].dataIndex][0],label:i=>` ${i.raw.toFixed(3)} / km`}}},scales:axes({y:{ticks:{callback:v=>'$'+v.toFixed(2)}}})}});}
 function chartDepartDriver(data){kill('ch-depart-d');function tH(t){if(!t)return null;const[h,m]=(t+'').split(':').map(Number);return h+(m||0)/60;}const byD=group(data,r=>r.driver);const E=Object.entries(byD).map(([d,rows])=>([d,avg(rows,r=>tH(r.depart))])).filter(([,v])=>v!=null).sort(([,a],[,b])=>a-b);const colors=E.map(([,v])=>v<=8.5?C.green:v<=9.5?C.navy:C.red);const ctx=document.getElementById('ch-depart-d')?.getContext('2d');if(!ctx)return;charts['ch-depart-d']=new Chart(ctx,{type:'bar',data:{labels:E.map(([d])=>d.split(',')[0].trim()),datasets:[{data:E.map(([,v])=>v),backgroundColor:colors,borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tip(),callbacks:{title:i=>E[i[0].dataIndex][0],label:i=>{const h=Math.floor(i.raw),m=Math.round((i.raw-h)*60);return ` Avg depart: ${h}:${String(m).padStart(2,'0')}`;}}} },scales:axes({x:{ticks:{font:{size:10}}},y:{min:6,max:11,ticks:{callback:v=>{const h=Math.floor(v),m=Math.round((v-h)*60);return `${h}:${String(m).padStart(2,'0')}`;}}}})}});}
 function chartOnroadHist(data){kill('ch-onroad-hist');const buckets={};data.forEach(r=>{if(r.onroad_hrs>0){const b=Math.floor(r.onroad_hrs);const k=`${b}–${b+1}h`;buckets[k]=(buckets[k]||0)+1;}}); const labels=Object.keys(buckets).sort((a,b)=>parseInt(a)-parseInt(b));const ctx=document.getElementById('ch-onroad-hist')?.getContext('2d');if(!ctx)return;charts['ch-onroad-hist']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:labels.map(l=>buckets[l]),backgroundColor:C.navyL,borderColor:C.navy,borderWidth:1.5,borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tip(),callbacks:{label:i=>` ${i.raw} runs`}}},scales:axes({x:{ticks:{font:{size:10}}}})}});}
 function updateRanks(data){renderRank('rank-cph',data,r=>r.cph,v=>v.toFixed(2)+' CPH',false,C.green);renderRank('rank-cps',data,r=>r.cost_per_stop,v=>'$'+v.toFixed(0),true,C.red);renderRank('rank-stops',data,r=>r.contacts,v=>Math.round(v)+' stops',false,C.navy);}
-function renderRank(id,data,mFn,fFn,asc,color){const byD=group(data,r=>r.driver);const E=Object.entries(byD).map(([d,rows])=>([d,avg(rows,mFn)])).filter(([,v])=>v!=null).sort(([,a],[,b])=>asc?a-b:b-a).slice(0,9);const el=document.getElementById(id);if(!el)return;if(!E.length){el.innerHTML='<div class="empty-state">No data</div>';return;}const max=Math.max(...E.map(([,v])=>v));el.innerHTML=E.map(([d,v],i)=>`<div class="rank-row"><div class="rank-num">${i+1}</div><div class="rank-name">${d.split(',').reverse().map(s=>s.trim()).join(' ')}</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:${(v/max*100).toFixed(0)}%;background:${color}"></div></div><div class="rank-val">${fFn(v)}</div></div>`).join('');}
+function renderRank(id,data,mFn,fFn,asc,color){const byD=group(data,r=>r.driver);const E=Object.entries(byD).map(([d,rows])=>([d,avg(rows,mFn)])).filter(([,v])=>v!=null).sort(([,a],[,b])=>asc?a-b:b-a).slice(0,9);const el=document.getElementById(id);if(!el)return;if(!E.length){el.innerHTML='<div class="empty-state">No data</div>';return;}const max=Math.max(...E.map(([,v])=>v));el.innerHTML=E.map(([d,v],i)=>`<div class="rank-row" style="cursor:pointer" onclick="openDriverPanel('${d.replace(/'/g,"\'")}',FILTERED)" title="Click for driver profile"><div class="rank-num">${i+1}</div><div class="rank-name">${d.split(',').reverse().map(s=>s.trim()).join(' ')}</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:${(v/max*100).toFixed(0)}%;background:${color}"></div></div><div class="rank-val">${fFn(v)}</div></div>`).join('');}
 function sortTable(key){if(_sortKey===key)_sortDir*=-1;else{_sortKey=key;_sortDir=1;}document.querySelectorAll('thead th').forEach(t=>t.classList.remove('sorted'));document.getElementById('th-'+key)?.classList.add('sorted');updateTable(FILTERED);}
-function updateTable(data){const el=document.getElementById('table-meta');if(el)el.textContent=data.length+' records';const sorted=[...data].sort((a,b)=>{const av=a[_sortKey]??'',bv=b[_sortKey]??'';return(av<bv?-1:av>bv?1:0)*_sortDir;});const tb=document.getElementById('table-body');if(!tb)return;const fCph=avg(data,r=>r.cph),fCps=avg(data,r=>r.cost_per_stop);if(!sorted.length){tb.innerHTML='<tr><td colspan="12"><div class="empty-state">No records match filters</div></td></tr>';return;}tb.innerHTML=sorted.map(r=>{const cc=r.cph==null?'':r.cph>=(fCph||0)*1.05?'val-green':r.cph<(fCph||0)*0.9?'val-red':'val-amber';const sc=r.cost_per_stop==null?'':r.cost_per_stop<=(fCps||0)*.95?'val-green':r.cost_per_stop>(fCps||0)*1.1?'val-red':'val-amber';return `<tr><td>${r.date}</td><td class="bold">${r.driver}</td><td class="chip"><span class="run-chip">Run ${r.run}</span></td><td>${r.rego}</td><td class="num">${r.contacts!=null?Math.round(r.contacts):'—'}</td><td class="num">${r.kms!=null?r.kms.toFixed(0):'—'}</td><td class="num">${r.depart||'—'}</td><td class="num">${r.ret||'—'}</td><td class="num">${r.onroad_hrs!=null?r.onroad_hrs.toFixed(1)+'h':'—'}</td><td class="num ${cc}">${r.cph!=null?r.cph.toFixed(2):'—'}</td><td class="num ${sc}">${r.cost_per_stop!=null?'$'+r.cost_per_stop.toFixed(0):'—'}</td><td class="num">${r.total_cost!=null?'$'+Math.round(r.total_cost).toLocaleString():'—'}</td></tr>`;}). join('');}
+function updateTable(data){const el=document.getElementById('table-meta');if(el)el.textContent=data.length+' records';const sorted=[...data].sort((a,b)=>{const av=a[_sortKey]??'',bv=b[_sortKey]??'';return(av<bv?-1:av>bv?1:0)*_sortDir;});const tb=document.getElementById('table-body');if(!tb)return;const fCph=avg(data,r=>r.cph),fCps=avg(data,r=>r.cost_per_stop);if(!sorted.length){tb.innerHTML='<tr><td colspan="12"><div class="empty-state">No records match filters</div></td></tr>';return;}tb.innerHTML=sorted.map(r=>{const cc=r.cph==null?'':r.cph>=(fCph||0)*1.05?'val-green':r.cph<(fCph||0)*0.9?'val-red':'val-amber';const sc=r.cost_per_stop==null?'':r.cost_per_stop<=(fCps||0)*.95?'val-green':r.cost_per_stop>(fCps||0)*1.1?'val-red':'val-amber';const ri=JSON.stringify(r).replace(/'/g,"\'");return `<tr style="cursor:pointer" onclick='openRunPanel(${ri})' title="Click for run detail"><td>${r.date}</td><td class="bold">${r.driver}</td><td class="chip"><span class="run-chip">Run ${r.run}</span></td><td>${r.rego}</td><td class="num">${r.contacts!=null?Math.round(r.contacts):'—'}</td><td class="num">${r.kms!=null?r.kms.toFixed(0):'—'}</td><td class="num">${r.depart||'—'}</td><td class="num">${r.ret||'—'}</td><td class="num">${r.onroad_hrs!=null?r.onroad_hrs.toFixed(1)+'h':'—'}</td><td class="num ${cc}">${r.cph!=null?r.cph.toFixed(2):'—'}</td><td class="num ${sc}">${r.cost_per_stop!=null?'$'+r.cost_per_stop.toFixed(0):'—'}</td><td class="num">${r.total_cost!=null?'$'+Math.round(r.total_cost).toLocaleString():'—'}</td></tr>`;}). join('');}
 
 document.addEventListener('DOMContentLoaded', function(){
   // Only init dashboard if gate is not shown
@@ -515,37 +544,6 @@ function updateInsights(data){
   }
 }
 
-// ── Extra: Driver Scorecards ──
-function updateScorecards(data){
-  const grid=document.getElementById('score-grid');
-  if(!grid) return;
-  const byD=group(data,r=>r.driver);
-  const entries=Object.entries(byD).map(([d,rows])=>{
-    const cph=avg(rows,r=>r.cph)||0;
-    const cps=avg(rows,r=>r.cost_per_stop)||0;
-    const cpk=avg(rows,r=>r.cost_per_km)||0;
-    const stops=sum(rows,r=>r.contacts||0);
-    const runs=rows.length;
-    return {d,cph,cps,cpk,stops,runs};
-  }).sort((a,b)=>b.cph-a.cph);
-  const maxCph=Math.max(...entries.map(e=>e.cph));
-  const maxCps=Math.max(...entries.map(e=>e.cps));
-  const fleetCph=avg(data,r=>r.cph)||0;
-  grid.innerHTML=entries.map(e=>{
-    const cphPct=Math.round(e.cph/maxCph*100);
-    const cpsBad=Math.round(e.cps/maxCps*100);
-    const cphCol=e.cph>=fleetCph*1.05?'#0e7a47':e.cph>=fleetCph*0.9?'#1a2744':'#ED1D24';
-    return `<div class="score-card">
-      <div class="score-driver" title="${e.d}">${e.d.split(',')[0].trim()}</div>
-      <div class="score-metric"><span class="score-lbl">CPH</span><span class="score-val" style="color:${cphCol}">${e.cph.toFixed(2)}</span></div>
-      <div class="score-bar-outer"><div class="score-bar-inner" style="width:${cphPct}%;background:${cphCol}"></div></div>
-      <div class="score-metric" style="margin-top:6px"><span class="score-lbl">$/Stop</span><span class="score-val">${fmt$(e.cps)}</span></div>
-      <div class="score-bar-outer"><div class="score-bar-inner" style="width:${cpsBad}%;background:#ED1D24;opacity:.6"></div></div>
-      <div class="score-metric" style="margin-top:6px"><span class="score-lbl">Runs</span><span class="score-val">${e.runs}</span></div>
-    </div>`;
-  }).join('');
-}
-
 // Patch applyFilters to call new functions
 const _origApply = applyFilters;
 applyFilters = function(){
@@ -561,5 +559,378 @@ applyFilters = function(){
 };
 </script>
 
+
+<!-- ══════════════════════════════════════
+     DRIVER SLIDE-OUT PANEL
+     ══════════════════════════════════════ -->
+<div id="driver-overlay" onclick="closeDriverPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:500;backdrop-filter:blur(2px)"></div>
+<div id="driver-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:480px;background:#fff;box-shadow:-8px 0 40px rgba(0,0,0,0.15);z-index:501;flex-direction:column;overflow:hidden;transform:translateX(100%);transition:transform .35s cubic-bezier(.32,1,.6,1)">
+  <!-- Header -->
+  <div style="background:var(--navy);padding:18px 20px 16px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <div style="font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:4px">Driver Profile</div>
+      <div id="dp-name" style="font-family:var(--cond);font-size:20px;font-weight:800;color:#fff;letter-spacing:.02em"></div>
+      <div id="dp-period" style="font-size:11px;color:rgba(255,255,255,.45);margin-top:3px"></div>
+    </div>
+    <button onclick="closeDriverPanel()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
+  </div>
+  <div style="height:3px;background:var(--red);flex-shrink:0"></div>
+  <!-- Scrollable body -->
+  <div style="flex:1;overflow-y:auto;padding:18px 20px">
+
+    <!-- KPI strip -->
+    <div id="dp-kpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px"></div>
+
+    <!-- Trend chart -->
+    <div style="background:var(--off);border-radius:8px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Monthly Performance Trend</div>
+      <div style="height:160px;position:relative"><canvas id="dp-trend-chart"></canvas></div>
+    </div>
+
+    <!-- Cost breakdown -->
+    <div style="background:var(--off);border-radius:8px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Cost Structure</div>
+      <div id="dp-costs" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Depart discipline -->
+    <div style="background:var(--off);border-radius:8px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Depart Discipline</div>
+      <div id="dp-depart" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+    </div>
+
+    <!-- Run breakdown table -->
+    <div style="background:var(--off);border-radius:8px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Run History (Selected Period)</div>
+      <div id="dp-runs" style="overflow-x:auto"></div>
+    </div>
+
+    <!-- Fleet comparison -->
+    <div style="background:var(--off);border-radius:8px;padding:14px 16px">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">vs Fleet Average</div>
+      <div id="dp-vs-fleet" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     RUN DETAIL SLIDE-OUT PANEL
+     ══════════════════════════════════════ -->
+<div id="run-overlay" onclick="closeRunPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:500;backdrop-filter:blur(2px)"></div>
+<div id="run-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:460px;background:#fff;box-shadow:-8px 0 40px rgba(0,0,0,0.15);z-index:501;flex-direction:column;overflow:hidden;transform:translateX(100%);transition:transform .35s cubic-bezier(.32,1,.6,1)">
+  <div style="background:var(--navy);padding:18px 20px 16px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <div style="font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:4px">Run Detail</div>
+      <div id="rp-title" style="font-family:var(--cond);font-size:20px;font-weight:800;color:#fff"></div>
+      <div id="rp-sub" style="font-size:11px;color:rgba(255,255,255,.45);margin-top:3px"></div>
+    </div>
+    <button onclick="closeRunPanel()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
+  </div>
+  <div style="height:3px;background:var(--red);flex-shrink:0"></div>
+  <div style="flex:1;overflow-y:auto;padding:18px 20px">
+
+    <!-- Core stats -->
+    <div id="rp-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px"></div>
+
+    <!-- Timeline bar -->
+    <div style="background:var(--off);border-radius:8px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Day Timeline</div>
+      <div id="rp-timeline" style="position:relative;height:48px"></div>
+      <div id="rp-timeline-labels" style="display:flex;justify-content:space-between;margin-top:4px"></div>
+    </div>
+
+    <!-- Cost breakdown -->
+    <div style="background:var(--off);border-radius:8px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Cost Breakdown</div>
+      <div id="rp-costs"></div>
+    </div>
+
+    <!-- vs driver avg comparison -->
+    <div style="background:var(--off);border-radius:8px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">vs This Driver's Average</div>
+      <div id="rp-vs-driver"></div>
+    </div>
+
+    <!-- Flags / alerts -->
+    <div id="rp-flags-wrap" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px 16px;display:none">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b45309;margin-bottom:8px">⚠ Performance Flags</div>
+      <div id="rp-flags"></div>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+// ══════════════════════════════════════════════════════
+// DRIVER PANEL
+// ══════════════════════════════════════════════════════
+let _dpChart = null;
+
+function openDriverPanel(driverName, data){
+  const driverData = data.filter(r => r.driver === driverName);
+  if(!driverData.length) return;
+
+  const fleetCph = avg(data, r=>r.cph);
+  const fleetCps = avg(data, r=>r.cost_per_stop);
+  const fleetCpk = avg(data, r=>r.cost_per_km);
+  const dCph     = avg(driverData, r=>r.cph);
+  const dCps     = avg(driverData, r=>r.cost_per_stop);
+  const dCpk     = avg(driverData, r=>r.cost_per_km);
+  const dStops   = sum(driverData, r=>r.contacts||0);
+  const dKms     = sum(driverData, r=>r.kms||0);
+  const dCost    = sum(driverData, r=>r.total_cost||0);
+  const dRuns    = driverData.length;
+  const labCost  = sum(driverData, r=>r.labour_cost||0);
+  const fixCost  = sum(driverData, r=>r.fixed_cost||0);
+  const fueCost  = sum(driverData, r=>r.fuel_cost||0);
+
+  // Name formatting
+  const dispName = driverName.split(',').reverse().map(s=>s.trim()).join(' ');
+  const months   = [...new Set(driverData.map(r=>r.month))].sort((a,b)=>MONTHS.indexOf(a)-MONTHS.indexOf(b));
+
+  // Header
+  document.getElementById('dp-name').textContent = dispName;
+  document.getElementById('dp-period').textContent = months.join(' / ') + '  ·  ' + dRuns + ' runs';
+
+  // KPI strip
+  const kpiDefs = [
+    {lbl:'CPH',        val: dCph?.toFixed(2)||'—',    sub:'Target ≥ 1.5',     col: dCph>=1.5?'#0e7a47':dCph>=1.2?'#b45309':'#c8102e'},
+    {lbl:'$/Stop',     val:'$'+(dCps?.toFixed(0)||'—'),sub:'Fleet $'+(fleetCps?.toFixed(0)||'—'), col: dCps<=(fleetCps||0)?'#0e7a47':'#c8102e'},
+    {lbl:'$/Km',       val:'$'+(dCpk?.toFixed(2)||'—'),sub:'Fleet $'+(fleetCpk?.toFixed(2)||'—'), col: dCpk<=(fleetCpk||0)?'#0e7a47':'#c8102e'},
+    {lbl:'Total Stops',val: Math.round(dStops).toLocaleString(), sub:(dStops/Math.max(1,dRuns)).toFixed(1)+' avg/run', col:'#1a2744'},
+    {lbl:'Total Kms',  val: Math.round(dKms).toLocaleString(),   sub:(dKms/Math.max(1,dRuns)).toFixed(0)+' avg/run',   col:'#1a2744'},
+    {lbl:'Total Cost', val:'$'+Math.round(dCost).toLocaleString(),sub:'$'+Math.round(dCost/Math.max(1,dRuns)).toLocaleString()+'/run', col:'#1a2744'},
+  ];
+  document.getElementById('dp-kpis').innerHTML = kpiDefs.map(k=>`
+    <div class="dp-kpi-card">
+      <div class="dp-kpi-lbl">${k.lbl}</div>
+      <div class="dp-kpi-val" style="color:${k.col}">${k.val}</div>
+      <div class="dp-kpi-sub">${k.sub}</div>
+    </div>`).join('');
+
+  // Monthly trend chart
+  if(_dpChart){_dpChart.destroy();_dpChart=null;}
+  const byM = group(driverData, r=>r.month);
+  const tMonths = MONTHS.filter(m=>byM[m]);
+  const ctx = document.getElementById('dp-trend-chart')?.getContext('2d');
+  if(ctx && tMonths.length){
+    _dpChart = new Chart(ctx,{type:'line',data:{labels:tMonths,datasets:[
+      {label:'CPH',data:tMonths.map(m=>avg(byM[m],r=>r.cph)),borderColor:C.navy,backgroundColor:'rgba(26,39,68,0.06)',borderWidth:2,pointRadius:4,tension:.3,fill:true,yAxisID:'y'},
+      {label:'$/Stop',data:tMonths.map(m=>avg(byM[m],r=>r.cost_per_stop)),borderColor:C.red,backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:.3,borderDash:[4,3],yAxisID:'y2'}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#7b88a8',boxWidth:8,padding:10,font:{size:9}}},tooltip:{...tip()}},scales:axes({y:{ticks:{callback:v=>v.toFixed(1)},position:'left'},y2:{grid:{display:false},ticks:{callback:v=>'$'+v.toFixed(0)},position:'right'}})}});
+  }
+
+  // Cost breakdown bars
+  const totCost = labCost + fixCost + fueCost;
+  document.getElementById('dp-costs').innerHTML = [
+    {lbl:'Labour', val:labCost, col:'#1a2744'},
+    {lbl:'Fixed',  val:fixCost, col:'#c8102e'},
+    {lbl:'Fuel',   val:fueCost, col:'#1d6fcc'},
+  ].map(c=>`<div class="cost-row">
+    <div class="cost-lbl">${c.lbl}</div>
+    <div class="cost-bar-outer"><div class="cost-bar-inner" style="width:${(c.val/Math.max(totCost,1)*100).toFixed(0)}%;background:${c.col}"></div></div>
+    <div class="cost-val">$${Math.round(c.val).toLocaleString()}</div>
+  </div>`).join('');
+
+  // Depart discipline
+  const toMins = t=>{if(!t)return null;const[h,m]=(t+'').split(':').map(Number);return h*60+(m||0);};
+  const departs = driverData.filter(r=>r.depart).map(r=>toMins(r.depart)).filter(v=>v!=null);
+  const avgDep  = departs.length ? departs.reduce((s,v)=>s+v,0)/departs.length : null;
+  const early   = departs.filter(v=>v<=8*60+30).length;
+  const onTime  = departs.filter(v=>v>8*60+30&&v<=9*60+30).length;
+  const late    = departs.filter(v=>v>9*60+30).length;
+  const fmtTime = m=>{if(m==null)return'—';return String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.round(m%60)).padStart(2,'0');};
+  document.getElementById('dp-depart').innerHTML = [
+    {lbl:'Avg Depart',    val:fmtTime(avgDep), col:avgDep!=null&&avgDep<=8*60+30?'#0e7a47':avgDep<=9*60+30?'#1a2744':'#c8102e'},
+    {lbl:'On Time ≤08:30',val:early+' runs',   col:'#0e7a47'},
+    {lbl:'≤09:30',        val:onTime+' runs',  col:'#1a2744'},
+    {lbl:'Late >09:30',   val:late+' runs',    col: late>0?'#c8102e':'#0e7a47'},
+  ].map(d=>`<div style="flex:1;min-width:90px;background:#fff;border-radius:6px;padding:8px 10px;border:1px solid var(--rule)">
+    <div style="font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">${d.lbl}</div>
+    <div style="font-family:var(--cond);font-size:16px;font-weight:800;color:${d.col}">${d.val}</div>
+  </div>`).join('');
+
+  // Run history mini-table
+  const sorted = [...driverData].sort((a,b)=>a.date>b.date?-1:1).slice(0,15);
+  document.getElementById('dp-runs').innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--navy-l)">
+      <th style="padding:5px 8px;text-align:left;font-family:var(--cond);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Date</th>
+      <th style="padding:5px 8px;text-align:center">Run</th>
+      <th style="padding:5px 8px;text-align:right">Stops</th>
+      <th style="padding:5px 8px;text-align:right">CPH</th>
+      <th style="padding:5px 8px;text-align:right">$/Stop</th>
+      <th style="padding:5px 8px;text-align:right">Cost</th>
+    </tr></thead>
+    <tbody>${sorted.map(r=>{
+      const cc=r.cph!=null?(r.cph>=(dCph||0)*1.05?'color:#0e7a47':r.cph<(dCph||0)*0.9?'color:#c8102e':'color:#1a2744'):'';
+      return `<tr style="border-bottom:1px solid var(--rule-l)">
+        <td style="padding:5px 8px;color:var(--muted)">${r.date}</td>
+        <td style="padding:5px 8px;text-align:center;font-family:var(--cond);font-weight:700;color:var(--navy)">${r.run}</td>
+        <td style="padding:5px 8px;text-align:right">${r.contacts!=null?Math.round(r.contacts):'—'}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:700;${cc}">${r.cph!=null?r.cph.toFixed(2):'—'}</td>
+        <td style="padding:5px 8px;text-align:right">${r.cost_per_stop!=null?'$'+r.cost_per_stop.toFixed(0):'—'}</td>
+        <td style="padding:5px 8px;text-align:right;font-family:var(--cond);font-weight:700">$${Math.round(r.total_cost||0).toLocaleString()}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+
+  // vs Fleet comparison
+  const compRows = [
+    {lbl:'Contacts / Hr',  driver:dCph,  fleet:fleetCph,  fmt:v=>v.toFixed(2),  higherBetter:true},
+    {lbl:'Cost / Stop',    driver:dCps,  fleet:fleetCps,  fmt:v=>'$'+v.toFixed(0), higherBetter:false},
+    {lbl:'Cost / Km',      driver:dCpk,  fleet:fleetCpk,  fmt:v=>'$'+v.toFixed(2), higherBetter:false},
+    {lbl:'Avg Stops / Run',driver:dStops/Math.max(1,dRuns), fleet:sum(data,r=>r.contacts||0)/Math.max(1,data.length), fmt:v=>v.toFixed(1), higherBetter:true},
+  ];
+  document.getElementById('dp-vs-fleet').innerHTML = compRows.map(cr=>{
+    if(cr.driver==null||cr.fleet==null) return '';
+    const diff = cr.driver - cr.fleet;
+    const pct  = Math.abs(Math.round(diff/cr.fleet*100));
+    const better = cr.higherBetter ? diff>0 : diff<0;
+    const neutral = Math.abs(diff/cr.fleet)<0.05;
+    const col = neutral?'badge-navy':better?'badge-green':'badge-red';
+    const lbl = neutral?'On Par':better?`+${pct}% better`:`${pct}% behind`;
+    return `<div class="vs-row">
+      <div class="vs-lbl">${cr.lbl}</div>
+      <div class="vs-driver">${cr.fmt(cr.driver)}</div>
+      <div class="vs-fleet">${cr.fmt(cr.fleet)} fleet</div>
+      <div class="vs-badge kpi-badge ${col}">${lbl}</div>
+    </div>`;
+  }).join('');
+
+  // Show panel
+  const overlay = document.getElementById('driver-overlay');
+  const panel   = document.getElementById('driver-panel');
+  overlay.style.display = 'block';
+  panel.style.display   = 'flex';
+  requestAnimationFrame(()=>{ panel.style.transform = 'translateX(0)'; });
+}
+
+function closeDriverPanel(){
+  const panel = document.getElementById('driver-panel');
+  const overlay = document.getElementById('driver-overlay');
+  panel.style.transform = 'translateX(100%)';
+  setTimeout(()=>{ panel.style.display='none'; overlay.style.display='none'; }, 360);
+}
+
+// ══════════════════════════════════════════════════════
+// RUN PANEL
+// ══════════════════════════════════════════════════════
+function openRunPanel(r){
+  const driverData = FILTERED.filter(d=>d.driver===r.driver);
+  const dCph = avg(driverData, d=>d.cph);
+  const dCps = avg(driverData, d=>d.cost_per_stop);
+  const dCpk = avg(driverData, d=>d.cost_per_km);
+  const dispName = r.driver.split(',').reverse().map(s=>s.trim()).join(' ');
+
+  document.getElementById('rp-title').textContent = 'Run '+r.run+' · '+r.date;
+  document.getElementById('rp-sub').textContent = dispName+' · '+r.rego;
+
+  // Core stats
+  const stats = [
+    {lbl:'Stops',      val:r.contacts!=null?Math.round(r.contacts)+'':'—',  sub:(r.deliveries||0)+' del · '+(r.pickups||0)+' pu'},
+    {lbl:'CPH',        val:r.cph!=null?r.cph.toFixed(2):'—',                sub:'Target ≥ 1.50',   col:r.cph>=1.5?'#0e7a47':r.cph>=1.2?'#b45309':'#c8102e'},
+    {lbl:'$/Stop',     val:r.cost_per_stop!=null?'$'+r.cost_per_stop.toFixed(0):'—', sub:'Driver avg $'+(dCps?.toFixed(0)||'—'), col:r.cost_per_stop<=(dCps||0)?'#0e7a47':'#c8102e'},
+    {lbl:'Total Kms',  val:r.kms!=null?r.kms.toFixed(0):'—',               sub:'$/Km: $'+(r.cost_per_km?.toFixed(2)||'—')},
+    {lbl:'On-Road',    val:r.onroad_hrs!=null?r.onroad_hrs.toFixed(1)+'h':'—', sub:'Depot: '+(r.depot_hrs?.toFixed(1)||'—')+'h'},
+    {lbl:'Total Cost', val:r.total_cost!=null?'$'+Math.round(r.total_cost).toLocaleString():'—', sub:'For this run'},
+  ];
+  document.getElementById('rp-stats').innerHTML = stats.map(s=>`
+    <div class="dp-kpi-card">
+      <div class="dp-kpi-lbl">${s.lbl}</div>
+      <div class="dp-kpi-val" style="color:${s.col||'#1a2744'}">${s.val}</div>
+      <div class="dp-kpi-sub">${s.sub||''}</div>
+    </div>`).join('');
+
+  // Day timeline
+  const toMins = t=>{if(!t)return null;const[h,m]=(t+'').split(':').map(Number);return h*60+(m||0);};
+  const tStart  = toMins(r.start)  || toMins(r.depart)-30;
+  const tDepart = toMins(r.depart);
+  const tRet    = toMins(r.ret);
+  const tFinish = toMins(r.finish) || tRet+30;
+  const dayStart = 5*60, dayEnd = 18*60, span = dayEnd - dayStart;
+  const pct = v=>Math.max(0,Math.min(100,(v-dayStart)/span*100)).toFixed(1)+'%';
+  const wid = (a,b)=>Math.max(0,(b-a)/span*100).toFixed(1)+'%';
+  document.getElementById('rp-timeline').innerHTML = `
+    <div style="position:absolute;top:0;left:0;right:0;height:32px;background:var(--rule-l);border-radius:4px;overflow:hidden">
+      ${tStart&&tDepart?`<div style="position:absolute;left:${pct(tStart)};width:${wid(tStart,tDepart)};height:100%;background:#e8ebf3" title="Depot prep ${r.start}→${r.depart}"></div>`:''}
+      ${tDepart&&tRet?`<div style="position:absolute;left:${pct(tDepart)};width:${wid(tDepart,tRet)};height:100%;background:#1a2744" title="On road ${r.depart}→${r.ret}"></div>`:''}
+      ${tRet&&tFinish?`<div style="position:absolute;left:${pct(tRet)};width:${wid(tRet,tFinish)};height:100%;background:#c8102e;opacity:.5" title="Return ${r.ret}→${r.finish}"></div>`:''}
+    </div>
+    <div style="position:absolute;top:36px;left:0;right:0;display:flex;justify-content:space-between;font-size:9px;color:var(--muted)">
+      ${['05:00','07:00','09:00','11:00','13:00','15:00','17:00'].map((t,i)=>`<span>${t}</span>`).join('')}
+    </div>`;
+  document.getElementById('rp-timeline-labels').innerHTML = `
+    <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)"><span style="width:10px;height:6px;background:#e8ebf3;display:inline-block;border-radius:2px"></span>Depot Prep</span>
+    <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)"><span style="width:10px;height:6px;background:#1a2744;display:inline-block;border-radius:2px"></span>On Road</span>
+    <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)"><span style="width:10px;height:6px;background:#c8102e;opacity:.5;display:inline-block;border-radius:2px"></span>Return</span>`;
+
+  // Cost breakdown
+  const totC = (r.labour_cost||0)+(r.fixed_cost||0)+(r.fuel_cost||0);
+  document.getElementById('rp-costs').innerHTML = [
+    {lbl:'Labour',col:'#1a2744',val:r.labour_cost||0},
+    {lbl:'Fixed', col:'#c8102e',val:r.fixed_cost||0},
+    {lbl:'Fuel',  col:'#1d6fcc',val:r.fuel_cost||0},
+  ].map(c=>`<div class="cost-row">
+    <div class="cost-lbl">${c.lbl}</div>
+    <div class="cost-bar-outer"><div class="cost-bar-inner" style="width:${(c.val/Math.max(totC,1)*100).toFixed(0)}%;background:${c.col}"></div></div>
+    <div class="cost-val">$${Math.round(c.val).toLocaleString()}</div>
+  </div>`).join('');
+
+  // vs driver avg
+  const vsRows = [
+    {lbl:'CPH',     run:r.cph,          drvAvg:dCph, fmt:v=>v.toFixed(2), higherBetter:true},
+    {lbl:'$/Stop',  run:r.cost_per_stop, drvAvg:dCps, fmt:v=>'$'+v.toFixed(0), higherBetter:false},
+    {lbl:'$/Km',    run:r.cost_per_km,   drvAvg:dCpk, fmt:v=>'$'+v.toFixed(2), higherBetter:false},
+    {lbl:'Kms',     run:r.kms,           drvAvg:avg(driverData,d=>d.kms), fmt:v=>v.toFixed(0), higherBetter:null},
+  ];
+  document.getElementById('rp-vs-driver').innerHTML = vsRows.map(vr=>{
+    if(vr.run==null||vr.drvAvg==null) return '';
+    const diff=vr.run-vr.drvAvg, pct=Math.abs(Math.round(diff/vr.drvAvg*100));
+    const better=vr.higherBetter==null?null:(vr.higherBetter?diff>0:diff<0);
+    const neutral=vr.higherBetter==null||Math.abs(diff/vr.drvAvg)<0.05;
+    const col=neutral?'badge-navy':better?'badge-green':'badge-red';
+    const lbl=neutral?'Avg':better?`+${pct}% better`:`${pct}% behind`;
+    return `<div class="vs-row">
+      <div class="vs-lbl">${vr.lbl}</div>
+      <div class="vs-driver">${vr.fmt(vr.run)}</div>
+      <div class="vs-fleet">${vr.fmt(vr.drvAvg)} avg</div>
+      <div class="vs-badge kpi-badge ${col}">${lbl}</div>
+    </div>`;
+  }).join('');
+
+  // Performance flags
+  const flags = [];
+  const depMins = toMins(r.depart);
+  if(depMins && depMins > 9*60+30) flags.push('⏰ Late departure ('+r.depart+') — target ≤ 08:30');
+  if(r.cph!=null && dCph!=null && r.cph < dCph*0.85) flags.push('📉 CPH '+r.cph.toFixed(2)+' is more than 15% below this driver's average ('+dCph.toFixed(2)+')');
+  if(r.cost_per_stop!=null && dCps!=null && r.cost_per_stop > dCps*1.15) flags.push('💲 Cost/Stop $'+r.cost_per_stop.toFixed(0)+' is more than 15% above driver avg ($'+dCps.toFixed(0)+')');
+  if(r.depot_hrs!=null && r.depot_hrs > 3) flags.push('🏭 '+r.depot_hrs.toFixed(1)+'h depot time — above typical 2.5h threshold');
+  if(r.kms!=null && r.kms > avg(FILTERED,d=>d.kms)*1.3) flags.push('🛣 High km run ('+r.kms.toFixed(0)+'km) — consider route review');
+  const flagWrap = document.getElementById('rp-flags-wrap');
+  const flagEl   = document.getElementById('rp-flags');
+  if(flags.length){
+    flagWrap.style.display = 'block';
+    flagEl.innerHTML = flags.map(f=>`<div class="flag-item">${f}</div>`).join('');
+  } else {
+    flagWrap.style.display = 'none';
+  }
+
+  const overlay = document.getElementById('run-overlay');
+  const panel   = document.getElementById('run-panel');
+  overlay.style.display = 'block';
+  panel.style.display   = 'flex';
+  requestAnimationFrame(()=>{ panel.style.transform = 'translateX(0)'; });
+}
+
+function closeRunPanel(){
+  const panel = document.getElementById('run-panel');
+  const overlay = document.getElementById('run-overlay');
+  panel.style.transform = 'translateX(100%)';
+  setTimeout(()=>{ panel.style.display='none'; overlay.style.display='none'; }, 360);
+}
+
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeDriverPanel(); closeRunPanel(); } });
+</script>
 </body>
 </html>
